@@ -42,3 +42,16 @@ data class ComparacaoMensal(
     val meses: List<ResumoMensal>,
     val variacao_percentual_total: Double? = null,
 )
+
+@Serializable
+data class SenhaPadrao(
+    val id: Int,
+    val valor: String,
+    val descricao: String? = null,
+)
+
+@Serializable
+data class SenhaPadraoCreate(
+    val valor: String,
+    val descricao: String? = null,
+)

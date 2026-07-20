@@ -43,3 +43,17 @@ class ResumoMensal(BaseModel):
 class ComparacaoMensal(BaseModel):
     meses: list[ResumoMensal]
     variacao_percentual_total: float | None = None
+
+
+class SenhaPadraoCreate(BaseModel):
+    valor: str
+    descricao: str | None = None
+
+
+class SenhaPadraoOut(BaseModel):
+    id: int
+    valor: str
+    descricao: str | None = None
+
+    class Config:
+        from_attributes = True

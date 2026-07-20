@@ -1,12 +1,12 @@
 import hashlib
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .categorizer import categorizar
 from .database import Base, engine, get_db
-from .parsers import BancoNaoIdentificadoError, processar_fatura
+from .parsers import BancoNaoIdentificadoError, SenhaIncorretaError, processar_fatura
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,7 +14,11 @@ app = FastAPI(title="Fatura App API")
 
 
 @app.post("/faturas/upload", response_model=schemas.FaturaOut)
-async def upload_fatura(arquivo: UploadFile, db: Session = Depends(get_db)):
+async def upload_fatura(
+    arquivo: UploadFile,
+    senha: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
     if arquivo.content_type != "application/pdf":
         raise HTTPException(400, "Envie um arquivo PDF")
 
@@ -25,10 +29,15 @@ async def upload_fatura(arquivo: UploadFile, db: Session = Depends(get_db)):
     if existente:
         raise HTTPException(409, "Esta fatura ja foi processada anteriormente")
 
+    senhas_padrao = [s.valor for s in db.query(models.SenhaPadrao).all()]
+    senhas_candidatas = ([senha] if senha else []) + senhas_padrao
+
     try:
-        fatura_parseada = processar_fatura(pdf_bytes)
+        fatura_parseada = processar_fatura(pdf_bytes, senhas_candidatas)
     except BancoNaoIdentificadoError as exc:
         raise HTTPException(422, str(exc))
+    except SenhaIncorretaError as exc:
+        raise HTTPException(401, str(exc))
 
     fatura = models.Fatura(
         banco=fatura_parseada.banco,
@@ -124,6 +133,33 @@ def resumo_mensal(ano: int, mes: int, db: Session = Depends(get_db)):
     if resumo is None:
         raise HTTPException(404, "Nenhuma fatura encontrada para este periodo")
     return resumo
+
+
+@app.get("/senhas-padrao", response_model=list[schemas.SenhaPadraoOut])
+def listar_senhas_padrao(db: Session = Depends(get_db)):
+    return db.query(models.SenhaPadrao).all()
+
+
+@app.post("/senhas-padrao", response_model=schemas.SenhaPadraoOut)
+def criar_senha_padrao(payload: schemas.SenhaPadraoCreate, db: Session = Depends(get_db)):
+    existente = db.query(models.SenhaPadrao).filter_by(valor=payload.valor).first()
+    if existente:
+        raise HTTPException(409, "Esta senha ja esta cadastrada")
+
+    senha_padrao = models.SenhaPadrao(valor=payload.valor, descricao=payload.descricao)
+    db.add(senha_padrao)
+    db.commit()
+    db.refresh(senha_padrao)
+    return senha_padrao
+
+
+@app.delete("/senhas-padrao/{senha_id}", status_code=204)
+def remover_senha_padrao(senha_id: int, db: Session = Depends(get_db)):
+    senha_padrao = db.query(models.SenhaPadrao).get(senha_id)
+    if not senha_padrao:
+        raise HTTPException(404, "Senha nao encontrada")
+    db.delete(senha_padrao)
+    db.commit()
 
 
 @app.get("/comparacao", response_model=schemas.ComparacaoMensal)

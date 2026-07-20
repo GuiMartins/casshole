@@ -7,11 +7,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,6 +31,8 @@ fun UploadScreen(
     viewModel: UploadViewModel = viewModel(),
 ) {
     val arquivoSelecionado by viewModel.arquivoSelecionado.collectAsState()
+    val senha by viewModel.senha.collectAsState()
+    val temSenhasCadastradas by viewModel.temSenhasCadastradas.collectAsState()
     val uploadState by viewModel.uploadState.collectAsState()
 
     val seletorArquivo = rememberLauncherForActivityResult(
@@ -69,6 +75,26 @@ fun UploadScreen(
                 .padding(top = 12.dp),
         ) {
             Text("Escolher arquivo")
+        }
+
+        if (!temSenhasCadastradas) {
+            OutlinedTextField(
+                value = senha,
+                onValueChange = viewModel::onSenhaChange,
+                label = { Text("Senha do PDF (opcional)") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+            )
+            Text(
+                text = "Dica: você pode pré-cadastrar senhas na tela \"Senhas\" do Dashboard " +
+                    "para o app abrir PDFs protegidos automaticamente, sem digitar toda vez.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
 
         when (val estado = uploadState) {

@@ -36,8 +36,32 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
     private val _arquivoSelecionado = MutableStateFlow<ArquivoSelecionado?>(null)
     val arquivoSelecionado: StateFlow<ArquivoSelecionado?> = _arquivoSelecionado.asStateFlow()
 
+    private val _senha = MutableStateFlow("")
+    val senha: StateFlow<String> = _senha.asStateFlow()
+
+    private val _temSenhasCadastradas = MutableStateFlow(false)
+    val temSenhasCadastradas: StateFlow<Boolean> = _temSenhasCadastradas.asStateFlow()
+
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState: StateFlow<UploadState> = _uploadState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            try {
+                val backendUrl = preferencesRepository.backendUrl.first()
+                if (!backendUrl.isNullOrBlank()) {
+                    val senhas = ApiClientProvider.getApi(backendUrl).listarSenhasPadrao()
+                    _temSenhasCadastradas.value = senhas.isNotEmpty()
+                }
+            } catch (e: Exception) {
+                // Mantem o campo de senha visivel se nao conseguir checar as cadastradas
+            }
+        }
+    }
+
+    fun onSenhaChange(novaSenha: String) {
+        _senha.value = novaSenha
+    }
 
     fun selecionarArquivo(uri: Uri) {
         val nome = resolverNomeArquivo(uri) ?: "fatura.pdf"
@@ -78,11 +102,14 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
 
                 val requestBody = bytes.toRequestBody("application/pdf".toMediaType())
                 val part = MultipartBody.Part.createFormData("arquivo", arquivo.nome, requestBody)
+                val senhaBody = _senha.value.trim().ifBlank { null }
+                    ?.toRequestBody("text/plain".toMediaType())
 
-                val fatura = ApiClientProvider.getApi(backendUrl).uploadFatura(part)
+                val fatura = ApiClientProvider.getApi(backendUrl).uploadFatura(part, senhaBody)
                 _uploadState.value = UploadState.Sucesso(fatura)
             } catch (e: HttpException) {
                 val mensagem = when (e.code()) {
+                    401 -> "Senha incorreta ou fatura protegida por senha"
                     409 -> "Esta fatura já foi enviada anteriormente"
                     422 -> "Não foi possível identificar o banco desta fatura"
                     else -> "Erro do servidor (${e.code()})"

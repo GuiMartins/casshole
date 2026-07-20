@@ -49,3 +49,11 @@ class Transacao(Base):
     parcela_total = Column(Integer, nullable=True)
 
     fatura = relationship("Fatura", back_populates="transacoes")
+
+
+class SenhaPadrao(Base):
+    __tablename__ = "senhas_padrao"
+
+    id = Column(Integer, primary_key=True)
+    valor = Column(String, nullable=False, unique=True)
+    descricao = Column(String, nullable=True)
