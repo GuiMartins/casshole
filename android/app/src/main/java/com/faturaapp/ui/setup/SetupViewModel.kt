@@ -35,6 +35,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             preferencesRepository.backendUrl.first()?.let { savedUrl ->
                 _url.value = savedUrl
+                if (testarConexaoSuspensa()) continuar()
             }
         }
     }
@@ -45,23 +46,27 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun testarConexao() {
+        viewModelScope.launch { testarConexaoSuspensa() }
+    }
+
+    private suspend fun testarConexaoSuspensa(): Boolean {
         val urlAtual = _url.value.trim()
         if (urlAtual.isBlank()) {
             _testState.value = ConnectionTestState.Failure("Informe o endereço do servidor")
-            return
+            return false
         }
 
-        viewModelScope.launch {
-            _testState.value = ConnectionTestState.Testing
-            try {
-                ApiClientProvider.getApi(urlAtual).listarFaturas()
-                _testState.value = ConnectionTestState.Success
-                preferencesRepository.setBackendUrl(urlAtual)
-            } catch (e: Exception) {
-                _testState.value = ConnectionTestState.Failure(
-                    e.message ?: "Não foi possível conectar ao servidor"
-                )
-            }
+        _testState.value = ConnectionTestState.Testing
+        return try {
+            ApiClientProvider.getApi(urlAtual).listarFaturas()
+            _testState.value = ConnectionTestState.Success
+            preferencesRepository.setBackendUrl(urlAtual)
+            true
+        } catch (e: Exception) {
+            _testState.value = ConnectionTestState.Failure(
+                e.message ?: "Não foi possível conectar ao servidor"
+            )
+            false
         }
     }
 

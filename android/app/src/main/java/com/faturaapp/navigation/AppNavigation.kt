@@ -7,10 +7,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.faturaapp.ui.dashboard.DashboardScreen
 import com.faturaapp.ui.setup.SetupScreen
+import com.faturaapp.ui.upload.UploadScreen
 
 private object Rotas {
     const val SETUP = "setup"
     const val DASHBOARD = "dashboard"
+    const val UPLOAD = "upload"
 }
 
 @Composable
@@ -26,7 +28,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             )
         }
         composable(Rotas.DASHBOARD) {
-            DashboardScreen()
+            DashboardScreen(
+                onEnviarFatura = { navController.navigate(Rotas.UPLOAD) }
+            )
+        }
+        composable(Rotas.UPLOAD) {
+            UploadScreen(
+                onFaturaEnviada = { navController.popBackStack() }
+            )
         }
     }
 }

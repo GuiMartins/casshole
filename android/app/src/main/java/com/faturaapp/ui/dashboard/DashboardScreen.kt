@@ -9,40 +9,75 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.model.Fatura
 
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
+fun DashboardScreen(
+    onEnviarFatura: () -> Unit,
+    viewModel: DashboardViewModel = viewModel(),
+) {
     val state by viewModel.state.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        when (val estadoAtual = state) {
-            is DashboardState.Loading -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
-            is DashboardState.Erro -> Text(
-                text = estadoAtual.mensagem,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(24.dp),
-            )
-            is DashboardState.Carregado -> {
-                if (estadoAtual.faturas.isEmpty()) {
-                    Text(
-                        text = "Nenhuma fatura enviada ainda",
-                        modifier = Modifier.align(Alignment.Center),
-                    )
-                } else {
-                    ListaFaturas(estadoAtual.faturas)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val onResumeAction by rememberUpdatedState(viewModel::carregarFaturas)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) onResumeAction()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onEnviarFatura) {
+                Icon(Icons.Filled.Add, contentDescription = "Enviar fatura")
+            }
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when (val estadoAtual = state) {
+                is DashboardState.Loading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                is DashboardState.Erro -> Text(
+                    text = estadoAtual.mensagem,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                )
+                is DashboardState.Carregado -> {
+                    if (estadoAtual.faturas.isEmpty()) {
+                        Text(
+                            text = "Nenhuma fatura enviada ainda",
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    } else {
+                        ListaFaturas(estadoAtual.faturas)
+                    }
                 }
             }
         }
