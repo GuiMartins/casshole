@@ -34,6 +34,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.model.Fatura
+import androidx.compose.material3.HorizontalDivider
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -113,11 +114,18 @@ private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) ->
         .toList()
         .sortedBy { (chave, _) -> "${chave.first}${chave.second}" }
 
+    val faturasMaisRecentes = grupos.map { (_, faturasDoGrupo) ->
+        faturasDoGrupo.maxBy { it.ano_referencia * 100 + it.mes_referencia }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
     ) {
+        item(key = "resumo-geral") {
+            ResumoGeralCard(faturasMaisRecentes)
+        }
         grupos.forEach { (chave, faturasDoGrupo) ->
             val (banco, cartao) = chave
             item(key = "header-$banco-$cartao") {
@@ -133,6 +141,50 @@ private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) ->
                 key = { it.id },
             ) { fatura ->
                 FaturaMesRow(fatura, onClick = { onAbrirFatura(fatura.id) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResumoGeralCard(faturasMaisRecentes: List<Fatura>) {
+    val transacoes = faturasMaisRecentes.flatMap { it.transacoes }
+    val totalGeral = transacoes.sumOf { it.valor }
+    val porCategoria = transacoes
+        .groupBy { it.categoria }
+        .mapValues { (_, itens) -> itens.sumOf { it.valor } }
+        .toList()
+        .sortedByDescending { (_, total) -> total }
+
+    Card(modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Resumo geral",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = "Mês mais recente de cada cartão",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            Text(
+                text = "R$ %.2f".format(totalGeral),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+
+            if (porCategoria.isNotEmpty()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                porCategoria.forEach { (categoria, total) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(categoria, style = MaterialTheme.typography.bodyMedium)
+                        Text("R$ %.2f".format(total), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }
