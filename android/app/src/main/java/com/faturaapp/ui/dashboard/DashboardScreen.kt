@@ -1,9 +1,12 @@
 package com.faturaapp.ui.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +41,7 @@ fun DashboardScreen(
     onEnviarFatura: () -> Unit,
     onComparar: () -> Unit,
     onSenhas: () -> Unit,
+    onAbrirFatura: (Int) -> Unit,
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -94,7 +98,7 @@ fun DashboardScreen(
                             modifier = Modifier.align(Alignment.Center),
                         )
                     } else {
-                        ListaFaturas(estadoAtual.faturas)
+                        ListaFaturasPorCartao(estadoAtual.faturas, onAbrirFatura)
                     }
                 }
             }
@@ -103,37 +107,66 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun ListaFaturas(faturas: List<Fatura>) {
+private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) -> Unit) {
+    val grupos = faturas
+        .groupBy { it.banco to it.cartao }
+        .toList()
+        .sortedBy { (chave, _) -> "${chave.first}${chave.second}" }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 16.dp),
     ) {
-        items(faturas) { fatura ->
-            FaturaCard(fatura)
+        grupos.forEach { (chave, faturasDoGrupo) ->
+            val (banco, cartao) = chave
+            item(key = "header-$banco-$cartao") {
+                val sufixoCartao = if (cartao.isNotBlank()) " (••••$cartao)" else ""
+                Text(
+                    text = "${banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+                )
+            }
+            items(
+                faturasDoGrupo.sortedByDescending { it.ano_referencia * 100 + it.mes_referencia },
+                key = { it.id },
+            ) { fatura ->
+                FaturaMesRow(fatura, onClick = { onAbrirFatura(fatura.id) })
+            }
         }
     }
 }
 
 @Composable
-private fun FaturaCard(fatura: Fatura) {
+private fun FaturaMesRow(fatura: Fatura, onClick: () -> Unit) {
     val totalGasto = fatura.transacoes.sumOf { it.valor }
-    Card {
-        Column(modifier = Modifier.padding(16.dp)) {
-            val sufixoCartao = if (fatura.cartao.isNotBlank()) " (••••${fatura.cartao})" else ""
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
             Text(
-                text = "${fatura.banco.replaceFirstChar { it.uppercase() }}$sufixoCartao — ${fatura.mes_referencia}/${fatura.ano_referencia}",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = "Total: R$ %.2f".format(totalGasto),
+                text = "${fatura.mes_referencia}/${fatura.ano_referencia}",
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Text(
-                text = "${fatura.transacoes.size} transações",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "R$ %.2f".format(totalGasto),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = "${fatura.transacoes.size} transações",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
     }
 }

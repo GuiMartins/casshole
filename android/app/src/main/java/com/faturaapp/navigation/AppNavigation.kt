@@ -2,11 +2,14 @@ package com.faturaapp.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.faturaapp.ui.comparacao.ComparacaoScreen
 import com.faturaapp.ui.dashboard.DashboardScreen
+import com.faturaapp.ui.faturadetalhe.FaturaDetalheScreen
 import com.faturaapp.ui.senhas.SenhasScreen
 import com.faturaapp.ui.setup.SetupScreen
 import com.faturaapp.ui.upload.UploadScreen
@@ -17,6 +20,7 @@ private object Rotas {
     const val UPLOAD = "upload"
     const val COMPARACAO = "comparacao"
     const val SENHAS = "senhas"
+    const val FATURA_DETALHE = "fatura/{faturaId}"
 }
 
 @Composable
@@ -36,6 +40,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 onEnviarFatura = { navController.navigate(Rotas.UPLOAD) },
                 onComparar = { navController.navigate(Rotas.COMPARACAO) },
                 onSenhas = { navController.navigate(Rotas.SENHAS) },
+                onAbrirFatura = { faturaId -> navController.navigate("fatura/$faturaId") },
             )
         }
         composable(Rotas.UPLOAD) {
@@ -48,6 +53,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
         composable(Rotas.SENHAS) {
             SenhasScreen()
+        }
+        composable(
+            Rotas.FATURA_DETALHE,
+            arguments = listOf(navArgument("faturaId") { type = NavType.IntType }),
+        ) {
+            FaturaDetalheScreen()
         }
     }
 }
