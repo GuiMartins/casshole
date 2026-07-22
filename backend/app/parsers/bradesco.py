@@ -8,7 +8,7 @@ class BradescoParser(BankParser):
     def matches(self, texto: str) -> bool:
         return "bradesco" in texto.lower()
 
-    def parse(self, texto: str) -> ParsedFatura:
+    def parse(self, texto: str, pdf_bytes: bytes = b"", senha: str = "") -> ParsedFatura:
         mes, ano = extrair_mes_ano_referencia(texto)
         transacoes = extrair_transacoes_generico(texto, ano)
         return ParsedFatura(

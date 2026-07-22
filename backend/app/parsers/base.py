@@ -28,5 +28,9 @@ class BankParser(ABC):
         """Retorna True se o texto extraido do PDF pertence a este banco."""
 
     @abstractmethod
-    def parse(self, texto: str) -> ParsedFatura:
-        """Extrai mes/ano de referencia e lista de transacoes do texto do PDF."""
+    def parse(self, texto: str, pdf_bytes: bytes, senha: str) -> ParsedFatura:
+        """
+        Extrai mes/ano de referencia e lista de transacoes do texto do PDF.
+        pdf_bytes/senha sao fornecidos para parsers que precisam reabrir o PDF
+        com uma extracao diferente (ex: layout de duas colunas do Itau).
+        """

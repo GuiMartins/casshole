@@ -40,7 +40,7 @@ class NubankParser(BankParser):
     def matches(self, texto: str) -> bool:
         return "nubank" in texto.lower()
 
-    def parse(self, texto: str) -> ParsedFatura:
+    def parse(self, texto: str, pdf_bytes: bytes = b"", senha: str = "") -> ParsedFatura:
         mes, ano = self._extrair_mes_ano_referencia(texto)
         transacoes = self._extrair_transacoes(texto, mes, ano)
         return ParsedFatura(

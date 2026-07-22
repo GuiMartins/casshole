@@ -1,5 +1,8 @@
+import io
 import re
 from datetime import date
+
+import pdfplumber
 
 MESES = {
     "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5, "jun": 6,
@@ -17,6 +20,26 @@ LINHA_TRANSACAO_RE = re.compile(
 
 def parse_valor_br(valor_str: str) -> float:
     return float(valor_str.replace(".", "").replace(",", "."))
+
+
+def extrair_texto_pdf_por_colunas(pdf_bytes: bytes, senha: str, fracao_corte: float = 0.5) -> str:
+    """
+    Algumas faturas (ex: Itau) usam layout de duas colunas lado a lado. O
+    extract_text padrao do pdfplumber intercala as colunas linha a linha e
+    embaralha a ordem do texto (ex: junta uma transacao da coluna esquerda
+    com uma linha de resumo da coluna direita na mesma linha de texto).
+    Por isso cortamos cada pagina no ponto de corte informado e extraimos
+    cada coluna separadamente. fracao_corte e a posicao do corte como
+    fracao da largura da pagina (0.5 = meio exato).
+    """
+    with pdfplumber.open(io.BytesIO(pdf_bytes), password=senha) as pdf:
+        partes = []
+        for page in pdf.pages:
+            corte = page.width * fracao_corte
+            coluna_esquerda = page.within_bbox((0, 0, corte, page.height))
+            coluna_direita = page.within_bbox((corte, 0, page.width, page.height))
+            partes.append((coluna_esquerda.extract_text() or "") + "\n" + (coluna_direita.extract_text() or ""))
+        return "\n".join(partes)
 
 
 def extrair_transacoes_generico(texto: str, ano_referencia: int):
