@@ -19,18 +19,26 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.model.SenhaPadrao
+import kotlinx.coroutines.delay
 
 @Composable
 fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
@@ -56,12 +64,10 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
 
-        OutlinedTextField(
-            value = novaSenha,
+        CampoSenhaComRevelacao(
+            valor = novaSenha,
             onValueChange = { novaSenha = it },
-            label = { Text("Senha") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            label = "Senha",
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
@@ -113,8 +119,10 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
 
 @Composable
 private fun ListaSenhas(senhas: List<SenhaPadrao>, onRemover: (Int) -> Unit) {
+    val revelados = remember { mutableStateMapOf<Int, Boolean>() }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(senhas) { senha ->
+            val revelado = revelados[senha.id] == true
             Card {
                 Row(
                     modifier = Modifier
@@ -124,16 +132,86 @@ private fun ListaSenhas(senhas: List<SenhaPadrao>, onRemover: (Int) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text("•".repeat(senha.valor.length), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = if (revelado) senha.valor else "•".repeat(senha.valor.length),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                         senha.descricao?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    IconButton(onClick = { onRemover(senha.id) }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Remover senha")
+                    Row {
+                        IconButton(onClick = { revelados[senha.id] = !revelado }) {
+                            Icon(
+                                imageVector = if (revelado) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (revelado) "Ocultar senha" else "Mostrar senha",
+                            )
+                        }
+                        IconButton(onClick = { onRemover(senha.id) }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Remover senha")
+                        }
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * Mascara a senha mas revela o ultimo caractere digitado por um instante,
+ * como em campos de senha de apps bancarios. Tambem oferece um icone de
+ * olhinho pra mostrar/ocultar a senha inteira.
+ */
+private class RevelarUltimoCaractereTransformation(
+    private val revelarUltimo: Boolean,
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val texto = text.text
+        val mascarado = when {
+            texto.isEmpty() -> ""
+            revelarUltimo -> "•".repeat(texto.length - 1) + texto.last()
+            else -> "•".repeat(texto.length)
+        }
+        return TransformedText(AnnotatedString(mascarado), OffsetMapping.Identity)
+    }
+}
+
+@Composable
+private fun CampoSenhaComRevelacao(
+    valor: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    var mostrarTudo by remember { mutableStateOf(false) }
+    var revelarUltimo by remember { mutableStateOf(false) }
+
+    LaunchedEffect(valor) {
+        if (valor.isNotEmpty()) {
+            revelarUltimo = true
+            delay(1000)
+            revelarUltimo = false
+        }
+    }
+
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        visualTransformation = if (mostrarTudo) {
+            VisualTransformation.None
+        } else {
+            RevelarUltimoCaractereTransformation(revelarUltimo)
+        },
+        trailingIcon = {
+            IconButton(onClick = { mostrarTudo = !mostrarTudo }) {
+                Icon(
+                    imageVector = if (mostrarTudo) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                    contentDescription = if (mostrarTudo) "Ocultar senha" else "Mostrar senha",
+                )
+            }
+        },
+        modifier = modifier,
+    )
 }
