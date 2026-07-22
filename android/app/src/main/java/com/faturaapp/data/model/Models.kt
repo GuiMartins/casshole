@@ -11,6 +11,14 @@ data class Transacao(
     val categoria: String,
     val parcela_atual: Int? = null,
     val parcela_total: Int? = null,
+    val titular: String = "",
+    val cidade: String = "",
+    val cartao: String = "",
+)
+
+@Serializable
+data class TransacaoUpdate(
+    val categoria: String,
 )
 
 @Serializable

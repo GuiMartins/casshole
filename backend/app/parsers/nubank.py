@@ -21,7 +21,7 @@ DATA_VENCIMENTO_RE = re.compile(
 # Ex: "23 JUN Pagamento em 23 JUN −R$ 1.500,00" (pagamento, sinal negativo)
 LINHA_TRANSACAO_RE = re.compile(
     rf"^(?P<dia>\d{{2}})\s+(?P<mes>{_MESES_ALTERNATIVAS})\s+"
-    r"(?:•{2,6}\s*\d{3,4}\s+)?"
+    r"(?:•{2,6}\s*(?P<cartao>\d{3,4})\s+)?"
     r"(?P<descricao>.+?)"
     r"(?:\s-\s*Parcela\s+(?P<parcela_atual>\d{1,2})/(?P<parcela_total>\d{1,2}))?"
     r"\s+(?P<sinal>[−-])?R\$\s*(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})\s*$",
@@ -31,6 +31,12 @@ LINHA_TRANSACAO_RE = re.compile(
 # Linhas de "Pagamentos e Financiamentos" que nao sao gastos reais.
 DESCRICAO_IGNORAR_RE = re.compile(
     r"^(pagamento em|saldo restante da fatura)", re.IGNORECASE
+)
+
+# Cabecalho de secao que marca o titular das compras seguintes, ex:
+# "Fulano de Tal R$ 1.111,10" ou "Compras de Beltrana B Souza R$ 2.222,20"
+TITULAR_HEADER_RE = re.compile(
+    r"^(?:Compras de\s+)?([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .]+?)\s+R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}\s*$"
 )
 
 
@@ -62,9 +68,15 @@ class NubankParser(BankParser):
         self, texto: str, mes_referencia: int, ano_referencia: int
     ) -> list[ParsedTransacao]:
         transacoes = []
+        titular_atual = ""
+
         for linha in texto.splitlines():
-            match = LINHA_TRANSACAO_RE.match(linha.strip())
+            linha_limpa = linha.strip()
+            match = LINHA_TRANSACAO_RE.match(linha_limpa)
             if not match:
+                match_titular = TITULAR_HEADER_RE.match(linha_limpa)
+                if match_titular and "pagamento" not in linha_limpa.lower():
+                    titular_atual = match_titular.group(1).strip()
                 continue
 
             grupos = match.groupdict()
@@ -85,6 +97,8 @@ class NubankParser(BankParser):
                     valor=parse_valor_br(grupos["valor"]),
                     parcela_atual=int(grupos["parcela_atual"]) if grupos["parcela_atual"] else None,
                     parcela_total=int(grupos["parcela_total"]) if grupos["parcela_total"] else None,
+                    titular=titular_atual,
+                    cartao=grupos["cartao"] or "",
                 )
             )
         return transacoes

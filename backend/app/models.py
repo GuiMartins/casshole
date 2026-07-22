@@ -48,6 +48,9 @@ class Transacao(Base):
     categoria = Column(String, nullable=False, default="Outros")
     parcela_atual = Column(Integer, nullable=True)
     parcela_total = Column(Integer, nullable=True)
+    titular = Column(String, nullable=False, default="")
+    cidade = Column(String, nullable=False, default="")
+    cartao = Column(String, nullable=False, default="")
 
     fatura = relationship("Fatura", back_populates="transacoes")
 

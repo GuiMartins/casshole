@@ -30,7 +30,8 @@ class MercadoPagoParser(BankParser):
     def parse(self, texto: str, pdf_bytes: bytes = b"", senha: str = "") -> ParsedFatura:
         mes, ano = self._extrair_mes_ano_referencia(texto)
         cartao = self._extrair_cartao(texto)
-        transacoes = self._extrair_transacoes(texto, mes, ano)
+        titular = self._extrair_titular(texto)
+        transacoes = self._extrair_transacoes(texto, mes, ano, titular)
         return ParsedFatura(
             banco=self.banco,
             cartao=cartao,
@@ -51,8 +52,16 @@ class MercadoPagoParser(BankParser):
         match = CARTAO_RE.search(texto)
         return match.group(1) if match else ""
 
+    def _extrair_titular(self, texto: str) -> str:
+        """O nome do titular aparece no topo da fatura, antes de 'Emitida em:',
+        as vezes quebrado em mais de uma linha por causa da largura da coluna."""
+        match = re.match(r"(.*?)\s*Emitida em:", texto, re.DOTALL)
+        if not match:
+            return ""
+        return " ".join(match.group(1).split())
+
     def _extrair_transacoes(
-        self, texto: str, mes_referencia: int, ano_referencia: int
+        self, texto: str, mes_referencia: int, ano_referencia: int, titular: str
     ) -> list[ParsedTransacao]:
         transacoes = []
         for linha in texto.splitlines():
@@ -79,6 +88,7 @@ class MercadoPagoParser(BankParser):
                     valor=parse_valor_br(grupos["valor"]),
                     parcela_atual=int(grupos["parcela_atual"]) if grupos["parcela_atual"] else None,
                     parcela_total=int(grupos["parcela_total"]) if grupos["parcela_total"] else None,
+                    titular=titular,
                 )
             )
         return transacoes

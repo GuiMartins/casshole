@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .categorizer import categorizar
+from .categorizer import CATEGORIAS_DISPONIVEIS, categorizar
 from .database import Base, engine, get_db
 from .parsers import BancoNaoIdentificadoError, SenhaIncorretaError, processar_fatura
 
@@ -74,6 +74,9 @@ async def upload_fatura(
                 categoria=categorizar(transacao.descricao),
                 parcela_atual=transacao.parcela_atual,
                 parcela_total=transacao.parcela_total,
+                titular=transacao.titular,
+                cidade=transacao.cidade,
+                cartao=transacao.cartao,
             )
         )
 
@@ -136,6 +139,24 @@ def resumo_mensal(ano: int, mes: int, db: Session = Depends(get_db)):
     if resumo is None:
         raise HTTPException(404, "Nenhuma fatura encontrada para este periodo")
     return resumo
+
+
+@app.get("/categorias", response_model=list[str])
+def listar_categorias():
+    return CATEGORIAS_DISPONIVEIS
+
+
+@app.patch("/transacoes/{transacao_id}", response_model=schemas.TransacaoOut)
+def atualizar_transacao(
+    transacao_id: int, payload: schemas.TransacaoUpdate, db: Session = Depends(get_db)
+):
+    transacao = db.query(models.Transacao).get(transacao_id)
+    if not transacao:
+        raise HTTPException(404, "Transacao nao encontrada")
+    transacao.categoria = payload.categoria
+    db.commit()
+    db.refresh(transacao)
+    return transacao
 
 
 @app.get("/senhas-padrao", response_model=list[schemas.SenhaPadraoOut])

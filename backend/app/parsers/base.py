@@ -10,6 +10,9 @@ class ParsedTransacao:
     valor: float
     parcela_atual: int | None = None
     parcela_total: int | None = None
+    titular: str = ""  # quem fez a compra, quando a fatura distingue (ex: Nubank)
+    cidade: str = ""  # cidade da compra, quando disponivel (ex: Itau)
+    cartao: str = ""  # cartao fisico usado nesta compra especifica (ex: Nubank)
 
 
 @dataclass

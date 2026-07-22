@@ -11,9 +11,16 @@ class TransacaoOut(BaseModel):
     categoria: str
     parcela_atual: int | None = None
     parcela_total: int | None = None
+    titular: str = ""
+    cidade: str = ""
+    cartao: str = ""
 
     class Config:
         from_attributes = True
+
+
+class TransacaoUpdate(BaseModel):
+    categoria: str
 
 
 class FaturaOut(BaseModel):

@@ -27,6 +27,8 @@ REGRAS_CATEGORIA: list[tuple[str, re.Pattern]] = [
 
 CATEGORIA_PADRAO = "Outros"
 
+CATEGORIAS_DISPONIVEIS = [categoria for categoria, _ in REGRAS_CATEGORIA] + [CATEGORIA_PADRAO]
+
 
 def categorizar(descricao: str) -> str:
     for categoria, padrao in REGRAS_CATEGORIA:

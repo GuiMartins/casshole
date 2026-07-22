@@ -5,12 +5,15 @@ import com.faturaapp.data.model.Fatura
 import com.faturaapp.data.model.ResumoMensal
 import com.faturaapp.data.model.SenhaPadrao
 import com.faturaapp.data.model.SenhaPadraoCreate
+import com.faturaapp.data.model.Transacao
+import com.faturaapp.data.model.TransacaoUpdate
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -45,4 +48,10 @@ interface FaturaApi {
 
     @DELETE("senhas-padrao/{id}")
     suspend fun removerSenhaPadrao(@Path("id") id: Int)
+
+    @GET("categorias")
+    suspend fun listarCategorias(): List<String>
+
+    @PATCH("transacoes/{id}")
+    suspend fun atualizarTransacao(@Path("id") id: Int, @Body payload: TransacaoUpdate): Transacao
 }

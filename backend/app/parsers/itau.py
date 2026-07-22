@@ -32,7 +32,8 @@ class ItauParser(BankParser):
         # desta fatura vai ate ~x=330 e a coluna direita comeca em ~x=351 (pagina
         # de ~595pt de largura), entao 0.57 fica bem no meio desse intervalo.
         texto_colunas = extrair_texto_pdf_por_colunas(pdf_bytes, senha, fracao_corte=0.57) if pdf_bytes else texto
-        transacoes = self._extrair_transacoes(texto_colunas, mes, ano)
+        titular = self._extrair_titular(texto_colunas)
+        transacoes = self._extrair_transacoes(texto_colunas, mes, ano, titular)
         return ParsedFatura(
             banco=self.banco,
             cartao=cartao,
@@ -53,6 +54,18 @@ class ItauParser(BankParser):
         match = CARTAO_RE.search(texto)
         return match.group(1) if match else ""
 
+    def _extrair_titular(self, texto: str) -> str:
+        """O nome do titular aparece uma vez, logo apos o cabecalho da secao
+        de lancamentos (ex: "Lançamentos: compras e saques\nFULANO DE TAL")."""
+        match_header = re.search(r"Lançamentos:\s*compras e saques", texto, re.IGNORECASE)
+        if not match_header:
+            return ""
+        for linha in texto[match_header.end():].splitlines():
+            linha_limpa = linha.strip()
+            if linha_limpa and re.fullmatch(r"[A-ZÀ-Ú][A-ZÀ-Ú ]+", linha_limpa):
+                return linha_limpa.title()
+        return ""
+
     def _extrair_secao_lancamentos_atuais(self, texto: str) -> str:
         """
         A fatura lista, alem dos lancamentos do periodo atual, uma secao de
@@ -67,12 +80,30 @@ class ItauParser(BankParser):
         fim_pos = fim.start() if fim else len(texto)
         return texto[inicio.start():fim_pos]
 
+    def _extrair_cidade(self, proxima_linha: str) -> str:
+        """
+        A linha seguinte a uma transacao costuma trazer uma tag de categoria
+        do proprio Itau e a cidade da compra, ex: "restaurante TERESOPOLIS".
+        Se a primeira palavra for minuscula, e a tag de categoria; o resto e
+        a cidade. Caso contrario (ex: nome de estabelecimento que quebrou de
+        linha), guardamos a linha inteira como melhor esforco.
+        """
+        linha_limpa = proxima_linha.strip()
+        if not linha_limpa or LINHA_TRANSACAO_RE.match(linha_limpa):
+            return ""
+        palavras = linha_limpa.split(maxsplit=1)
+        if len(palavras) == 2 and palavras[0].islower():
+            return palavras[1].strip()
+        return linha_limpa
+
     def _extrair_transacoes(
-        self, texto: str, mes_referencia: int, ano_referencia: int
+        self, texto: str, mes_referencia: int, ano_referencia: int, titular: str
     ) -> list[ParsedTransacao]:
         secao = self._extrair_secao_lancamentos_atuais(texto)
+        linhas = secao.splitlines()
         transacoes = []
-        for linha in secao.splitlines():
+
+        for indice, linha in enumerate(linhas):
             match = LINHA_TRANSACAO_RE.match(linha.strip())
             if not match:
                 continue
@@ -88,6 +119,8 @@ class ItauParser(BankParser):
                 # pode ser de meses ou anos atras (nao a data de cobranca).
                 ano_transacao -= 1
 
+            cidade = self._extrair_cidade(linhas[indice + 1]) if indice + 1 < len(linhas) else ""
+
             transacoes.append(
                 ParsedTransacao(
                     data=date(ano_transacao, mes_transacao, int(grupos["dia"])),
@@ -95,6 +128,8 @@ class ItauParser(BankParser):
                     valor=parse_valor_br(grupos["valor"]),
                     parcela_atual=int(grupos["parcela_atual"]) if grupos["parcela_atual"] else None,
                     parcela_total=int(grupos["parcela_total"]) if grupos["parcela_total"] else None,
+                    titular=titular,
+                    cidade=cidade,
                 )
             )
         return transacoes
