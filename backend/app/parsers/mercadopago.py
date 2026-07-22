@@ -5,6 +5,7 @@ from .base import BankParser, ParsedFatura, ParsedTransacao
 from .utils import parse_valor_br
 
 VENCIMENTO_RE = re.compile(r"Vencimento:\s*(\d{2})/(\d{2})/(\d{4})", re.IGNORECASE)
+CARTAO_RE = re.compile(r"Cart[aã]o\s+\w+\s*\[\*+(\d{4})\]", re.IGNORECASE)
 
 # Ex: "28/11 MERCADOLIVRE*ESHOPIMPORTA Parcela 19 de 24 R$ 116,21"
 # Ex: "15/06 Pagamento da fatura de junho/2026 R$ 1.200,00" (pagamento, ignorar)
@@ -28,9 +29,11 @@ class MercadoPagoParser(BankParser):
 
     def parse(self, texto: str, pdf_bytes: bytes = b"", senha: str = "") -> ParsedFatura:
         mes, ano = self._extrair_mes_ano_referencia(texto)
+        cartao = self._extrair_cartao(texto)
         transacoes = self._extrair_transacoes(texto, mes, ano)
         return ParsedFatura(
             banco=self.banco,
+            cartao=cartao,
             mes_referencia=mes,
             ano_referencia=ano,
             transacoes=transacoes,
@@ -43,6 +46,10 @@ class MercadoPagoParser(BankParser):
                 "Não foi possível identificar o mês/ano de referência da fatura Mercado Pago"
             )
         return int(match.group(2)), int(match.group(3))
+
+    def _extrair_cartao(self, texto: str) -> str:
+        match = CARTAO_RE.search(texto)
+        return match.group(1) if match else ""
 
     def _extrair_transacoes(
         self, texto: str, mes_referencia: int, ano_referencia: int
@@ -60,7 +67,9 @@ class MercadoPagoParser(BankParser):
 
             mes_transacao = int(grupos["mes"])
             ano_transacao = ano_referencia
-            if mes_transacao == 12 and mes_referencia == 1:
+            if mes_transacao > mes_referencia:
+                # Compras parceladas mostram a data da compra original, que
+                # pode ser de meses ou anos atras (nao a data de cobranca).
                 ano_transacao -= 1
 
             transacoes.append(

@@ -75,7 +75,7 @@ class NubankParser(BankParser):
 
             mes_transacao = MESES_ABREV[grupos["mes"].upper()]
             ano_transacao = ano_referencia
-            if mes_transacao == 12 and mes_referencia == 1:
+            if mes_transacao > mes_referencia:
                 ano_transacao -= 1
 
             transacoes.append(

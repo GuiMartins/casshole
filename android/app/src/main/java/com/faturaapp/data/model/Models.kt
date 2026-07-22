@@ -17,6 +17,7 @@ data class Transacao(
 data class Fatura(
     val id: Int,
     val banco: String,
+    val cartao: String = "",
     val mes_referencia: Int,
     val ano_referencia: Int,
     val processada_em: String,

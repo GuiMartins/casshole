@@ -121,8 +121,9 @@ private fun FaturaCard(fatura: Fatura) {
     val totalGasto = fatura.transacoes.sumOf { it.valor }
     Card {
         Column(modifier = Modifier.padding(16.dp)) {
+            val sufixoCartao = if (fatura.cartao.isNotBlank()) " (••••${fatura.cartao})" else ""
             Text(
-                text = "${fatura.banco.replaceFirstChar { it.uppercase() }} — ${fatura.mes_referencia}/${fatura.ano_referencia}",
+                text = "${fatura.banco.replaceFirstChar { it.uppercase() }}$sufixoCartao — ${fatura.mes_referencia}/${fatura.ano_referencia}",
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(

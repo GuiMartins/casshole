@@ -19,6 +19,7 @@ class TransacaoOut(BaseModel):
 class FaturaOut(BaseModel):
     id: int
     banco: str
+    cartao: str = ""
     mes_referencia: int
     ano_referencia: int
     processada_em: datetime

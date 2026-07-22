@@ -41,6 +41,7 @@ async def upload_fatura(
 
     fatura = models.Fatura(
         banco=fatura_parseada.banco,
+        cartao=fatura_parseada.cartao,
         mes_referencia=fatura_parseada.mes_referencia,
         ano_referencia=fatura_parseada.ano_referencia,
         arquivo_hash=arquivo_hash,
@@ -50,15 +51,17 @@ async def upload_fatura(
         db.query(models.Fatura)
         .filter_by(
             banco=fatura.banco,
+            cartao=fatura.cartao,
             mes_referencia=fatura.mes_referencia,
             ano_referencia=fatura.ano_referencia,
         )
         .first()
     )
     if ja_existe_periodo:
+        detalhe_cartao = f" (cartão final {fatura.cartao})" if fatura.cartao else ""
         raise HTTPException(
             409,
-            f"Ja existe uma fatura de {fatura.banco} para "
+            f"Ja existe uma fatura de {fatura.banco}{detalhe_cartao} para "
             f"{fatura.mes_referencia}/{fatura.ano_referencia}",
         )
 

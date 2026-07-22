@@ -18,6 +18,7 @@ class ParsedFatura:
     mes_referencia: int
     ano_referencia: int
     transacoes: list[ParsedTransacao]
+    cartao: str = ""  # "" quando a fatura nao distingue por cartao (ex: Nubank)
 
 
 class BankParser(ABC):

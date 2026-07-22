@@ -5,6 +5,7 @@ from .base import BankParser, ParsedFatura, ParsedTransacao
 from .utils import extrair_texto_pdf_por_colunas, parse_valor_br
 
 VENCIMENTO_RE = re.compile(r"Vencimento:\s*(\d{2})/(\d{2})/(\d{4})", re.IGNORECASE)
+CARTAO_RE = re.compile(r"Cart[aã]o\s+\d{4}\.XXXX\.XXXX\.(\d{4})", re.IGNORECASE)
 
 # Ex: "30/12 SHOPEE *LOJAPI 07/07 65,58"
 # Ex: "07/06 IFD*SORVETERIA EXEMPLO 51,88" (sem parcela)
@@ -26,6 +27,7 @@ class ItauParser(BankParser):
 
     def parse(self, texto: str, pdf_bytes: bytes = b"", senha: str = "") -> ParsedFatura:
         mes, ano = self._extrair_mes_ano_referencia(texto)
+        cartao = self._extrair_cartao(texto)
         # Corte tunado empiricamente: a coluna esquerda (data/estabelecimento/valor)
         # desta fatura vai ate ~x=330 e a coluna direita comeca em ~x=351 (pagina
         # de ~595pt de largura), entao 0.57 fica bem no meio desse intervalo.
@@ -33,6 +35,7 @@ class ItauParser(BankParser):
         transacoes = self._extrair_transacoes(texto_colunas, mes, ano)
         return ParsedFatura(
             banco=self.banco,
+            cartao=cartao,
             mes_referencia=mes,
             ano_referencia=ano,
             transacoes=transacoes,
@@ -45,6 +48,10 @@ class ItauParser(BankParser):
                 "Não foi possível identificar o mês/ano de referência da fatura Itaú"
             )
         return int(match.group(2)), int(match.group(3))
+
+    def _extrair_cartao(self, texto: str) -> str:
+        match = CARTAO_RE.search(texto)
+        return match.group(1) if match else ""
 
     def _extrair_secao_lancamentos_atuais(self, texto: str) -> str:
         """
@@ -76,7 +83,9 @@ class ItauParser(BankParser):
 
             mes_transacao = int(grupos["mes"])
             ano_transacao = ano_referencia
-            if mes_transacao == 12 and mes_referencia == 1:
+            if mes_transacao > mes_referencia:
+                # Compras parceladas mostram a data da compra original, que
+                # pode ser de meses ou anos atras (nao a data de cobranca).
                 ano_transacao -= 1
 
             transacoes.append(

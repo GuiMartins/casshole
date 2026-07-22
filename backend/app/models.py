@@ -20,6 +20,7 @@ class Fatura(Base):
 
     id = Column(Integer, primary_key=True)
     banco = Column(String, nullable=False)
+    cartao = Column(String, nullable=False, default="")
     mes_referencia = Column(Integer, nullable=False)
     ano_referencia = Column(Integer, nullable=False)
     arquivo_hash = Column(String, nullable=False, unique=True)
@@ -31,7 +32,7 @@ class Fatura(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "banco", "mes_referencia", "ano_referencia", name="uq_fatura_periodo"
+            "banco", "cartao", "mes_referencia", "ano_referencia", name="uq_fatura_periodo"
         ),
     )
 
