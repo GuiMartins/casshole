@@ -1,6 +1,7 @@
 package com.faturaapp.ui.faturadetalhe
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,11 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -109,6 +114,7 @@ private fun DialogEditarCategoria(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ConteudoFaturaDetalhe(
     estado: FaturaDetalheState.Carregado,
@@ -118,7 +124,26 @@ private fun ConteudoFaturaDetalhe(
     val totalGasto = fatura.transacoes.sumOf { it.valor }
     val sufixoCartao = if (fatura.cartao.isNotBlank()) " (••••${fatura.cartao})" else ""
     val titulares = fatura.transacoes.map { it.titular }.filter { it.isNotBlank() }.distinct()
+    val categorias = fatura.transacoes.map { it.categoria }.distinct().sorted()
+    val cartoesDaLinha = fatura.transacoes.map { it.cartao }.filter { it.isNotBlank() }.distinct().sorted()
     val expandido = remember { mutableStateMapOf<String, Boolean>() }
+
+    var textoBusca by remember { mutableStateOf("") }
+    var categoriaFiltro by remember { mutableStateOf<String?>(null) }
+    var titularFiltro by remember { mutableStateOf<String?>(null) }
+    var cartaoFiltro by remember { mutableStateOf<String?>(null) }
+
+    val filtrosAtivos = textoBusca.isNotBlank() || categoriaFiltro != null ||
+        titularFiltro != null || cartaoFiltro != null
+
+    val transacoesFiltradas = fatura.transacoes.filter { transacao ->
+        (textoBusca.isBlank() ||
+            transacao.descricao.contains(textoBusca, ignoreCase = true) ||
+            transacao.cidade.contains(textoBusca, ignoreCase = true)) &&
+            (categoriaFiltro == null || transacao.categoria == categoriaFiltro) &&
+            (titularFiltro == null || transacao.titular == titularFiltro) &&
+            (cartaoFiltro == null || transacao.cartao == cartaoFiltro)
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -150,17 +175,108 @@ private fun ConteudoFaturaDetalhe(
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            OutlinedTextField(
+                value = textoBusca,
+                onValueChange = { textoBusca = it },
+                label = { Text("Buscar por descrição ou cidade") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+            )
+
+            if (categorias.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    categorias.forEach { categoria ->
+                        FilterChip(
+                            selected = categoriaFiltro == categoria,
+                            onClick = {
+                                categoriaFiltro = if (categoriaFiltro == categoria) null else categoria
+                            },
+                            label = { Text(categoria) },
+                        )
+                    }
+                }
+            }
+
+            if (titulares.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    titulares.forEach { titular ->
+                        FilterChip(
+                            selected = titularFiltro == titular,
+                            onClick = {
+                                titularFiltro = if (titularFiltro == titular) null else titular
+                            },
+                            label = { Text(titular) },
+                        )
+                    }
+                }
+            }
+
+            if (cartoesDaLinha.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    cartoesDaLinha.forEach { cartao ->
+                        FilterChip(
+                            selected = cartaoFiltro == cartao,
+                            onClick = {
+                                cartaoFiltro = if (cartaoFiltro == cartao) null else cartao
+                            },
+                            label = { Text("••••$cartao") },
+                        )
+                    }
+                }
+            }
+
+            if (filtrosAtivos) {
+                TextButton(
+                    onClick = {
+                        textoBusca = ""
+                        categoriaFiltro = null
+                        titularFiltro = null
+                        cartaoFiltro = null
+                    },
+                    modifier = Modifier.padding(bottom = 4.dp),
+                ) {
+                    Text("Limpar filtros")
+                }
+            }
+
+            val textoContador = if (filtrosAtivos) {
+                "Transações (${transacoesFiltradas.size} de ${fatura.transacoes.size})"
+            } else {
+                "Transações (${fatura.transacoes.size})"
+            }
             Text(
-                text = "Transações (${fatura.transacoes.size})",
+                text = textoContador,
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
             )
         }
 
         if (titulares.size > 1) {
             titulares.forEach { titular ->
-                val transacoesDoTitular = fatura.transacoes.filter { it.titular == titular }
-                val estaExpandido = expandido[titular] ?: false
+                val transacoesDoTitular = transacoesFiltradas.filter { it.titular == titular }
+                if (transacoesDoTitular.isEmpty()) return@forEach
+                val estaExpandido = filtrosAtivos || (expandido[titular] ?: false)
 
                 item {
                     TitularHeader(
@@ -178,7 +294,7 @@ private fun ConteudoFaturaDetalhe(
                 }
             }
         } else {
-            items(fatura.transacoes) { transacao ->
+            items(transacoesFiltradas) { transacao ->
                 TransacaoRow(transacao, onClick = { onTransacaoClick(transacao) })
             }
         }
