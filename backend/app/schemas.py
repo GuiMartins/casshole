@@ -55,13 +55,11 @@ class ComparacaoMensal(BaseModel):
 
 class SenhaPadraoCreate(BaseModel):
     valor: str
-    descricao: str | None = None
 
 
 class SenhaPadraoOut(BaseModel):
     id: int
     valor: str
-    descricao: str | None = None
 
     class Config:
         from_attributes = True

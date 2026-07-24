@@ -12,16 +12,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -30,12 +34,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.model.Fatura
 import androidx.compose.material3.HorizontalDivider
+import com.faturaapp.ui.theme.BancoBadge
+import com.faturaapp.ui.theme.CategoriaIcone
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -61,13 +68,18 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Fatura App") },
+                title = {
+                    Text(
+                        text = "Fatura App",
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
                 actions = {
-                    TextButton(onClick = onSenhas) {
-                        Text("Senhas")
+                    IconButton(onClick = onSenhas) {
+                        Icon(imageVector = Icons.Filled.Lock, contentDescription = "Senhas")
                     }
-                    TextButton(onClick = onComparar) {
-                        Text("Comparar")
+                    IconButton(onClick = onComparar) {
+                        Icon(imageVector = Icons.Filled.BarChart, contentDescription = "Comparar")
                     }
                 },
             )
@@ -132,11 +144,18 @@ private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) ->
             val (banco, cartao) = chave
             item(key = "header-$banco-$cartao") {
                 val sufixoCartao = if (cartao.isNotBlank()) " (••••$cartao)" else ""
-                Text(
-                    text = "${banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 20.dp, bottom = 8.dp),
+                ) {
+                    BancoBadge(banco = banco, tamanho = 28.dp)
+                    Text(
+                        text = "${banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
+                }
             }
             items(
                 faturasDoGrupo.sortedByDescending { it.ano_referencia * 100 + it.mes_referencia },
@@ -158,20 +177,29 @@ private fun ResumoGeralCard(faturasMaisRecentes: List<Fatura>) {
         .toList()
         .sortedByDescending { (_, total) -> total }
 
-    Card(modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Resumo geral",
                 style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
             )
             Text(
                 text = "Mês mais recente de cada cartão",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             Text(
                 text = "R$ %.2f".format(totalGeral),
                 style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
             )
 
             if (porCategoria.isNotEmpty()) {
@@ -180,10 +208,18 @@ private fun ResumoGeralCard(faturasMaisRecentes: List<Fatura>) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(categoria, style = MaterialTheme.typography.bodyMedium)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CategoriaIcone(categoria = categoria, tamanho = 28.dp)
+                            Text(
+                                text = categoria,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 10.dp),
+                            )
+                        }
                         Text("R$ %.2f".format(total), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -200,25 +236,30 @@ private fun FaturaMesRow(fatura: Fatura, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(bottom = 8.dp)
             .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
                 text = "${fatura.mes_referencia}/${fatura.ano_referencia}",
                 style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
             )
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "R$ %.2f".format(totalGasto),
                     style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
                 )
                 Text(
                     text = "${fatura.transacoes.size} transações",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -1,17 +1,21 @@
 package com.faturaapp.ui.senhas
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -19,19 +23,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
@@ -46,71 +51,102 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
     val erroAcao by viewModel.erroAcao.collectAsState()
 
     var novaSenha by remember { mutableStateOf("") }
-    var novaDescricao by remember { mutableStateOf("") }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
     ) {
-        Text(
-            text = "Senhas padrão de PDF",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Cadastre senhas (ex: dígitos do CPF) para o app tentar abrir " +
-                "faturas protegidas automaticamente, sem precisar digitar toda vez.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
-        )
-
-        CampoSenhaComRevelacao(
-            valor = novaSenha,
-            onValueChange = { novaSenha = it },
-            label = "Senha",
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = novaDescricao,
-            onValueChange = { novaDescricao = it },
-            label = { Text("Descrição (opcional, ex: CPF 5 dígitos)") },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-        )
-
-        erroAcao?.let { mensagem ->
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Text(
+                    text = "Senhas padrão",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
             Text(
-                text = mensagem,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp),
+                text = "Cadastre senhas (ex: dígitos do CPF) para o app tentar abrir " +
+                    "faturas protegidas automaticamente, sem precisar digitar toda vez.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    CampoSenhaComRevelacao(
+                        valor = novaSenha,
+                        onValueChange = { novaSenha = it },
+                        label = "Nova senha",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    erroAcao?.let { mensagem ->
+                        Text(
+                            text = mensagem,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            viewModel.adicionar(novaSenha)
+                            novaSenha = ""
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                    ) {
+                        Text("Adicionar senha")
+                    }
+                }
+            }
+
+            Text(
+                text = "Senhas cadastradas",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 24.dp, bottom = 8.dp),
             )
         }
 
-        Button(
-            onClick = {
-                viewModel.adicionar(novaSenha, novaDescricao)
-                novaSenha = ""
-                novaDescricao = ""
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 8.dp),
-        ) {
-            Text("Adicionar senha")
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
         when (val estado = state) {
-            is SenhasState.Carregando -> CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-            is SenhasState.Erro -> Text(estado.mensagem, color = MaterialTheme.colorScheme.error)
+            is SenhasState.Carregando -> item {
+                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            }
+            is SenhasState.Erro -> item {
+                Text(estado.mensagem, color = MaterialTheme.colorScheme.error)
+            }
             is SenhasState.Carregado -> {
                 if (estado.senhas.isEmpty()) {
-                    Text("Nenhuma senha cadastrada ainda")
+                    item {
+                        Text(
+                            text = "Nenhuma senha cadastrada ainda",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 } else {
-                    ListaSenhas(estado.senhas, onRemover = viewModel::remover)
+                    items(estado.senhas, key = { it.id }) { senha ->
+                        LinhaSenha(senha, onRemover = viewModel::remover)
+                    }
                 }
             }
         }
@@ -118,39 +154,35 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
 }
 
 @Composable
-private fun ListaSenhas(senhas: List<SenhaPadrao>, onRemover: (Int) -> Unit) {
-    val revelados = remember { mutableStateMapOf<Int, Boolean>() }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(senhas) { senha ->
-            val revelado = revelados[senha.id] == true
-            Card {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(
-                            text = if (revelado) senha.valor else "•".repeat(senha.valor.length),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        senha.descricao?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    Row {
-                        IconButton(onClick = { revelados[senha.id] = !revelado }) {
-                            Icon(
-                                imageVector = if (revelado) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = if (revelado) "Ocultar senha" else "Mostrar senha",
-                            )
-                        }
-                        IconButton(onClick = { onRemover(senha.id) }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Remover senha")
-                        }
-                    }
+private fun LinhaSenha(senha: SenhaPadrao, onRemover: (Int) -> Unit) {
+    var revelado by remember(senha.id) { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (revelado) senha.valor else "•".repeat(senha.valor.length),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Row {
+                IconButton(onClick = { revelado = !revelado }) {
+                    Icon(
+                        imageVector = if (revelado) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (revelado) "Ocultar senha" else "Mostrar senha",
+                    )
+                }
+                IconButton(onClick = { onRemover(senha.id) }) {
+                    Icon(Icons.Filled.Close, contentDescription = "Remover senha")
                 }
             }
         }

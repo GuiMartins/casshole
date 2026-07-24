@@ -56,11 +56,9 @@ data class ComparacaoMensal(
 data class SenhaPadrao(
     val id: Int,
     val valor: String,
-    val descricao: String? = null,
 )
 
 @Serializable
 data class SenhaPadraoCreate(
     val valor: String,
-    val descricao: String? = null,
 )

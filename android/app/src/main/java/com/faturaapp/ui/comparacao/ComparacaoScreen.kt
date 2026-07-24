@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -18,9 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.model.ResumoMensal
+import com.faturaapp.ui.theme.CategoriaIcone
 
 @Composable
 fun ComparacaoScreen(viewModel: ComparacaoViewModel = viewModel()) {
@@ -100,7 +104,8 @@ fun ComparacaoScreen(viewModel: ComparacaoViewModel = viewModel()) {
                         Text(
                             text = "Variação do primeiro ao último mês selecionado: $sinal%.1f%%".format(variacao),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = if (variacao > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            color = if (variacao > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.padding(bottom = 16.dp),
                         )
                     }
@@ -116,22 +121,38 @@ fun ComparacaoScreen(viewModel: ComparacaoViewModel = viewModel()) {
 
 @Composable
 private fun ResumoMensalCard(resumo: ResumoMensal) {
-    Column(modifier = Modifier.padding(bottom = 16.dp)) {
-        Text(
-            text = "%02d/%d — Total: R$ %.2f".format(
-                resumo.mes_referencia, resumo.ano_referencia, resumo.total_gasto
-            ),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        resumo.por_categoria.forEach { categoria ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(categoria.categoria, style = MaterialTheme.typography.bodyMedium)
-                Text("R$ %.2f".format(categoria.total), style = MaterialTheme.typography.bodyMedium)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "%02d/%d — Total: R$ %.2f".format(
+                    resumo.mes_referencia, resumo.ano_referencia, resumo.total_gasto
+                ),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            resumo.por_categoria.forEach { categoria ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        CategoriaIcone(categoria = categoria.categoria, tamanho = 26.dp)
+                        Text(
+                            text = categoria.categoria,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    Text("R$ %.2f".format(categoria.total), style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }

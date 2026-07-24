@@ -11,12 +11,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -35,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.model.Transacao
+import com.faturaapp.ui.theme.CategoriaIcone
+import com.faturaapp.ui.theme.visualDaCategoria
 
 @Composable
 fun FaturaDetalheScreen(viewModel: FaturaDetalheViewModel = viewModel()) {
@@ -166,10 +173,18 @@ private fun ConteudoFaturaDetalhe(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
+                        .padding(top = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(item.categoria, style = MaterialTheme.typography.bodyMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CategoriaIcone(categoria = item.categoria, tamanho = 26.dp)
+                        Text(
+                            text = item.categoria,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                     Text("R$ %.2f".format(item.total), style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -201,6 +216,14 @@ private fun ConteudoFaturaDetalhe(
                                 categoriaFiltro = if (categoriaFiltro == categoria) null else categoria
                             },
                             label = { Text(categoria) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = visualDaCategoria(categoria).icone,
+                                    contentDescription = null,
+                                    tint = visualDaCategoria(categoria).cor,
+                                    modifier = Modifier.padding(2.dp),
+                                )
+                            },
                         )
                     }
                 }
@@ -318,10 +341,10 @@ private fun TitularHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (expandido) "▾" else "▸",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(end = 8.dp),
+            Icon(
+                imageVector = if (expandido) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 4.dp),
             )
             Text(
                 text = "$titular ($quantidade)",
@@ -340,33 +363,48 @@ private fun TitularHeader(
 private fun TransacaoRow(transacao: Transacao, onClick: () -> Unit) {
     Card(
         modifier = Modifier
+            .fillMaxWidth()
             .padding(bottom = 8.dp)
             .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            CategoriaIcone(categoria = transacao.categoria, tamanho = 36.dp)
+            Column(
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .weight(1f),
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = transacao.descricao,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = "R$ %.2f".format(transacao.valor),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+                val parcelaTexto = if (transacao.parcela_atual != null && transacao.parcela_total != null) {
+                    " • Parcela ${transacao.parcela_atual}/${transacao.parcela_total}"
+                } else ""
+                val cidadeTexto = if (transacao.cidade.isNotBlank()) " • ${transacao.cidade}" else ""
                 Text(
-                    text = transacao.descricao,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = "R$ %.2f".format(transacao.valor),
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "${transacao.data} • ${transacao.categoria}$parcelaTexto$cidadeTexto",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val parcelaTexto = if (transacao.parcela_atual != null && transacao.parcela_total != null) {
-                " • Parcela ${transacao.parcela_atual}/${transacao.parcela_total}"
-            } else ""
-            val cidadeTexto = if (transacao.cidade.isNotBlank()) " • ${transacao.cidade}" else ""
-            Text(
-                text = "${transacao.data} • ${transacao.categoria}$parcelaTexto$cidadeTexto",
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
     }
 }

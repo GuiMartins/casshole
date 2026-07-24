@@ -170,7 +170,7 @@ def criar_senha_padrao(payload: schemas.SenhaPadraoCreate, db: Session = Depends
     if existente:
         raise HTTPException(409, "Esta senha ja esta cadastrada")
 
-    senha_padrao = models.SenhaPadrao(valor=payload.valor, descricao=payload.descricao)
+    senha_padrao = models.SenhaPadrao(valor=payload.valor)
     db.add(senha_padrao)
     db.commit()
     db.refresh(senha_padrao)

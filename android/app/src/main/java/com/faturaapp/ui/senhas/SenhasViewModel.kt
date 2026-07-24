@@ -47,7 +47,7 @@ class SenhasViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun adicionar(valor: String, descricao: String) {
+    fun adicionar(valor: String) {
         if (valor.isBlank()) {
             _erroAcao.value = "Informe uma senha"
             return
@@ -55,8 +55,7 @@ class SenhasViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 val backendUrl = backendUrlOuFalha() ?: return@launch
-                ApiClientProvider.getApi(backendUrl)
-                    .criarSenhaPadrao(SenhaPadraoCreate(valor.trim(), descricao.trim().ifBlank { null }))
+                ApiClientProvider.getApi(backendUrl).criarSenhaPadrao(SenhaPadraoCreate(valor.trim()))
                 _erroAcao.value = null
                 carregar()
             } catch (e: HttpException) {

@@ -60,4 +60,3 @@ class SenhaPadrao(Base):
 
     id = Column(Integer, primary_key=True)
     valor = Column(String, nullable=False, unique=True)
-    descricao = Column(String, nullable=True)
