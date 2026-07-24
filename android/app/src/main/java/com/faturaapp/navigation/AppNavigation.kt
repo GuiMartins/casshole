@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.faturaapp.ui.comparacao.ComparacaoScreen
+import com.faturaapp.ui.configuracoes.ConfiguracoesScreen
 import com.faturaapp.ui.dashboard.DashboardScreen
 import com.faturaapp.ui.faturadetalhe.FaturaDetalheScreen
 import com.faturaapp.ui.senhas.SenhasScreen
@@ -19,6 +20,7 @@ private object Rotas {
     const val DASHBOARD = "dashboard"
     const val UPLOAD = "upload"
     const val COMPARACAO = "comparacao"
+    const val CONFIGURACOES = "configuracoes"
     const val SENHAS = "senhas"
     const val FATURA_DETALHE = "fatura/{faturaId}"
 }
@@ -39,7 +41,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             DashboardScreen(
                 onEnviarFatura = { navController.navigate(Rotas.UPLOAD) },
                 onComparar = { navController.navigate(Rotas.COMPARACAO) },
-                onSenhas = { navController.navigate(Rotas.SENHAS) },
+                onConfiguracoes = { navController.navigate(Rotas.CONFIGURACOES) },
                 onAbrirFatura = { faturaId -> navController.navigate("fatura/$faturaId") },
             )
         }
@@ -50,6 +52,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
         composable(Rotas.COMPARACAO) {
             ComparacaoScreen()
+        }
+        composable(Rotas.CONFIGURACOES) {
+            ConfiguracoesScreen(
+                onAbrirSenhas = { navController.navigate(Rotas.SENHAS) },
+            )
         }
         composable(Rotas.SENHAS) {
             SenhasScreen()

@@ -13,11 +13,22 @@ class PreferencesRepository(private val context: Context) {
 
     companion object {
         private val BACKEND_URL_KEY = stringPreferencesKey("backend_url")
+        private val TEMA_KEY = stringPreferencesKey("tema_preferido")
+        const val TEMA_SISTEMA = "sistema"
+        const val TEMA_CLARO = "claro"
+        const val TEMA_ESCURO = "escuro"
     }
 
     val backendUrl: Flow<String?> = context.dataStore.data.map { it[BACKEND_URL_KEY] }
 
     suspend fun setBackendUrl(url: String) {
         context.dataStore.edit { it[BACKEND_URL_KEY] = url }
+    }
+
+    val temaPreferido: Flow<String> =
+        context.dataStore.data.map { it[TEMA_KEY] ?: TEMA_SISTEMA }
+
+    suspend fun setTemaPreferido(valor: String) {
+        context.dataStore.edit { it[TEMA_KEY] = valor }
     }
 }

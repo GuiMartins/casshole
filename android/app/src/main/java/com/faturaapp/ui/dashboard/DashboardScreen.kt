@@ -24,8 +24,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -49,7 +48,7 @@ import com.faturaapp.ui.theme.CategoriaIcone
 fun DashboardScreen(
     onEnviarFatura: () -> Unit,
     onComparar: () -> Unit,
-    onSenhas: () -> Unit,
+    onConfiguracoes: () -> Unit,
     onAbrirFatura: (Int) -> Unit,
     viewModel: DashboardViewModel = viewModel(),
 ) {
@@ -75,11 +74,11 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onSenhas) {
-                        Icon(imageVector = Icons.Filled.Lock, contentDescription = "Senhas")
-                    }
                     IconButton(onClick = onComparar) {
                         Icon(imageVector = Icons.Filled.BarChart, contentDescription = "Comparar")
+                    }
+                    IconButton(onClick = onConfiguracoes) {
+                        Icon(imageVector = Icons.Filled.Settings, contentDescription = "Configurações")
                     }
                 },
             )
