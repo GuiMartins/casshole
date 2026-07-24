@@ -12,11 +12,9 @@ import com.faturaapp.ui.configuracoes.ConfiguracoesScreen
 import com.faturaapp.ui.dashboard.DashboardScreen
 import com.faturaapp.ui.faturadetalhe.FaturaDetalheScreen
 import com.faturaapp.ui.senhas.SenhasScreen
-import com.faturaapp.ui.setup.SetupScreen
 import com.faturaapp.ui.upload.UploadScreen
 
 private object Rotas {
-    const val SETUP = "setup"
     const val DASHBOARD = "dashboard"
     const val UPLOAD = "upload"
     const val COMPARACAO = "comparacao"
@@ -27,18 +25,7 @@ private object Rotas {
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
-    // O app roda 100% local agora (sem backend); Setup fica sem uso ate ser
-    // removido de vez na proxima fase da migracao.
     NavHost(navController = navController, startDestination = Rotas.DASHBOARD) {
-        composable(Rotas.SETUP) {
-            SetupScreen(
-                onSetupConcluido = {
-                    navController.navigate(Rotas.DASHBOARD) {
-                        popUpTo(Rotas.SETUP) { inclusive = true }
-                    }
-                }
-            )
-        }
         composable(Rotas.DASHBOARD) {
             DashboardScreen(
                 onEnviarFatura = { navController.navigate(Rotas.UPLOAD) },

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-  App de uso pessoal: o backend roda no servidor domestico (Zima) sem certificado
-  HTTPS valido, acessado via IP local ou Tailscale. Por isso liberamos cleartext
-  (HTTP puro) globalmente aqui. Nao faca isso em um app publicado para terceiros.
--->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
-</network-security-config>
