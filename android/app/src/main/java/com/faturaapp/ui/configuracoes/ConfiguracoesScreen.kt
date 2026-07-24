@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
@@ -37,6 +38,7 @@ import com.faturaapp.data.PreferencesRepository
 @Composable
 fun ConfiguracoesScreen(
     onAbrirSenhas: () -> Unit,
+    onAbrirCategoriasPersonalizadas: () -> Unit,
     viewModel: ConfiguracoesViewModel = viewModel(),
 ) {
     val temaPreferido by viewModel.temaPreferido.collectAsState()
@@ -105,6 +107,21 @@ fun ConfiguracoesScreen(
             titulo = "Senhas padrão de PDF",
             subtitulo = "Tentar abrir faturas protegidas automaticamente",
             onClick = onAbrirSenhas,
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+        Text(
+            text = "Categorização",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        LinhaNavegavel(
+            icone = Icons.Filled.EditNote,
+            titulo = "Categorização manual",
+            subtitulo = "Correções que o app já aplica automaticamente",
+            onClick = onAbrirCategoriasPersonalizadas,
         )
     }
 }

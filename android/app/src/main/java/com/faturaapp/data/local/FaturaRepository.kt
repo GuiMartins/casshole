@@ -3,6 +3,7 @@ package com.faturaapp.data.local
 import android.content.Context
 import androidx.room.withTransaction
 import com.faturaapp.categorizer.categorizar
+import com.faturaapp.data.local.entity.CategoriaOverrideEntity
 import com.faturaapp.data.local.entity.FaturaEntity
 import com.faturaapp.data.local.entity.SenhaPadraoEntity
 import com.faturaapp.data.local.entity.TransacaoEntity
@@ -13,11 +14,15 @@ import java.time.Instant
 class ArquivoDuplicadoException(message: String) : Exception(message)
 class PeriodoDuplicadoException(message: String) : Exception(message)
 
+/** Normaliza pra comparar descricoes de forma tolerante a maiusculas/espacos. */
+private fun normalizarDescricao(descricao: String): String = descricao.trim().uppercase()
+
 class FaturaRepository(context: Context) {
     private val db = DatabaseProvider.getDatabase(context)
     private val faturaDao = db.faturaDao()
     private val transacaoDao = db.transacaoDao()
     private val senhaPadraoDao = db.senhaPadraoDao()
+    private val categoriaOverrideDao = db.categoriaOverrideDao()
 
     suspend fun temSenhasCadastradas(): Boolean = senhaPadraoDao.listar().isNotEmpty()
 
@@ -25,8 +30,23 @@ class FaturaRepository(context: Context) {
 
     suspend fun obterFatura(id: Long): FaturaComTransacoes? = faturaDao.obterComTransacoes(id)
 
+    suspend fun listarCategoriaOverrides(): List<CategoriaOverrideEntity> = categoriaOverrideDao.listar()
+
+    suspend fun removerCategoriaOverride(id: Long) {
+        categoriaOverrideDao.remover(id)
+    }
+
+    /**
+     * Atualiza a categoria de uma transacao e "lembra" essa correcao: da
+     * proxima vez que uma transacao com a mesma descricao aparecer numa
+     * fatura nova, ja vem categorizada assim automaticamente.
+     */
     suspend fun atualizarCategoria(transacaoId: Long, categoria: String) {
         transacaoDao.atualizarCategoria(transacaoId, categoria)
+        val transacao = transacaoDao.buscarPorId(transacaoId) ?: return
+        categoriaOverrideDao.salvar(
+            CategoriaOverrideEntity(descricao = normalizarDescricao(transacao.descricao), categoria = categoria)
+        )
     }
 
     suspend fun listarSenhasPadrao(): List<SenhaPadraoEntity> = senhaPadraoDao.listar()
@@ -72,6 +92,8 @@ class FaturaRepository(context: Context) {
             )
         }
 
+        val overrides = categoriaOverrideDao.listar().associate { it.descricao to it.categoria }
+
         val faturaId = db.withTransaction {
             val id = faturaDao.inserir(
                 FaturaEntity(
@@ -85,12 +107,14 @@ class FaturaRepository(context: Context) {
             )
             transacaoDao.inserirTodas(
                 faturaParseada.transacoes.map { transacao ->
+                    val categoria = overrides[normalizarDescricao(transacao.descricao)]
+                        ?: categorizar(transacao.descricao)
                     TransacaoEntity(
                         faturaId = id,
                         data = transacao.data,
                         descricao = transacao.descricao,
                         valor = transacao.valor,
-                        categoria = categorizar(transacao.descricao),
+                        categoria = categoria,
                         parcelaAtual = transacao.parcelaAtual,
                         parcelaTotal = transacao.parcelaTotal,
                         titular = transacao.titular,

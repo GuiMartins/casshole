@@ -13,6 +13,9 @@ interface TransacaoDao {
     @Query("UPDATE transacoes SET categoria = :categoria WHERE id = :id")
     suspend fun atualizarCategoria(id: Long, categoria: String)
 
+    @Query("SELECT * FROM transacoes WHERE id = :id")
+    suspend fun buscarPorId(id: Long): TransacaoEntity?
+
     @Query(
         """
         SELECT transacoes.* FROM transacoes

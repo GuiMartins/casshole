@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.faturaapp.ui.categorias.CategoriaOverridesScreen
 import com.faturaapp.ui.comparacao.ComparacaoScreen
 import com.faturaapp.ui.configuracoes.ConfiguracoesScreen
 import com.faturaapp.ui.dashboard.DashboardScreen
@@ -20,6 +21,7 @@ private object Rotas {
     const val COMPARACAO = "comparacao"
     const val CONFIGURACOES = "configuracoes"
     const val SENHAS = "senhas"
+    const val CATEGORIAS_PERSONALIZADAS = "categorias-personalizadas"
     const val FATURA_DETALHE = "fatura/{faturaId}"
 }
 
@@ -45,10 +47,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         composable(Rotas.CONFIGURACOES) {
             ConfiguracoesScreen(
                 onAbrirSenhas = { navController.navigate(Rotas.SENHAS) },
+                onAbrirCategoriasPersonalizadas = { navController.navigate(Rotas.CATEGORIAS_PERSONALIZADAS) },
             )
         }
         composable(Rotas.SENHAS) {
             SenhasScreen()
+        }
+        composable(Rotas.CATEGORIAS_PERSONALIZADAS) {
+            CategoriaOverridesScreen()
         }
         composable(
             Rotas.FATURA_DETALHE,
