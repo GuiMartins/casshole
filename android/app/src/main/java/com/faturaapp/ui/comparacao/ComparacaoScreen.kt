@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.faturaapp.data.model.ResumoMensal
+import com.faturaapp.data.local.ResumoMensal
 import com.faturaapp.ui.theme.CategoriaIcone
 
 @Composable
@@ -95,11 +95,11 @@ fun ComparacaoScreen(viewModel: ComparacaoViewModel = viewModel()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                     GraficoBarras(
                         dados = estado.comparacao.meses.map {
-                            BarraDado("%02d/%d".format(it.mes_referencia, it.ano_referencia), it.total_gasto)
+                            BarraDado("%02d/%d".format(it.mesReferencia, it.anoReferencia), it.totalGasto)
                         },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     )
-                    estado.comparacao.variacao_percentual_total?.let { variacao ->
+                    estado.comparacao.variacaoPercentualTotal?.let { variacao ->
                         val sinal = if (variacao >= 0) "+" else ""
                         Text(
                             text = "Variação do primeiro ao último mês selecionado: $sinal%.1f%%".format(variacao),
@@ -130,12 +130,12 @@ private fun ResumoMensalCard(resumo: ResumoMensal) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "%02d/%d — Total: R$ %.2f".format(
-                    resumo.mes_referencia, resumo.ano_referencia, resumo.total_gasto
+                    resumo.mesReferencia, resumo.anoReferencia, resumo.totalGasto
                 ),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
             )
-            resumo.por_categoria.forEach { categoria ->
+            resumo.porCategoria.forEach { categoria ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

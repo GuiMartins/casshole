@@ -1,28 +1,25 @@
 package com.faturaapp.ui.senhas
 
 import android.app.Application
+import android.database.sqlite.SQLiteConstraintException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.faturaapp.data.PreferencesRepository
-import com.faturaapp.data.model.SenhaPadrao
-import com.faturaapp.data.model.SenhaPadraoCreate
-import com.faturaapp.data.network.ApiClientProvider
+import com.faturaapp.data.local.FaturaRepository
+import com.faturaapp.data.local.entity.SenhaPadraoEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 
 sealed class SenhasState {
     data object Carregando : SenhasState()
-    data class Carregado(val senhas: List<SenhaPadrao>) : SenhasState()
+    data class Carregado(val senhas: List<SenhaPadraoEntity>) : SenhasState()
     data class Erro(val mensagem: String) : SenhasState()
 }
 
 class SenhasViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val preferencesRepository = PreferencesRepository(application)
+    private val repository = FaturaRepository(application)
 
     private val _state = MutableStateFlow<SenhasState>(SenhasState.Carregando)
     val state: StateFlow<SenhasState> = _state.asStateFlow()
@@ -38,8 +35,7 @@ class SenhasViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             _state.value = SenhasState.Carregando
             try {
-                val backendUrl = backendUrlOuFalha() ?: return@launch
-                val senhas = ApiClientProvider.getApi(backendUrl).listarSenhasPadrao()
+                val senhas = repository.listarSenhasPadrao()
                 _state.value = SenhasState.Carregado(senhas)
             } catch (e: Exception) {
                 _state.value = SenhasState.Erro(e.message ?: "Erro ao carregar senhas")
@@ -54,36 +50,25 @@ class SenhasViewModel(application: Application) : AndroidViewModel(application) 
         }
         viewModelScope.launch {
             try {
-                val backendUrl = backendUrlOuFalha() ?: return@launch
-                ApiClientProvider.getApi(backendUrl).criarSenhaPadrao(SenhaPadraoCreate(valor.trim()))
+                repository.adicionarSenhaPadrao(valor.trim())
                 _erroAcao.value = null
                 carregar()
-            } catch (e: HttpException) {
-                _erroAcao.value = if (e.code() == 409) "Esta senha já está cadastrada" else "Erro ao salvar (${e.code()})"
+            } catch (e: SQLiteConstraintException) {
+                _erroAcao.value = "Esta senha já está cadastrada"
             } catch (e: Exception) {
                 _erroAcao.value = e.message ?: "Erro ao salvar senha"
             }
         }
     }
 
-    fun remover(id: Int) {
+    fun remover(id: Long) {
         viewModelScope.launch {
             try {
-                val backendUrl = backendUrlOuFalha() ?: return@launch
-                ApiClientProvider.getApi(backendUrl).removerSenhaPadrao(id)
+                repository.removerSenhaPadrao(id)
                 carregar()
             } catch (e: Exception) {
                 _erroAcao.value = e.message ?: "Erro ao remover senha"
             }
         }
-    }
-
-    private suspend fun backendUrlOuFalha(): String? {
-        val backendUrl = preferencesRepository.backendUrl.first()
-        if (backendUrl.isNullOrBlank()) {
-            _state.value = SenhasState.Erro("Backend não configurado")
-            return null
-        }
-        return backendUrl
     }
 }

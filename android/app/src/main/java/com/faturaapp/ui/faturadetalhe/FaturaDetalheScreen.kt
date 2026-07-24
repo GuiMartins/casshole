@@ -39,7 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.faturaapp.data.model.Transacao
+import com.faturaapp.data.local.entity.TransacaoEntity
 import com.faturaapp.ui.theme.CategoriaIcone
 import com.faturaapp.ui.theme.visualDaCategoria
 
@@ -48,7 +48,7 @@ fun FaturaDetalheScreen(viewModel: FaturaDetalheViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val categorias by viewModel.categoriasDisponiveis.collectAsState()
 
-    var transacaoEmEdicao by remember { mutableStateOf<Transacao?>(null) }
+    var transacaoEmEdicao by remember { mutableStateOf<TransacaoEntity?>(null) }
 
     when (val estado = state) {
         is FaturaDetalheState.Carregando -> CircularProgressIndicator(
@@ -80,7 +80,7 @@ fun FaturaDetalheScreen(viewModel: FaturaDetalheViewModel = viewModel()) {
 
 @Composable
 private fun DialogEditarCategoria(
-    transacao: Transacao,
+    transacao: TransacaoEntity,
     categorias: List<String>,
     onConfirmar: (String) -> Unit,
     onCancelar: () -> Unit,
@@ -125,7 +125,7 @@ private fun DialogEditarCategoria(
 @Composable
 private fun ConteudoFaturaDetalhe(
     estado: FaturaDetalheState.Carregado,
-    onTransacaoClick: (Transacao) -> Unit,
+    onTransacaoClick: (TransacaoEntity) -> Unit,
 ) {
     val fatura = estado.fatura
     val totalGasto = fatura.transacoes.sumOf { it.valor }
@@ -163,7 +163,7 @@ private fun ConteudoFaturaDetalhe(
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = "${fatura.mes_referencia}/${fatura.ano_referencia} — Total: R$ %.2f".format(totalGasto),
+                text = "${fatura.mesReferencia}/${fatura.anoReferencia} — Total: R$ %.2f".format(totalGasto),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
             )
@@ -360,7 +360,7 @@ private fun TitularHeader(
 }
 
 @Composable
-private fun TransacaoRow(transacao: Transacao, onClick: () -> Unit) {
+private fun TransacaoRow(transacao: TransacaoEntity, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -395,8 +395,8 @@ private fun TransacaoRow(transacao: Transacao, onClick: () -> Unit) {
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
-                val parcelaTexto = if (transacao.parcela_atual != null && transacao.parcela_total != null) {
-                    " • Parcela ${transacao.parcela_atual}/${transacao.parcela_total}"
+                val parcelaTexto = if (transacao.parcelaAtual != null && transacao.parcelaTotal != null) {
+                    " • Parcela ${transacao.parcelaAtual}/${transacao.parcelaTotal}"
                 } else ""
                 val cidadeTexto = if (transacao.cidade.isNotBlank()) " • ${transacao.cidade}" else ""
                 Text(

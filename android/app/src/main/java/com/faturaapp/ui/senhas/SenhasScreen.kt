@@ -42,7 +42,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.faturaapp.data.model.SenhaPadrao
+import com.faturaapp.data.local.entity.SenhaPadraoEntity
 import kotlinx.coroutines.delay
 
 @Composable
@@ -154,7 +154,7 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
 }
 
 @Composable
-private fun LinhaSenha(senha: SenhaPadrao, onRemover: (Int) -> Unit) {
+private fun LinhaSenha(senha: SenhaPadraoEntity, onRemover: (Long) -> Unit) {
     var revelado by remember(senha.id) { mutableStateOf(false) }
 
     Card(

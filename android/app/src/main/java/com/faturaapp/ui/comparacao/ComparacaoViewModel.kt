@@ -3,20 +3,17 @@ package com.faturaapp.ui.comparacao
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.faturaapp.data.PreferencesRepository
-import com.faturaapp.data.model.ComparacaoMensal
-import com.faturaapp.data.network.ApiClientProvider
+import com.faturaapp.data.local.ComparacaoMensal
+import com.faturaapp.data.local.FaturaRepository
+import com.faturaapp.data.local.ResumoAggregator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class MesAno(val mes: Int, val ano: Int) : Comparable<MesAno> {
     override fun compareTo(other: MesAno): Int =
         compareValuesBy(this, other, { it.ano }, { it.mes })
-
-    fun paraPeriodo(): String = "%02d-%d".format(mes, ano)
 
     override fun toString(): String = "%02d/%d".format(mes, ano)
 }
@@ -36,7 +33,7 @@ sealed class ComparacaoUiState {
 
 class ComparacaoViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val preferencesRepository = PreferencesRepository(application)
+    private val repository = FaturaRepository(application)
 
     private val _periodosState = MutableStateFlow<PeriodosState>(PeriodosState.Carregando)
     val periodosState: StateFlow<PeriodosState> = _periodosState.asStateFlow()
@@ -54,15 +51,10 @@ class ComparacaoViewModel(application: Application) : AndroidViewModel(applicati
     fun carregarPeriodosDisponiveis() {
         viewModelScope.launch {
             _periodosState.value = PeriodosState.Carregando
-            val backendUrl = preferencesRepository.backendUrl.first()
-            if (backendUrl.isNullOrBlank()) {
-                _periodosState.value = PeriodosState.Erro("Backend não configurado")
-                return@launch
-            }
             try {
-                val faturas = ApiClientProvider.getApi(backendUrl).listarFaturas()
+                val faturas = repository.listarFaturas()
                 val periodos = faturas
-                    .map { MesAno(it.mes_referencia, it.ano_referencia) }
+                    .map { MesAno(it.mesReferencia, it.anoReferencia) }
                     .distinct()
                     .sorted()
                 _periodosState.value = PeriodosState.Disponivel(periodos)
@@ -91,13 +83,10 @@ class ComparacaoViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             _comparacaoState.value = ComparacaoUiState.Comparando
             try {
-                val backendUrl = preferencesRepository.backendUrl.first()
-                if (backendUrl.isNullOrBlank()) {
-                    _comparacaoState.value = ComparacaoUiState.Erro("Backend não configurado")
-                    return@launch
+                val transacoesPorPeriodo = periodos.map { periodo ->
+                    Triple(periodo.mes, periodo.ano, repository.transacoesPorPeriodo(periodo.mes, periodo.ano))
                 }
-                val query = periodos.joinToString(",") { it.paraPeriodo() }
-                val resultado = ApiClientProvider.getApi(backendUrl).compararMeses(query)
+                val resultado = ResumoAggregator.compararMeses(transacoesPorPeriodo)
                 _comparacaoState.value = ComparacaoUiState.Resultado(resultado)
             } catch (e: Exception) {
                 _comparacaoState.value = ComparacaoUiState.Erro(e.message ?: "Erro ao comparar meses")

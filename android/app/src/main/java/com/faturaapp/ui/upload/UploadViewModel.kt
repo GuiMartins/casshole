@@ -5,33 +5,27 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.faturaapp.data.PreferencesRepository
-import com.faturaapp.data.model.Fatura
-import com.faturaapp.data.network.ApiClientProvider
+import com.faturaapp.data.local.FaturaComTransacoes
+import com.faturaapp.data.local.FaturaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import retrofit2.HttpException
 
 data class ArquivoSelecionado(val uri: Uri, val nome: String)
 
 sealed class UploadState {
     data object Idle : UploadState()
     data object Enviando : UploadState()
-    data class Sucesso(val fatura: Fatura) : UploadState()
+    data class Sucesso(val fatura: FaturaComTransacoes) : UploadState()
     data class Erro(val mensagem: String) : UploadState()
 }
 
 class UploadViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val preferencesRepository = PreferencesRepository(application)
+    private val repository = FaturaRepository(application)
 
     private val _arquivoSelecionado = MutableStateFlow<ArquivoSelecionado?>(null)
     val arquivoSelecionado: StateFlow<ArquivoSelecionado?> = _arquivoSelecionado.asStateFlow()
@@ -47,15 +41,7 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
-            try {
-                val backendUrl = preferencesRepository.backendUrl.first()
-                if (!backendUrl.isNullOrBlank()) {
-                    val senhas = ApiClientProvider.getApi(backendUrl).listarSenhasPadrao()
-                    _temSenhasCadastradas.value = senhas.isNotEmpty()
-                }
-            } catch (e: Exception) {
-                // Mantem o campo de senha visivel se nao conseguir checar as cadastradas
-            }
+            _temSenhasCadastradas.value = repository.temSenhasCadastradas()
         }
     }
 
@@ -89,32 +75,14 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             _uploadState.value = UploadState.Enviando
             try {
-                val backendUrl = preferencesRepository.backendUrl.first()
-                if (backendUrl.isNullOrBlank()) {
-                    _uploadState.value = UploadState.Erro("Backend não configurado")
-                    return@launch
-                }
-
                 val bytes = withContext(Dispatchers.IO) {
                     getApplication<Application>().contentResolver
                         .openInputStream(arquivo.uri)?.use { it.readBytes() }
                 } ?: throw IllegalStateException("Não foi possível ler o arquivo selecionado")
 
-                val requestBody = bytes.toRequestBody("application/pdf".toMediaType())
-                val part = MultipartBody.Part.createFormData("arquivo", arquivo.nome, requestBody)
-                val senhaBody = _senha.value.trim().ifBlank { null }
-                    ?.toRequestBody("text/plain".toMediaType())
-
-                val fatura = ApiClientProvider.getApi(backendUrl).uploadFatura(part, senhaBody)
+                val senhaDigitada = _senha.value.trim().ifBlank { null }
+                val fatura = repository.processarEArmazenar(bytes, senhaDigitada)
                 _uploadState.value = UploadState.Sucesso(fatura)
-            } catch (e: HttpException) {
-                val mensagem = when (e.code()) {
-                    401 -> "Senha incorreta ou fatura protegida por senha"
-                    409 -> "Esta fatura já foi enviada anteriormente"
-                    422 -> "Não foi possível identificar o banco desta fatura"
-                    else -> "Erro do servidor (${e.code()})"
-                }
-                _uploadState.value = UploadState.Erro(mensagem)
             } catch (e: Exception) {
                 _uploadState.value = UploadState.Erro(e.message ?: "Erro ao enviar a fatura")
             }

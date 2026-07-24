@@ -27,7 +27,9 @@ private object Rotas {
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Rotas.SETUP) {
+    // O app roda 100% local agora (sem backend); Setup fica sem uso ate ser
+    // removido de vez na proxima fase da migracao.
+    NavHost(navController = navController, startDestination = Rotas.DASHBOARD) {
         composable(Rotas.SETUP) {
             SetupScreen(
                 onSetupConcluido = {
@@ -63,7 +65,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
         composable(
             Rotas.FATURA_DETALHE,
-            arguments = listOf(navArgument("faturaId") { type = NavType.IntType }),
+            arguments = listOf(navArgument("faturaId") { type = NavType.LongType }),
         ) {
             FaturaDetalheScreen()
         }

@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.faturaapp.data.model.Fatura
+import com.faturaapp.data.local.FaturaComTransacoes
 import androidx.compose.material3.HorizontalDivider
 import com.faturaapp.ui.theme.BancoBadge
 import com.faturaapp.ui.theme.CategoriaIcone
@@ -49,7 +49,7 @@ fun DashboardScreen(
     onEnviarFatura: () -> Unit,
     onComparar: () -> Unit,
     onConfiguracoes: () -> Unit,
-    onAbrirFatura: (Int) -> Unit,
+    onAbrirFatura: (Long) -> Unit,
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -120,14 +120,14 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) -> Unit) {
+private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFatura: (Long) -> Unit) {
     val grupos = faturas
         .groupBy { it.banco to it.cartao }
         .toList()
         .sortedBy { (chave, _) -> "${chave.first}${chave.second}" }
 
     val faturasMaisRecentes = grupos.map { (_, faturasDoGrupo) ->
-        faturasDoGrupo.maxBy { it.ano_referencia * 100 + it.mes_referencia }
+        faturasDoGrupo.maxBy { it.anoReferencia * 100 + it.mesReferencia }
     }
 
     LazyColumn(
@@ -157,7 +157,7 @@ private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) ->
                 }
             }
             items(
-                faturasDoGrupo.sortedByDescending { it.ano_referencia * 100 + it.mes_referencia },
+                faturasDoGrupo.sortedByDescending { it.anoReferencia * 100 + it.mesReferencia },
                 key = { it.id },
             ) { fatura ->
                 FaturaMesRow(fatura, onClick = { onAbrirFatura(fatura.id) })
@@ -167,7 +167,7 @@ private fun ListaFaturasPorCartao(faturas: List<Fatura>, onAbrirFatura: (Int) ->
 }
 
 @Composable
-private fun ResumoGeralCard(faturasMaisRecentes: List<Fatura>) {
+private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>) {
     val transacoes = faturasMaisRecentes.flatMap { it.transacoes }
     val totalGeral = transacoes.sumOf { it.valor }
     val porCategoria = transacoes
@@ -228,7 +228,7 @@ private fun ResumoGeralCard(faturasMaisRecentes: List<Fatura>) {
 }
 
 @Composable
-private fun FaturaMesRow(fatura: Fatura, onClick: () -> Unit) {
+private fun FaturaMesRow(fatura: FaturaComTransacoes, onClick: () -> Unit) {
     val totalGasto = fatura.transacoes.sumOf { it.valor }
     Card(
         modifier = Modifier
@@ -245,7 +245,7 @@ private fun FaturaMesRow(fatura: Fatura, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "${fatura.mes_referencia}/${fatura.ano_referencia}",
+                text = "${fatura.mesReferencia}/${fatura.anoReferencia}",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
             )
