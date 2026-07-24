@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.School
@@ -33,6 +34,7 @@ private val visuaisPorCategoria = mapOf(
     "Saúde" to CategoriaVisual(CategoriaSaude, Icons.Filled.LocalHospital),
     "Educação" to CategoriaVisual(CategoriaEducacao, Icons.Filled.School),
     "Contas/Serviços" to CategoriaVisual(CategoriaContas, Icons.Filled.Receipt),
+    "Pets" to CategoriaVisual(CategoriaPets, Icons.Filled.Pets),
 )
 
 private val visualPadrao = CategoriaVisual(CategoriaOutros, Icons.Filled.Category)

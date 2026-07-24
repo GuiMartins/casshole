@@ -30,6 +30,7 @@ val CategoriaTransporte = Color(0xFF1E88E5)
 val CategoriaSaude = Color(0xFFE53E5E)
 val CategoriaEducacao = Color(0xFF00897B)
 val CategoriaContas = Color(0xFF6D4C41)
+val CategoriaPets = Color(0xFFB5834C)
 val CategoriaOutros = Color(0xFF78909C)
 
 // Cores de marca de cada banco, usadas como badge nas linhas do Dashboard.
