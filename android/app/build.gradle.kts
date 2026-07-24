@@ -70,6 +70,8 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
