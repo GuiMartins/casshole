@@ -1,8 +1,10 @@
 # Money Hole
 
 App pessoal Android (Kotlin/Jetpack Compose) pra analisar faturas de cartão de
-crédito em PDF (Nubank, Itaú, Mercado Pago). 100% on-device — sem backend, sem
-rede, sem servidor pra manter.
+crédito em PDF (Nubank, Itaú, Mercado Pago). 100% on-device, sem backend
+próprio — mas **tem rede** desde 2026-07-25 (busca de fatura por e-mail via
+IMAP, ver "Decisões de arquitetura"), reversão deliberada e explicitamente
+pedida pelo usuário da decisão anterior "sem rede".
 
 **Rebrand completo em 2026-07-25** (nome antigo: Fatura App). Renomeado de
 propósito até o fim, a pedido explícito do usuário — repo GitHub
@@ -44,8 +46,9 @@ Android). Diferente do rename PT→EN anterior (esse sim preservou dados via
   `Application`, não a `Activity` — cold start via share-intent pode chegar no
   parsing antes de qualquer `Activity.onCreate()`).
 - **Anotações**: KSP (não kapt) pro compilador do Room.
-- **Sem rede**: não há Retrofit/OkHttp/permissão INTERNET. Removido de
-  propósito numa migração anterior — não reintroduzir.
+- **Rede**: só pra IMAP (busca de fatura por e-mail, `com.sun.mail:android-mail`).
+  Continua sem Retrofit/OkHttp/backend próprio — permissão INTERNET existe
+  exclusivamente pra essa conexão IMAP com o provedor de e-mail do usuário.
 - **SDK**: `compileSdk`/`targetSdk` 34, `minSdk` 26, JVM target 17, Kotlin
   compiler extension 1.5.14 (compose-bom `2024.06.00`).
 
@@ -62,16 +65,19 @@ android/app/src/main/java/com/moneyhole/
   MainActivity.kt                única Activity; calcula WindowSizeClass, tema
   categorizer/Categorizer.kt     regras regex de categorização (ordem importa)
   data/
-    PreferencesRepository.kt     DataStore (tema)
+    PreferencesRepository.kt     DataStore (tema, modo de resumo)
     SharedFileHolder.kt          ponte Intent (ACTION_SEND) -> UploadScreen
     local/
       AppDatabase.kt, DatabaseProvider.kt   Room + singleton + Migrations
       InvoiceRepository.kt       fachada única sobre os DAOs; regra de negócio
       InvoiceWithTransactions.kt @Relation Invoice + List<Transaction>
-      SummaryAggregator.kt       agregação pra tela de Comparação
+      SummaryAggregator.kt       agregação pra Dashboard/Comparação
       entity/                    InvoiceEntity, TransactionEntity, DefaultPasswordEntity,
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
+    email/
+      EmailCredentialsRepository.kt  EncryptedSharedPreferences (senha de app real)
+      EmailFetcher.kt            IMAP puro (javax.mail), sem Context - testável
   parsing/
     BankParser.kt                interface comum (matches/parse)
     NubankParser.kt, ItauParser.kt, MercadoPagoParser.kt
@@ -83,6 +89,7 @@ android/app/src/main/java/com/moneyhole/
       AdaptiveScreen.kt           container responsivo (ver decisões abaixo)
       FloatingNavigationBar.kt    nav bar flutuante persistente
       EditCategoryDialog.kt       diálogo de categoria (usado em 2 telas)
+      PasswordFieldWithReveal.kt  campo de senha com revelar (senhas PDF + e-mail)
     dashboard/                    tela inicial: card "Resumo geral"
     invoicesbycard/               quebra por banco/cartão/mês
     invoicedetail/                transações de uma fatura, filtros
@@ -90,14 +97,40 @@ android/app/src/main/java/com/moneyhole/
     upload/                       envio de PDF (picker ou share-intent)
     passwords/                    CRUD de senhas padrão de PDF
     categories/                   tela "Categorização manual" (overrides)
-    settings/                     tema, atalhos pra Senhas e Categorização
+    email/                        configurar IMAP + botão "Buscar faturas agora"
+    settings/                     tema, idioma, resumo, atalhos pras telas acima
     theme/                        cores, visual de categoria/banco
 ```
 
 ## Decisões de arquitetura (não reverter sem motivo)
 
-- **Sem backend.** Tudo Room + PdfBox no próprio app. Não recriar
-  Retrofit/rede.
+- **Sem backend próprio.** Tudo Room + PdfBox no próprio app. Rede existe
+  só pra conexão IMAP direta do usuário com o provedor dele — não recriar
+  Retrofit/API própria.
+- **Busca de fatura por e-mail é IMAP + senha de app, não OAuth.** Decisão
+  explícita do usuário: evita todo o setup de Google Cloud Console/tela de
+  consentimento/verificação de app que o OAuth exigiria. Funciona com
+  qualquer provedor com IMAP (não só Gmail). Trade-off aceito conscientemente:
+  a senha de app fica armazenada no dispositivo (nunca sai dele), diferente
+  de OAuth que nunca guarda segredo nenhum.
+  - `EmailCredentialsRepository` usa `EncryptedSharedPreferences`
+    (`androidx.security:security-crypto`), não Room/DataStore em texto puro
+    — é uma credencial de conta de verdade, diferente das senhas de abrir
+    PDF (baixo risco, ficam em Room sem criptografia mesmo).
+  - `EmailFetcher` é um `object` sem `Context`, só `javax.mail` — mesma
+    filosofia do `InvoiceDispatcher` (parsing puro, testável sem
+    Android/Room, sem precisar de emulador pra testar a lógica de extrair
+    anexo PDF do MIME).
+  - Gatilho é um botão manual ("Buscar faturas agora" em Configurações >
+    E-mail), **não** um job em background/`WorkManager` com polling
+    periódico — mais simples, sem gasto de bateria/complexidade de
+    scheduling: ponto de partida deliberado, pode evoluir pra automático
+    depois se fizer falta.
+  - `com.sun.mail:android-mail` + `com.sun.mail:android-activation` geram
+    conflito de `META-INF/NOTICE.md`/`LICENSE.md` duplicado entre os dois
+    jars — resolvido com bloco `packaging { resources { excludes += ... } }`
+    no `build.gradle.kts` (conflito conhecido/documentado dessas libs, não
+    peculiaridade deste projeto).
 - **Nomes de campo em Room são camelCase idiomático** (`mesReferencia`, não
   `mes_referencia`) — decisão explícita do usuário, prioriza Kotlin
   idiomático sobre menor diff.

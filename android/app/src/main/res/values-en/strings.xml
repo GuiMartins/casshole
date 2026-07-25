@@ -96,4 +96,18 @@
     <string name="error_invoice_already_processed">This invoice has already been processed before</string>
     <string name="error_invoice_duplicate_period">There\'s already an invoice from %1$s%2$s for %3$d/%4$d</string>
     <string name="error_invoice_duplicate_period_card_detail">" (card ending in %1$s)"</string>
+
+    <string name="email_title">Email</string>
+    <string name="email_description">Set up your email and an app password to automatically fetch invoices via IMAP, without having to share each one manually.</string>
+    <string name="email_address_label">Email</string>
+    <string name="email_app_password_label">App password</string>
+    <string name="email_imap_host_label">IMAP server</string>
+    <string name="email_fetch_now">Fetch invoices now</string>
+    <string name="email_result">%1$d imported, %2$d already existed, %3$d failed</string>
+    <string name="email_not_configured">Set up your email first</string>
+    <string name="email_error_auth">Authentication failed - check the email and app password</string>
+    <string name="email_error_connection">Could not connect to the email server</string>
+    <string name="email_error_generic">Error fetching invoices by email</string>
+    <string name="settings_email_row_title">Fetch invoices by email</string>
+    <string name="settings_email_subtitle">Set up IMAP to import invoices automatically</string>
 </resources>

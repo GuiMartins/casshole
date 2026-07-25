@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PieChart
@@ -49,6 +50,7 @@ import com.moneyhole.ui.components.AdaptiveScreen
 fun SettingsScreen(
     onOpenPasswords: () -> Unit,
     onOpenCategoryOverrides: () -> Unit,
+    onOpenEmailSettings: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val preferredTheme by viewModel.preferredTheme.collectAsState()
@@ -178,6 +180,21 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_passwords_title),
                 subtitle = stringResource(R.string.settings_passwords_subtitle),
                 onClick = onOpenPasswords,
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = stringResource(R.string.email_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            NavigableRow(
+                icon = Icons.Filled.Email,
+                title = stringResource(R.string.settings_email_row_title),
+                subtitle = stringResource(R.string.settings_email_subtitle),
+                onClick = onOpenEmailSettings,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))

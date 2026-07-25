@@ -111,4 +111,19 @@
     <string name="error_invoice_already_processed">Esta fatura já foi processada anteriormente</string>
     <string name="error_invoice_duplicate_period">Já existe uma fatura de %1$s%2$s para %3$d/%4$d</string>
     <string name="error_invoice_duplicate_period_card_detail">" (cartão final %1$s)"</string>
+
+    <!-- Configuração de e-mail (busca automática de faturas por IMAP) -->
+    <string name="email_title">E-mail</string>
+    <string name="email_description">Configure seu e-mail e uma senha de app pra buscar faturas automaticamente por IMAP, sem precisar compartilhar cada uma manualmente.</string>
+    <string name="email_address_label">E-mail</string>
+    <string name="email_app_password_label">Senha de app</string>
+    <string name="email_imap_host_label">Servidor IMAP</string>
+    <string name="email_fetch_now">Buscar faturas agora</string>
+    <string name="email_result">%1$d importadas, %2$d já existiam, %3$d falharam</string>
+    <string name="email_not_configured">Configure o e-mail primeiro</string>
+    <string name="email_error_auth">Falha de autenticação - confira o e-mail e a senha de app</string>
+    <string name="email_error_connection">Não foi possível conectar ao servidor de e-mail</string>
+    <string name="email_error_generic">Erro ao buscar faturas por e-mail</string>
+    <string name="settings_email_row_title">Buscar faturas por e-mail</string>
+    <string name="settings_email_subtitle">Configurar IMAP pra importar faturas automaticamente</string>
 </resources>

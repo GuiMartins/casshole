@@ -40,6 +40,17 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
+
+    packaging {
+        // android-mail and android-activation (Jakarta Mail) both ship the
+        // same META-INF license/notice files - known, documented conflict.
+        resources {
+            excludes += "/META-INF/NOTICE.md"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/LICENSE.txt"
+            excludes += "/META-INF/NOTICE.txt"
+        }
+    }
 }
 
 dependencies {
@@ -68,6 +79,17 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
+    // IMAP client for the email auto-fetch feature - reintroduces network
+    // access on purpose (deliberate, user-approved reversal of the earlier
+    // "no network" decision, see CLAUDE.md).
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
+
+    // EncryptedSharedPreferences - the official way to store a real account
+    // credential (the email app password) on-device, unlike the low-stakes
+    // PDF-open passwords which are fine in plain Room.
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 

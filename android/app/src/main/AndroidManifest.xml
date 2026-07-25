@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      Reintroduced on purpose for the IMAP email auto-fetch feature - a
+      deliberate, user-approved reversal of the earlier "no network"
+      decision (see CLAUDE.md). Only used for the user's own IMAP
+      connection; no analytics/ads/telemetry.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".MoneyHoleApp"
         android:allowBackup="true"

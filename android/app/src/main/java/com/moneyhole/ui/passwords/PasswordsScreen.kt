@@ -20,7 +20,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,18 +34,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moneyhole.R
 import com.moneyhole.data.local.entity.DefaultPasswordEntity
 import com.moneyhole.ui.components.AdaptiveScreen
-import kotlinx.coroutines.delay
+import com.moneyhole.ui.components.PasswordFieldWithReveal
 
 @Composable
 fun PasswordsScreen(viewModel: PasswordsViewModel = viewModel()) {
@@ -193,63 +187,4 @@ private fun PasswordRow(password: DefaultPasswordEntity, onRemove: (Long) -> Uni
             }
         }
     }
-}
-
-/**
- * Masks the password but reveals the last typed character for a moment, like
- * in banking app password fields. Also offers an eye icon to show/hide the
- * whole password.
- */
-private class RevealLastCharacterTransformation(
-    private val revealLast: Boolean,
-) : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val value = text.text
-        val masked = when {
-            value.isEmpty() -> ""
-            revealLast -> "•".repeat(value.length - 1) + value.last()
-            else -> "•".repeat(value.length)
-        }
-        return TransformedText(AnnotatedString(masked), OffsetMapping.Identity)
-    }
-}
-
-@Composable
-private fun PasswordFieldWithReveal(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    var showAll by remember { mutableStateOf(false) }
-    var revealLast by remember { mutableStateOf(false) }
-
-    LaunchedEffect(value) {
-        if (value.isNotEmpty()) {
-            revealLast = true
-            delay(1000)
-            revealLast = false
-        }
-    }
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        singleLine = true,
-        visualTransformation = if (showAll) {
-            VisualTransformation.None
-        } else {
-            RevealLastCharacterTransformation(revealLast)
-        },
-        trailingIcon = {
-            IconButton(onClick = { showAll = !showAll }) {
-                Icon(
-                    imageVector = if (showAll) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                    contentDescription = if (showAll) stringResource(R.string.password_hide_cd) else stringResource(R.string.password_show_cd),
-                )
-            }
-        },
-        modifier = modifier,
-    )
 }

@@ -20,6 +20,7 @@ import com.moneyhole.ui.categories.CategoryOverridesScreen
 import com.moneyhole.ui.comparison.ComparisonScreen
 import com.moneyhole.ui.components.FloatingNavigationBar
 import com.moneyhole.ui.components.MainScreen
+import com.moneyhole.ui.email.EmailSettingsScreen
 import com.moneyhole.ui.settings.SettingsScreen
 import com.moneyhole.ui.dashboard.DashboardScreen
 import com.moneyhole.ui.invoicedetail.InvoiceDetailScreen
@@ -34,6 +35,7 @@ private object Routes {
     const val SETTINGS = "settings"
     const val PASSWORDS = "passwords"
     const val CATEGORY_OVERRIDES = "category-overrides"
+    const val EMAIL_SETTINGS = "email-settings"
     const val INVOICES_BY_CARD = "invoices-by-card"
     const val INVOICE_DETAIL = "invoice/{invoiceId}"
 }
@@ -41,7 +43,7 @@ private object Routes {
 private fun mainScreenForRoute(route: String?): MainScreen = when (route) {
     Routes.INVOICES_BY_CARD -> MainScreen.INVOICES_BY_CARD
     Routes.COMPARISON -> MainScreen.COMPARE
-    Routes.SETTINGS, Routes.PASSWORDS, Routes.CATEGORY_OVERRIDES -> MainScreen.SETTINGS
+    Routes.SETTINGS, Routes.PASSWORDS, Routes.CATEGORY_OVERRIDES, Routes.EMAIL_SETTINGS -> MainScreen.SETTINGS
     else -> MainScreen.HOME
 }
 
@@ -100,6 +102,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                     SettingsScreen(
                         onOpenPasswords = { navController.navigate(Routes.PASSWORDS) },
                         onOpenCategoryOverrides = { navController.navigate(Routes.CATEGORY_OVERRIDES) },
+                        onOpenEmailSettings = { navController.navigate(Routes.EMAIL_SETTINGS) },
                     )
                 }
                 composable(Routes.PASSWORDS) {
@@ -107,6 +110,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 }
                 composable(Routes.CATEGORY_OVERRIDES) {
                     CategoryOverridesScreen()
+                }
+                composable(Routes.EMAIL_SETTINGS) {
+                    EmailSettingsScreen()
                 }
                 composable(
                     Routes.INVOICE_DETAIL,
