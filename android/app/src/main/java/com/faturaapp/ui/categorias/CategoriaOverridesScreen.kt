@@ -41,66 +41,66 @@ fun CategoriaOverridesScreen(viewModel: CategoriaOverridesViewModel = viewModel(
     val state by viewModel.state.collectAsState()
 
     TelaAdaptavel {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        contentPadding = PaddingValues(bottom = 96.dp),
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.EditNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentPadding = PaddingValues(bottom = 96.dp),
+        ) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.EditNote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Text(
+                        text = "Categorização manual",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 12.dp),
                     )
                 }
                 Text(
-                    text = "Categorização manual",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 12.dp),
+                    text = "Toda vez que você corrige a categoria de uma transação, o app guarda " +
+                        "essa descrição aqui e já aplica a mesma categoria automaticamente nas " +
+                        "próximas faturas com o mesmo estabelecimento.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
                 )
             }
-            Text(
-                text = "Toda vez que você corrige a categoria de uma transação, o app guarda " +
-                    "essa descrição aqui e já aplica a mesma categoria automaticamente nas " +
-                    "próximas faturas com o mesmo estabelecimento.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
-            )
-        }
 
-        when (val estado = state) {
-            is CategoriaOverridesState.Carregando -> item {
-                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-            }
-            is CategoriaOverridesState.Erro -> item {
-                Text(estado.mensagem, color = MaterialTheme.colorScheme.error)
-            }
-            is CategoriaOverridesState.Carregado -> {
-                if (estado.overrides.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Nenhuma correção manual ainda",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    items(estado.overrides, key = { it.id }) { override ->
-                        LinhaOverride(override, onRemover = viewModel::remover)
+            when (val estado = state) {
+                is CategoriaOverridesState.Carregando -> item {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                }
+                is CategoriaOverridesState.Erro -> item {
+                    Text(estado.mensagem, color = MaterialTheme.colorScheme.error)
+                }
+                is CategoriaOverridesState.Carregado -> {
+                    if (estado.overrides.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Nenhuma correção manual ainda",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        items(estado.overrides, key = { it.id }) { override ->
+                            LinhaOverride(override, onRemover = viewModel::remover)
+                        }
                     }
                 }
             }
         }
-    }
     }
 }
 

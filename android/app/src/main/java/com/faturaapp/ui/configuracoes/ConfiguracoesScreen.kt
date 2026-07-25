@@ -49,89 +49,89 @@ fun ConfiguracoesScreen(
     val temaPreferido by viewModel.temaPreferido.collectAsState()
 
     TelaAdaptavel {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Text(
+                    text = "Configurações",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 12.dp),
                 )
             }
+
             Text(
-                text = "Configurações",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 12.dp),
+                text = "Aparência",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 28.dp, bottom = 4.dp),
             )
+            OpcaoTema(
+                label = "Sistema",
+                icone = Icons.Filled.BrightnessAuto,
+                selecionado = temaPreferido == PreferencesRepository.TEMA_SISTEMA,
+                onClick = { viewModel.selecionarTema(PreferencesRepository.TEMA_SISTEMA) },
+            )
+            OpcaoTema(
+                label = "Claro",
+                icone = Icons.Filled.LightMode,
+                selecionado = temaPreferido == PreferencesRepository.TEMA_CLARO,
+                onClick = { viewModel.selecionarTema(PreferencesRepository.TEMA_CLARO) },
+            )
+            OpcaoTema(
+                label = "Escuro",
+                icone = Icons.Filled.DarkMode,
+                selecionado = temaPreferido == PreferencesRepository.TEMA_ESCURO,
+                onClick = { viewModel.selecionarTema(PreferencesRepository.TEMA_ESCURO) },
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = "Segurança",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            LinhaNavegavel(
+                icone = Icons.Filled.Lock,
+                titulo = "Senhas padrão de PDF",
+                subtitulo = "Tentar abrir faturas protegidas automaticamente",
+                onClick = onAbrirSenhas,
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = "Categorização",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            LinhaNavegavel(
+                icone = Icons.Filled.EditNote,
+                titulo = "Categorização manual",
+                subtitulo = "Correções que o app já aplica automaticamente",
+                onClick = onAbrirCategoriasPersonalizadas,
+            )
+            Spacer(modifier = Modifier.height(80.dp))
         }
-
-        Text(
-            text = "Aparência",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 28.dp, bottom = 4.dp),
-        )
-        OpcaoTema(
-            label = "Sistema",
-            icone = Icons.Filled.BrightnessAuto,
-            selecionado = temaPreferido == PreferencesRepository.TEMA_SISTEMA,
-            onClick = { viewModel.selecionarTema(PreferencesRepository.TEMA_SISTEMA) },
-        )
-        OpcaoTema(
-            label = "Claro",
-            icone = Icons.Filled.LightMode,
-            selecionado = temaPreferido == PreferencesRepository.TEMA_CLARO,
-            onClick = { viewModel.selecionarTema(PreferencesRepository.TEMA_CLARO) },
-        )
-        OpcaoTema(
-            label = "Escuro",
-            icone = Icons.Filled.DarkMode,
-            selecionado = temaPreferido == PreferencesRepository.TEMA_ESCURO,
-            onClick = { viewModel.selecionarTema(PreferencesRepository.TEMA_ESCURO) },
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
-
-        Text(
-            text = "Segurança",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        LinhaNavegavel(
-            icone = Icons.Filled.Lock,
-            titulo = "Senhas padrão de PDF",
-            subtitulo = "Tentar abrir faturas protegidas automaticamente",
-            onClick = onAbrirSenhas,
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
-
-        Text(
-            text = "Categorização",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        LinhaNavegavel(
-            icone = Icons.Filled.EditNote,
-            titulo = "Categorização manual",
-            subtitulo = "Correções que o app já aplica automaticamente",
-            onClick = onAbrirCategoriasPersonalizadas,
-        )
-        Spacer(modifier = Modifier.height(80.dp))
-    }
     }
 }
 

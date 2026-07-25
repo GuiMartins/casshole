@@ -25,7 +25,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.entity.TransacaoEntity
+import com.faturaapp.ui.components.DialogEditarCategoria
 import com.faturaapp.ui.components.TelaAdaptavel
 import com.faturaapp.ui.theme.CategoriaIcone
 import com.faturaapp.ui.theme.visualDaCategoria
@@ -80,49 +80,6 @@ fun FaturaDetalheScreen(viewModel: FaturaDetalheViewModel = viewModel()) {
     }
 }
 
-@Composable
-private fun DialogEditarCategoria(
-    transacao: TransacaoEntity,
-    categorias: List<String>,
-    onConfirmar: (String) -> Unit,
-    onCancelar: () -> Unit,
-) {
-    var selecionada by remember(transacao.id) { mutableStateOf(transacao.categoria) }
-
-    AlertDialog(
-        onDismissRequest = onCancelar,
-        title = { Text("Categoria de \"${transacao.descricao}\"") },
-        text = {
-            Column {
-                categorias.forEach { categoria ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selecionada = categoria },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = categoria == selecionada,
-                            onClick = { selecionada = categoria },
-                        )
-                        Text(categoria)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirmar(selecionada) }) {
-                Text("Salvar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onCancelar) {
-                Text("Cancelar")
-            }
-        },
-    )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ConteudoFaturaDetalhe(
@@ -155,177 +112,177 @@ private fun ConteudoFaturaDetalhe(
     }
 
     TelaAdaptavel {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        contentPadding = PaddingValues(bottom = 96.dp),
-    ) {
-        item {
-            Text(
-                text = "${fatura.banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "${fatura.mesReferencia}/${fatura.anoReferencia} — Total: R$ %.2f".format(totalGasto),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentPadding = PaddingValues(bottom = 96.dp),
+        ) {
+            item {
+                Text(
+                    text = "${fatura.banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(
+                    text = "${fatura.mesReferencia}/${fatura.anoReferencia} — Total: R$ %.2f".format(totalGasto),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+                )
 
-            Text(text = "Por categoria", style = MaterialTheme.typography.titleSmall)
-            estado.porCategoria.forEach { item ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CategoriaIcone(categoria = item.categoria, tamanho = 26.dp)
-                        Text(
-                            text = item.categoria,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                    Text("R$ %.2f".format(item.total), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-            OutlinedTextField(
-                value = textoBusca,
-                onValueChange = { textoBusca = it },
-                label = { Text("Buscar por descrição ou cidade") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-            )
-
-            if (categorias.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    categorias.forEach { categoria ->
-                        FilterChip(
-                            selected = categoriaFiltro == categoria,
-                            onClick = {
-                                categoriaFiltro = if (categoriaFiltro == categoria) null else categoria
-                            },
-                            label = { Text(categoria) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = visualDaCategoria(categoria).icone,
-                                    contentDescription = null,
-                                    tint = visualDaCategoria(categoria).cor,
-                                    modifier = Modifier.padding(2.dp),
-                                )
-                            },
-                        )
+                Text(text = "Por categoria", style = MaterialTheme.typography.titleSmall)
+                estado.porCategoria.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CategoriaIcone(categoria = item.categoria, tamanho = 26.dp)
+                            Text(
+                                text = item.categoria,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                        Text("R$ %.2f".format(item.total), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+                OutlinedTextField(
+                    value = textoBusca,
+                    onValueChange = { textoBusca = it },
+                    label = { Text("Buscar por descrição ou cidade") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                )
+
+                if (categorias.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        categorias.forEach { categoria ->
+                            FilterChip(
+                                selected = categoriaFiltro == categoria,
+                                onClick = {
+                                    categoriaFiltro = if (categoriaFiltro == categoria) null else categoria
+                                },
+                                label = { Text(categoria) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = visualDaCategoria(categoria).icone,
+                                        contentDescription = null,
+                                        tint = visualDaCategoria(categoria).cor,
+                                        modifier = Modifier.padding(2.dp),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+
+                if (titulares.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        titulares.forEach { titular ->
+                            FilterChip(
+                                selected = titularFiltro == titular,
+                                onClick = {
+                                    titularFiltro = if (titularFiltro == titular) null else titular
+                                },
+                                label = { Text(titular) },
+                            )
+                        }
+                    }
+                }
+
+                if (cartoesDaLinha.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        cartoesDaLinha.forEach { cartao ->
+                            FilterChip(
+                                selected = cartaoFiltro == cartao,
+                                onClick = {
+                                    cartaoFiltro = if (cartaoFiltro == cartao) null else cartao
+                                },
+                                label = { Text("••••$cartao") },
+                            )
+                        }
+                    }
+                }
+
+                if (filtrosAtivos) {
+                    TextButton(
+                        onClick = {
+                            textoBusca = ""
+                            categoriaFiltro = null
+                            titularFiltro = null
+                            cartaoFiltro = null
+                        },
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    ) {
+                        Text("Limpar filtros")
+                    }
+                }
+
+                val textoContador = if (filtrosAtivos) {
+                    "Transações (${transacoesFiltradas.size} de ${fatura.transacoes.size})"
+                } else {
+                    "Transações (${fatura.transacoes.size})"
+                }
+                Text(
+                    text = textoContador,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                )
             }
 
             if (titulares.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    titulares.forEach { titular ->
-                        FilterChip(
-                            selected = titularFiltro == titular,
-                            onClick = {
-                                titularFiltro = if (titularFiltro == titular) null else titular
-                            },
-                            label = { Text(titular) },
+                titulares.forEach { titular ->
+                    val transacoesDoTitular = transacoesFiltradas.filter { it.titular == titular }
+                    if (transacoesDoTitular.isEmpty()) return@forEach
+                    val estaExpandido = filtrosAtivos || (expandido[titular] ?: false)
+
+                    item {
+                        TitularHeader(
+                            titular = titular,
+                            quantidade = transacoesDoTitular.size,
+                            total = transacoesDoTitular.sumOf { it.valor },
+                            expandido = estaExpandido,
+                            onClick = { expandido[titular] = !estaExpandido },
                         )
                     }
-                }
-            }
-
-            if (cartoesDaLinha.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    cartoesDaLinha.forEach { cartao ->
-                        FilterChip(
-                            selected = cartaoFiltro == cartao,
-                            onClick = {
-                                cartaoFiltro = if (cartaoFiltro == cartao) null else cartao
-                            },
-                            label = { Text("••••$cartao") },
-                        )
+                    if (estaExpandido) {
+                        items(transacoesDoTitular) { transacao ->
+                            TransacaoRow(transacao, onClick = { onTransacaoClick(transacao) })
+                        }
                     }
                 }
-            }
-
-            if (filtrosAtivos) {
-                TextButton(
-                    onClick = {
-                        textoBusca = ""
-                        categoriaFiltro = null
-                        titularFiltro = null
-                        cartaoFiltro = null
-                    },
-                    modifier = Modifier.padding(bottom = 4.dp),
-                ) {
-                    Text("Limpar filtros")
-                }
-            }
-
-            val textoContador = if (filtrosAtivos) {
-                "Transações (${transacoesFiltradas.size} de ${fatura.transacoes.size})"
             } else {
-                "Transações (${fatura.transacoes.size})"
-            }
-            Text(
-                text = textoContador,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-            )
-        }
-
-        if (titulares.size > 1) {
-            titulares.forEach { titular ->
-                val transacoesDoTitular = transacoesFiltradas.filter { it.titular == titular }
-                if (transacoesDoTitular.isEmpty()) return@forEach
-                val estaExpandido = filtrosAtivos || (expandido[titular] ?: false)
-
-                item {
-                    TitularHeader(
-                        titular = titular,
-                        quantidade = transacoesDoTitular.size,
-                        total = transacoesDoTitular.sumOf { it.valor },
-                        expandido = estaExpandido,
-                        onClick = { expandido[titular] = !estaExpandido },
-                    )
-                }
-                if (estaExpandido) {
-                    items(transacoesDoTitular) { transacao ->
-                        TransacaoRow(transacao, onClick = { onTransacaoClick(transacao) })
-                    }
+                items(transacoesFiltradas) { transacao ->
+                    TransacaoRow(transacao, onClick = { onTransacaoClick(transacao) })
                 }
             }
-        } else {
-            items(transacoesFiltradas) { transacao ->
-                TransacaoRow(transacao, onClick = { onTransacaoClick(transacao) })
-            }
         }
-    }
     }
 }
 

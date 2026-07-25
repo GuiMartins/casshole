@@ -54,88 +54,88 @@ fun UploadScreen(
     }
 
     TelaAdaptavel(alignment = Alignment.Center) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp)
-            .padding(bottom = 80.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "Enviar fatura",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Selecione o PDF da fatura (Nubank, Itaú, Bradesco ou Mercado Pago)",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-        )
-
-        Text(
-            text = arquivoSelecionado?.nome ?: "Nenhum arquivo selecionado",
-            style = MaterialTheme.typography.bodyLarge,
-        )
-
-        OutlinedButton(
-            onClick = { seletorArquivo.launch(arrayOf("application/pdf")) },
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp)
+                .padding(bottom = 80.dp),
+            verticalArrangement = Arrangement.Center,
         ) {
-            Text("Escolher arquivo")
-        }
-
-        OutlinedTextField(
-            value = senha,
-            onValueChange = viewModel::onSenhaChange,
-            label = { Text("Senha do PDF (opcional)") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-        ) {
-            Switch(
-                checked = salvarSenha,
-                onCheckedChange = viewModel::onSalvarSenhaChange,
-                enabled = senha.isNotBlank(),
+            Text(
+                text = "Enviar fatura",
+                style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = "Salvar como senha padrão, pra abrir futuras faturas automaticamente",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 12.dp),
+                text = "Selecione o PDF da fatura (Nubank, Itaú, Bradesco ou Mercado Pago)",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
             )
-        }
 
-        when (val estado = uploadState) {
-            is UploadState.Erro -> Text(
-                text = estado.mensagem,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 16.dp),
+            Text(
+                text = arquivoSelecionado?.nome ?: "Nenhum arquivo selecionado",
+                style = MaterialTheme.typography.bodyLarge,
             )
-            else -> {}
-        }
 
-        Button(
-            onClick = viewModel::enviarFatura,
-            enabled = arquivoSelecionado != null && uploadState != UploadState.Enviando,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-        ) {
-            if (uploadState == UploadState.Enviando) {
-                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+            OutlinedButton(
+                onClick = { seletorArquivo.launch(arrayOf("application/pdf")) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+            ) {
+                Text("Escolher arquivo")
             }
-            Text("Enviar fatura")
+
+            OutlinedTextField(
+                value = senha,
+                onValueChange = viewModel::onSenhaChange,
+                label = { Text("Senha do PDF (opcional)") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+            ) {
+                Switch(
+                    checked = salvarSenha,
+                    onCheckedChange = viewModel::onSalvarSenhaChange,
+                    enabled = senha.isNotBlank(),
+                )
+                Text(
+                    text = "Salvar como senha padrão, pra abrir futuras faturas automaticamente",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
+
+            when (val estado = uploadState) {
+                is UploadState.Erro -> Text(
+                    text = estado.mensagem,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                else -> {}
+            }
+
+            Button(
+                onClick = viewModel::enviarFatura,
+                enabled = arquivoSelecionado != null && uploadState != UploadState.Enviando,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            ) {
+                if (uploadState == UploadState.Enviando) {
+                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                }
+                Text("Enviar fatura")
+            }
         }
-    }
     }
 }

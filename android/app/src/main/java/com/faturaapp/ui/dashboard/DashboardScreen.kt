@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +52,7 @@ import com.faturaapp.categorizer.CATEGORIAS_DISPONIVEIS
 import com.faturaapp.data.local.FaturaComTransacoes
 import com.faturaapp.data.local.entity.TransacaoEntity
 import androidx.compose.material3.HorizontalDivider
+import com.faturaapp.ui.components.DialogEditarCategoria
 import com.faturaapp.ui.components.TelaAdaptavel
 import com.faturaapp.ui.theme.CategoriaIcone
 
@@ -250,49 +250,6 @@ private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTran
         )
     }
     HorizontalDivider()
-}
-
-@Composable
-private fun DialogEditarCategoria(
-    transacao: TransacaoEntity,
-    categorias: List<String>,
-    onConfirmar: (String) -> Unit,
-    onCancelar: () -> Unit,
-) {
-    var selecionada by remember(transacao.id) { mutableStateOf(transacao.categoria) }
-
-    AlertDialog(
-        onDismissRequest = onCancelar,
-        title = { Text("Categoria de \"${transacao.descricao}\"") },
-        text = {
-            Column {
-                categorias.forEach { categoria ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selecionada = categoria },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = categoria == selecionada,
-                            onClick = { selecionada = categoria },
-                        )
-                        Text(categoria)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirmar(selecionada) }) {
-                Text("Salvar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onCancelar) {
-                Text("Cancelar")
-            }
-        },
-    )
 }
 
 @Composable

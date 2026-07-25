@@ -55,106 +55,106 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
     var novaSenha by remember { mutableStateOf("") }
 
     TelaAdaptavel {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        contentPadding = PaddingValues(bottom = 96.dp),
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentPadding = PaddingValues(bottom = 96.dp),
+        ) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Text(
+                        text = "Senhas padrão",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 12.dp),
                     )
                 }
                 Text(
-                    text = "Senhas padrão",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 12.dp),
+                    text = "Cadastre senhas (ex: dígitos do CPF) para o app tentar abrir " +
+                        "faturas protegidas automaticamente, sem precisar digitar toda vez.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        CampoSenhaComRevelacao(
+                            valor = novaSenha,
+                            onValueChange = { novaSenha = it },
+                            label = "Nova senha",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        erroAcao?.let { mensagem ->
+                            Text(
+                                text = mensagem,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.adicionar(novaSenha)
+                                novaSenha = ""
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                        ) {
+                            Text("Adicionar senha")
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Senhas cadastradas",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp),
                 )
             }
-            Text(
-                text = "Cadastre senhas (ex: dígitos do CPF) para o app tentar abrir " +
-                    "faturas protegidas automaticamente, sem precisar digitar toda vez.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
-            )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    CampoSenhaComRevelacao(
-                        valor = novaSenha,
-                        onValueChange = { novaSenha = it },
-                        label = "Nova senha",
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
-                    erroAcao?.let { mensagem ->
-                        Text(
-                            text = mensagem,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            viewModel.adicionar(novaSenha)
-                            novaSenha = ""
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                    ) {
-                        Text("Adicionar senha")
-                    }
+            when (val estado = state) {
+                is SenhasState.Carregando -> item {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
                 }
-            }
-
-            Text(
-                text = "Senhas cadastradas",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(top = 24.dp, bottom = 8.dp),
-            )
-        }
-
-        when (val estado = state) {
-            is SenhasState.Carregando -> item {
-                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-            }
-            is SenhasState.Erro -> item {
-                Text(estado.mensagem, color = MaterialTheme.colorScheme.error)
-            }
-            is SenhasState.Carregado -> {
-                if (estado.senhas.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Nenhuma senha cadastrada ainda",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    items(estado.senhas, key = { it.id }) { senha ->
-                        LinhaSenha(senha, onRemover = viewModel::remover)
+                is SenhasState.Erro -> item {
+                    Text(estado.mensagem, color = MaterialTheme.colorScheme.error)
+                }
+                is SenhasState.Carregado -> {
+                    if (estado.senhas.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Nenhuma senha cadastrada ainda",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        items(estado.senhas, key = { it.id }) { senha ->
+                            LinhaSenha(senha, onRemover = viewModel::remover)
+                        }
                     }
                 }
             }
         }
-    }
     }
 }
 
