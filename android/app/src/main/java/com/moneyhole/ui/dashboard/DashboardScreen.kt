@@ -53,6 +53,7 @@ import com.moneyhole.R
 import com.moneyhole.categorizer.AVAILABLE_CATEGORIES
 import com.moneyhole.data.PreferencesRepository
 import com.moneyhole.data.local.InvoiceWithTransactions
+import com.moneyhole.data.local.SummaryAggregator
 import com.moneyhole.data.local.entity.TransactionEntity
 import androidx.compose.material3.HorizontalDivider
 import com.moneyhole.ui.components.EditCategoryDialog
@@ -144,9 +145,7 @@ private fun GeneralSummaryContent(
     onUpdateCategory: (Long, String) -> Unit,
 ) {
     val now = remember { YearMonth.now() }
-    val currentMonthInvoices = invoices.filter {
-        it.referenceMonth == now.monthValue && it.referenceYear == now.year
-    }
+    val currentMonthInvoices = SummaryAggregator.filterByMonth(invoices, now.monthValue, now.year)
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }

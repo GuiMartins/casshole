@@ -1,5 +1,6 @@
 package com.moneyhole.data.local
 
+import com.moneyhole.data.local.entity.InvoiceEntity
 import com.moneyhole.data.local.entity.TransactionEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -10,6 +11,38 @@ class SummaryAggregatorTest {
 
     private fun transaction(category: String, amount: Double) =
         TransactionEntity(invoiceId = 1, date = "2026-07-01", description = "X", amount = amount, category = category)
+
+    private fun invoice(id: Long, month: Int, year: Int) = InvoiceWithTransactions(
+        invoice = InvoiceEntity(
+            id = id,
+            bank = "itau",
+            referenceMonth = month,
+            referenceYear = year,
+            fileHash = "hash-$id",
+            processedAt = "2026-07-25T00:00:00",
+        ),
+        transactions = emptyList(),
+    )
+
+    @Test
+    fun `filterByMonth keeps only invoices matching both month and year`() {
+        val invoices = listOf(
+            invoice(1, month = 7, year = 2026),
+            invoice(2, month = 5, year = 2026),
+            invoice(3, month = 7, year = 2025),
+        )
+
+        val result = SummaryAggregator.filterByMonth(invoices, month = 7, year = 2026)
+
+        assertEquals(listOf(1L), result.map { it.id })
+    }
+
+    @Test
+    fun `filterByMonth returns empty list when nothing matches`() {
+        val invoices = listOf(invoice(1, month = 5, year = 2026))
+
+        assertTrue(SummaryAggregator.filterByMonth(invoices, month = 7, year = 2026).isEmpty())
+    }
 
     @Test
     fun `empty transaction list yields no summary`() {

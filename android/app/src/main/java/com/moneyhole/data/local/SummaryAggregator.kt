@@ -18,6 +18,14 @@ data class MonthlyComparison(
 
 object SummaryAggregator {
 
+    /** Invoices whose reference month/year match exactly - used to keep the Dashboard's summary scoped to one period. */
+    fun filterByMonth(
+        invoices: List<InvoiceWithTransactions>,
+        month: Int,
+        year: Int,
+    ): List<InvoiceWithTransactions> =
+        invoices.filter { it.referenceMonth == month && it.referenceYear == year }
+
     fun buildMonthlySummary(transactions: List<TransactionEntity>, month: Int, year: Int): MonthlySummary? {
         if (transactions.isEmpty()) return null
 
