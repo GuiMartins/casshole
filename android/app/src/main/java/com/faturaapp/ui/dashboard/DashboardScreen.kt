@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -29,7 +32,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -39,6 +45,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.FaturaComTransacoes
+import com.faturaapp.data.local.entity.TransacaoEntity
 import androidx.compose.material3.HorizontalDivider
 import com.faturaapp.ui.theme.BancoBadge
 import com.faturaapp.ui.theme.CategoriaIcone
@@ -130,6 +137,8 @@ private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFat
         faturasDoGrupo.maxBy { it.anoReferencia * 100 + it.mesReferencia }
     }
 
+    var categoriaSelecionada by remember { mutableStateOf<String?>(null) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -137,7 +146,7 @@ private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFat
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         item(key = "resumo-geral") {
-            ResumoGeralCard(faturasMaisRecentes)
+            ResumoGeralCard(faturasMaisRecentes, onCategoriaClick = { categoriaSelecionada = it })
         }
         grupos.forEach { (chave, faturasDoGrupo) ->
             val (banco, cartao) = chave
@@ -164,10 +173,89 @@ private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFat
             }
         }
     }
+
+    categoriaSelecionada?.let { categoria ->
+        val transacoesDaCategoria = faturasMaisRecentes
+            .flatMap { fatura -> fatura.transacoes.map { it to fatura } }
+            .filter { (transacao, _) -> transacao.categoria == categoria }
+            .sortedByDescending { (transacao, _) -> transacao.valor }
+
+        DialogTransacoesCategoria(
+            categoria = categoria,
+            transacoes = transacoesDaCategoria,
+            onDismiss = { categoriaSelecionada = null },
+        )
+    }
 }
 
 @Composable
-private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>) {
+private fun DialogTransacoesCategoria(
+    categoria: String,
+    transacoes: List<Pair<TransacaoEntity, FaturaComTransacoes>>,
+    onDismiss: () -> Unit,
+) {
+    val total = transacoes.sumOf { (transacao, _) -> transacao.valor }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CategoriaIcone(categoria = categoria, tamanho = 28.dp)
+                Text(categoria, modifier = Modifier.padding(start = 8.dp))
+            }
+        },
+        text = {
+            Column {
+                Text(
+                    text = "${transacoes.size} transações • R$ %.2f".format(total),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                    items(transacoes) { (transacao, fatura) ->
+                        TransacaoResumoRow(transacao, fatura)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Fechar") }
+        },
+    )
+}
+
+@Composable
+private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTransacoes) {
+    val sufixoCartao = if (fatura.cartao.isNotBlank()) " ••••${fatura.cartao}" else ""
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = transacao.descricao,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "R$ %.2f".format(transacao.valor),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+        Text(
+            text = "${transacao.data} • ${fatura.banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    HorizontalDivider()
+}
+
+@Composable
+private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>, onCategoriaClick: (String) -> Unit) {
     val transacoes = faturasMaisRecentes.flatMap { it.transacoes }
     val totalGeral = transacoes.sumOf { it.valor }
     val porCategoria = transacoes
@@ -207,6 +295,7 @@ private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onCategoriaClick(categoria) }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
