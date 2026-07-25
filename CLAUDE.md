@@ -171,10 +171,10 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
 4. `git push -u origin <branch>`.
 5. `gh pr create` com corpo descrevendo mudança + evidência do teste
    manual no emulador (passo 2).
-6. **Esperar o CI do GitHub Actions terminar verde antes de mergear**
-   (`gh pr checks <número> --watch`) — é o único gate de teste automatizado
-   que existe. Ver "CI (GitHub Actions)" abaixo pro que ele roda e a
-   limitação atual de enforcement.
+6. **O CI precisa terminar verde pra `gh pr merge` funcionar** — não é
+   mais um lembrete, é bloqueio real do GitHub (branch protection, ver "CI
+   (GitHub Actions)" abaixo). `gh pr checks <número> --watch` pra
+   acompanhar antes de tentar mergear.
 7. `gh pr merge --squash --delete-branch`.
 8. `git fetch origin --prune && git checkout main && git pull`.
 9. Rebuildar e copiar o APK atualizado pro Desktop quando o usuário pedir
@@ -203,14 +203,24 @@ independentes, ambos em `ubuntu-latest`:
   não existem no runner do CI. `RoomFoundationTest` e
   `InvoiceRepositoryTest` não dependem deles e rodam normalmente.
 
-**Limitação atual de enforcement**: o repo é privado e branch protection
-com required status checks é feature paga do GitHub (Pro ou repo
-público) — `gh api repos/.../branches/main/protection` retorna 403 nesse
-plano. Ou seja, o CI roda e mostra o resultado no PR, mas o GitHub não
-bloqueia fisicamente o merge se estiver vermelho; o gate depende de
-checar o status antes de rodar `gh pr merge` (passo 7 acima). Se
-quiser o bloqueio de verdade, as opções são upgrade pra GitHub Pro ou
-tornar o repo público — decisão do usuário, não tomar sozinho.
+**Enforcement real, não só informativo.** O repo é público (decisão do
+usuário, 2026-07-25) especificamente pra habilitar branch protection com
+required status checks — feature paga em repo privado no plano free do
+GitHub. `main` tem, via `gh api .../branches/main/protection`:
+
+- PR obrigatório pra mergear (bloqueia push direto em `main`).
+- `required_approving_review_count: 0` — ainda força passar por PR, mas
+  não exige um segundo humano aprovando (repo solo; `count: 1` +
+  `enforce_admins: true` cria deadlock onde nem o dono consegue mergear
+  o próprio PR — não usar `count: 1` aqui sem adicionar um segundo
+  colaborador antes).
+- Os dois jobs do CI (`JVM unit tests`, `Instrumented tests (Room,
+  InvoiceRepository)`) como required status checks — `gh pr merge`
+  falha de verdade se algum estiver vermelho ou ainda rodando.
+- `enforce_admins: true` (a regra vale até pro dono), sem force-push,
+  sem deleção da branch.
+- `delete_branch_on_merge: true` no repo (branches de PR mergeado somem
+  sozinhas).
 
 ## Dev loop / testes
 
