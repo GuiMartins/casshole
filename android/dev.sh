@@ -18,8 +18,8 @@ ANDROID_HOME="${ANDROID_HOME:-/c/Users/guilh/AndroidSdk}"
 
 ADB="$ANDROID_HOME/platform-tools/adb.exe"
 EMULATOR="$ANDROID_HOME/emulator/emulator.exe"
-AVD_NOME="fatura_test"
-PACOTE="com.faturaapp"
+AVD_NOME="money_hole_test"
+PACOTE="com.moneyhole"
 ACTIVITY="$PACOTE/.MainActivity"
 APK="$SCRIPT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 

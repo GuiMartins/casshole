@@ -1,8 +1,21 @@
-# Fatura App
+# Money Hole
 
 App pessoal Android (Kotlin/Jetpack Compose) pra analisar faturas de cartão de
 crédito em PDF (Nubank, Itaú, Mercado Pago). 100% on-device — sem backend, sem
 rede, sem servidor pra manter.
+
+**Rebrand completo em 2026-07-25** (nome antigo: Fatura App). Renomeado de
+propósito até o fim, a pedido explícito do usuário — repo GitHub
+(`GuiMartins/money-hole`), pacote Kotlin (`com.moneyhole`, era
+`com.faturaapp`), `applicationId`, classe `Application` (`MoneyHoleApp`, era
+`FaturaApp`), tema (`Theme.MoneyHole`/`MoneyHoleTheme`, era
+`Theme.FaturaApp`/`FaturaAppTheme`) e o nome do banco Room local
+(`money_hole.db`, era `fatura_app.db`). **Consequência aceita conscientemente**:
+mudar o `applicationId` faz o Android tratar como um app novo — qualquer
+instalação real anterior perde os dados (não há como preservar isso, o app
+antigo e o novo coexistem como pacotes diferentes do ponto de vista do
+Android). Diferente do rename PT→EN anterior (esse sim preservou dados via
+`@ColumnInfo`/`tableName` do Room), aqui não tinha como evitar a perda.
 
 ## Princípios gerais
 
@@ -25,7 +38,7 @@ rede, sem servidor pra manter.
 - **Persistência**: Room (`AppDatabase`, versão incrementada com `Migration`
   explícita — nunca destrutiva, o app guarda dados reais do usuário).
 - **Parsing de PDF**: PdfBox-Android (`com.tom-roush:pdfbox-android`),
-  `PDFBoxResourceLoader.init()` roda em `FaturaApp.onCreate()` (a
+  `PDFBoxResourceLoader.init()` roda em `MoneyHoleApp.onCreate()` (a
   `Application`, não a `Activity` — cold start via share-intent pode chegar no
   parsing antes de qualquer `Activity.onCreate()`).
 - **Anotações**: KSP (não kapt) pro compilador do Room.
@@ -42,8 +55,8 @@ não existe parser nem stub pra ele; não adicionar sem pedido explícito.
 ## Estrutura de diretórios
 
 ```
-android/app/src/main/java/com/faturaapp/
-  FaturaApp.kt                  Application; init do PDFBox aqui
+android/app/src/main/java/com/moneyhole/
+  MoneyHoleApp.kt                Application; init do PDFBox aqui
   MainActivity.kt                única Activity; calcula WindowSizeClass, tema
   categorizer/Categorizer.kt     regras regex de categorização (ordem importa)
   data/
@@ -224,7 +237,7 @@ GitHub. `main` tem, via `gh api .../branches/main/protection`:
 
 ## Dev loop / testes
 
-- `android/dev.sh <comando>`: `emulator` (abre o AVD `fatura_test`),
+- `android/dev.sh <comando>`: `emulator` (abre o AVD `money_hole_test`),
   `build`, `install`, `start`, `run` (build+install+start), `logs`
   (logcat do processo do app).
 - **Testes automatizados rodam só no CI, nunca localmente.** Não fazem
@@ -259,7 +272,7 @@ GitHub. `main` tem, via `gh api .../branches/main/protection`:
   `InvoiceRepositoryTest` não dependem deles e rodam normalmente no CI.
 - Pra inspecionar o banco Room ao vivo: puxar `.db`, `.db-wal` e `.db-shm`
   juntos (Room usa WAL, dado recente pode não estar no `.db` principal)
-  via `adb exec-out run-as com.faturaapp cat databases/fatura_app.db > arquivo`
+  via `adb exec-out run-as com.moneyhole cat databases/money_hole.db > arquivo`
   (usar `exec-out`, não `shell ... >`, senão o Git Bash corrompe dados
   binários) e abrir com `sqlite3` local.
 - Paths do `adb push`/`pull` no Git Bash: usar barra dupla

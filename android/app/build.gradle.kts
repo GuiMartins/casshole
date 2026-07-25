@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.faturaapp"
+    namespace = "com.moneyhole"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.faturaapp"
+        applicationId = "com.moneyhole"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FaturaApp"
+rootProject.name = "MoneyHole"
 include(":app")
