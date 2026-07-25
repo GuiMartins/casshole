@@ -33,7 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.FaturaComTransacoes
-import com.faturaapp.ui.components.larguraDeLeituraConfortavel
+import com.faturaapp.ui.components.TelaAdaptavel
 import com.faturaapp.ui.theme.BancoBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,10 +98,9 @@ private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFat
         .toList()
         .sortedBy { (chave, _) -> "${chave.first}${chave.second}" }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    TelaAdaptavel {
         LazyColumn(
             modifier = Modifier
-                .larguraDeLeituraConfortavel()
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),

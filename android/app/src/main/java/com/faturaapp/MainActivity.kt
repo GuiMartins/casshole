@@ -6,6 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -13,9 +16,11 @@ import androidx.compose.ui.Modifier
 import com.faturaapp.data.PreferencesRepository
 import com.faturaapp.data.SharedFileHolder
 import com.faturaapp.navigation.AppNavigation
+import com.faturaapp.ui.components.LocalWindowWidthSizeClass
 import com.faturaapp.ui.theme.FaturaAppTheme
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIncomingIntent(intent)
@@ -29,10 +34,15 @@ class MainActivity : ComponentActivity() {
                 PreferencesRepository.TEMA_ESCURO -> true
                 else -> null
             }
+            val windowSizeClass = calculateWindowSizeClass(this)
 
             FaturaAppTheme(temaEscuro = temaEscuro) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNavigation()
+                CompositionLocalProvider(
+                    LocalWindowWidthSizeClass provides windowSizeClass.widthSizeClass,
+                ) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        AppNavigation()
+                    }
                 }
             }
         }

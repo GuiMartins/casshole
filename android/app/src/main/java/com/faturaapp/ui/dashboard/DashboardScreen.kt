@@ -53,7 +53,7 @@ import com.faturaapp.categorizer.CATEGORIAS_DISPONIVEIS
 import com.faturaapp.data.local.FaturaComTransacoes
 import com.faturaapp.data.local.entity.TransacaoEntity
 import androidx.compose.material3.HorizontalDivider
-import com.faturaapp.ui.components.larguraDeLeituraConfortavel
+import com.faturaapp.ui.components.TelaAdaptavel
 import com.faturaapp.ui.theme.CategoriaIcone
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -137,10 +137,9 @@ private fun ResumoGeralConteudo(
     var categoriaSelecionada by remember { mutableStateOf<String?>(null) }
     var transacaoEmEdicao by remember { mutableStateOf<TransacaoEntity?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    TelaAdaptavel {
         Column(
             modifier = Modifier
-                .larguraDeLeituraConfortavel()
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),

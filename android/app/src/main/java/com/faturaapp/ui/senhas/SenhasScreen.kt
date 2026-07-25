@@ -44,7 +44,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.entity.SenhaPadraoEntity
-import com.faturaapp.ui.components.larguraDeLeituraConfortavel
+import com.faturaapp.ui.components.TelaAdaptavel
 import kotlinx.coroutines.delay
 
 @Composable
@@ -54,10 +54,9 @@ fun SenhasScreen(viewModel: SenhasViewModel = viewModel()) {
 
     var novaSenha by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    TelaAdaptavel {
     LazyColumn(
         modifier = Modifier
-            .larguraDeLeituraConfortavel()
             .fillMaxWidth()
             .padding(16.dp),
         contentPadding = PaddingValues(bottom = 96.dp),

@@ -3,7 +3,6 @@ package com.faturaapp.ui.faturadetalhe
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -42,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.entity.TransacaoEntity
-import com.faturaapp.ui.components.larguraDeLeituraConfortavel
+import com.faturaapp.ui.components.TelaAdaptavel
 import com.faturaapp.ui.theme.CategoriaIcone
 import com.faturaapp.ui.theme.visualDaCategoria
 
@@ -155,10 +154,9 @@ private fun ConteudoFaturaDetalhe(
             (cartaoFiltro == null || transacao.cartao == cartaoFiltro)
     }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    TelaAdaptavel {
     LazyColumn(
         modifier = Modifier
-            .larguraDeLeituraConfortavel()
             .fillMaxWidth()
             .padding(16.dp),
         contentPadding = PaddingValues(bottom = 96.dp),

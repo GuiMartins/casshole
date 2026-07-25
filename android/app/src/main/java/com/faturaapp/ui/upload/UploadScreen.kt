@@ -3,7 +3,6 @@ package com.faturaapp.ui.upload
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.SharedFileHolder
-import com.faturaapp.ui.components.larguraDeLeituraConfortavel
+import com.faturaapp.ui.components.TelaAdaptavel
 
 @Composable
 fun UploadScreen(
@@ -54,10 +53,9 @@ fun UploadScreen(
         if (uploadState is UploadState.Sucesso) onFaturaEnviada()
     }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    TelaAdaptavel(alignment = Alignment.Center) {
     Column(
         modifier = Modifier
-            .larguraDeLeituraConfortavel()
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(24.dp)

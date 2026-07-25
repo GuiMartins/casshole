@@ -1,7 +1,6 @@
 package com.faturaapp.ui.comparacao
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.ResumoMensal
-import com.faturaapp.ui.components.larguraDeLeituraConfortavel
+import com.faturaapp.ui.components.TelaAdaptavel
 import com.faturaapp.ui.theme.CategoriaIcone
 
 @Composable
@@ -36,10 +35,9 @@ fun ComparacaoScreen(viewModel: ComparacaoViewModel = viewModel()) {
     val selecionados by viewModel.selecionados.collectAsState()
     val comparacaoState by viewModel.comparacaoState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    TelaAdaptavel {
     LazyColumn(
         modifier = Modifier
-            .larguraDeLeituraConfortavel()
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp),
         contentPadding = PaddingValues(bottom = 96.dp),
