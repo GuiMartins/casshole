@@ -12,16 +12,16 @@ private val Context.dataStore by preferencesDataStore(name = "fatura_app_prefs")
 class PreferencesRepository(private val context: Context) {
 
     companion object {
-        private val TEMA_KEY = stringPreferencesKey("tema_preferido")
-        const val TEMA_SISTEMA = "sistema"
-        const val TEMA_CLARO = "claro"
-        const val TEMA_ESCURO = "escuro"
+        private val THEME_KEY = stringPreferencesKey("tema_preferido")
+        const val THEME_SYSTEM = "sistema"
+        const val THEME_LIGHT = "claro"
+        const val THEME_DARK = "escuro"
     }
 
-    val temaPreferido: Flow<String> =
-        context.dataStore.data.map { it[TEMA_KEY] ?: TEMA_SISTEMA }
+    val preferredTheme: Flow<String> =
+        context.dataStore.data.map { it[THEME_KEY] ?: THEME_SYSTEM }
 
-    suspend fun setTemaPreferido(valor: String) {
-        context.dataStore.edit { it[TEMA_KEY] = valor }
+    suspend fun setPreferredTheme(value: String) {
+        context.dataStore.edit { it[THEME_KEY] = value }
     }
 }

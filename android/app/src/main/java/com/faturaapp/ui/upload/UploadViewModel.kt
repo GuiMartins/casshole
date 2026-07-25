@@ -6,9 +6,9 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.faturaapp.data.local.FaturaComTransacoes
-import com.faturaapp.data.local.FaturaRepository
-import com.faturaapp.data.local.PeriodoDuplicadoException
+import com.faturaapp.data.local.InvoiceWithTransactions
+import com.faturaapp.data.local.InvoiceRepository
+import com.faturaapp.data.local.DuplicatePeriodException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,46 +16,46 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class ArquivoSelecionado(val uri: Uri, val nome: String)
+data class SelectedFile(val uri: Uri, val name: String)
 
 sealed class UploadState {
     data object Idle : UploadState()
-    data object Enviando : UploadState()
-    data class Sucesso(val fatura: FaturaComTransacoes) : UploadState()
-    data class Erro(val mensagem: String) : UploadState()
+    data object Sending : UploadState()
+    data class Success(val invoice: InvoiceWithTransactions) : UploadState()
+    data class Error(val message: String) : UploadState()
 }
 
 class UploadViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = FaturaRepository(application)
+    private val repository = InvoiceRepository(application)
 
-    private val _arquivoSelecionado = MutableStateFlow<ArquivoSelecionado?>(null)
-    val arquivoSelecionado: StateFlow<ArquivoSelecionado?> = _arquivoSelecionado.asStateFlow()
+    private val _selectedFile = MutableStateFlow<SelectedFile?>(null)
+    val selectedFile: StateFlow<SelectedFile?> = _selectedFile.asStateFlow()
 
-    private val _senha = MutableStateFlow("")
-    val senha: StateFlow<String> = _senha.asStateFlow()
+    private val _password = MutableStateFlow("")
+    val password: StateFlow<String> = _password.asStateFlow()
 
-    private val _salvarSenha = MutableStateFlow(false)
-    val salvarSenha: StateFlow<Boolean> = _salvarSenha.asStateFlow()
+    private val _savePassword = MutableStateFlow(false)
+    val savePassword: StateFlow<Boolean> = _savePassword.asStateFlow()
 
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState: StateFlow<UploadState> = _uploadState.asStateFlow()
 
-    fun onSenhaChange(novaSenha: String) {
-        _senha.value = novaSenha
+    fun onPasswordChange(newPassword: String) {
+        _password.value = newPassword
     }
 
-    fun onSalvarSenhaChange(valor: Boolean) {
-        _salvarSenha.value = valor
+    fun onSavePasswordChange(value: Boolean) {
+        _savePassword.value = value
     }
 
-    fun selecionarArquivo(uri: Uri) {
-        val nome = resolverNomeArquivo(uri) ?: "fatura.pdf"
-        _arquivoSelecionado.value = ArquivoSelecionado(uri, nome)
+    fun selectFile(uri: Uri) {
+        val name = resolveFileName(uri) ?: "fatura.pdf"
+        _selectedFile.value = SelectedFile(uri, name)
         _uploadState.value = UploadState.Idle
     }
 
-    private fun resolverNomeArquivo(uri: Uri): String? {
+    private fun resolveFileName(uri: Uri): String? {
         val resolver = getApplication<Application>().contentResolver
         resolver.query(uri, null, null, null, null)?.use { cursor ->
             val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -66,47 +66,48 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
         return null
     }
 
-    fun enviarFatura() {
-        val arquivo = _arquivoSelecionado.value ?: run {
-            _uploadState.value = UploadState.Erro("Selecione um arquivo PDF primeiro")
+    fun sendInvoice() {
+        val file = _selectedFile.value ?: run {
+            _uploadState.value = UploadState.Error("Selecione um arquivo PDF primeiro")
             return
         }
 
         viewModelScope.launch {
-            _uploadState.value = UploadState.Enviando
+            _uploadState.value = UploadState.Sending
             try {
                 val bytes = withContext(Dispatchers.IO) {
                     getApplication<Application>().contentResolver
-                        .openInputStream(arquivo.uri)?.use { it.readBytes() }
+                        .openInputStream(file.uri)?.use { it.readBytes() }
                 } ?: throw IllegalStateException("Não foi possível ler o arquivo selecionado")
 
-                val senhaDigitada = _senha.value.trim().ifBlank { null }
-                val fatura = repository.processarEArmazenar(bytes, senhaDigitada)
-                salvarSenhaComoPadraoSeNecessario(senhaDigitada)
-                _uploadState.value = UploadState.Sucesso(fatura)
-            } catch (e: PeriodoDuplicadoException) {
-                // A senha já foi validada com sucesso (o PDF foi aberto e identificado)
-                // antes dessa checagem de duplicidade, então ainda vale a pena salvá-la.
-                salvarSenhaComoPadraoSeNecessario(_senha.value.trim().ifBlank { null })
-                _uploadState.value = UploadState.Erro(e.message ?: "Fatura já existe")
+                val enteredPassword = _password.value.trim().ifBlank { null }
+                val invoice = repository.processAndStore(bytes, enteredPassword)
+                saveDefaultPasswordIfNeeded(enteredPassword)
+                _uploadState.value = UploadState.Success(invoice)
+            } catch (e: DuplicatePeriodException) {
+                // The password was already validated successfully (the PDF
+                // was opened and identified) before this duplicate check, so
+                // it's still worth saving.
+                saveDefaultPasswordIfNeeded(_password.value.trim().ifBlank { null })
+                _uploadState.value = UploadState.Error(e.message ?: "Fatura já existe")
             } catch (e: Exception) {
-                _uploadState.value = UploadState.Erro(e.message ?: "Erro ao enviar a fatura")
+                _uploadState.value = UploadState.Error(e.message ?: "Erro ao enviar a fatura")
             }
         }
     }
 
-    private suspend fun salvarSenhaComoPadraoSeNecessario(senhaDigitada: String?) {
-        if (_salvarSenha.value && senhaDigitada != null) {
+    private suspend fun saveDefaultPasswordIfNeeded(enteredPassword: String?) {
+        if (_savePassword.value && enteredPassword != null) {
             try {
-                repository.adicionarSenhaPadrao(senhaDigitada)
+                repository.addDefaultPassword(enteredPassword)
             } catch (e: SQLiteConstraintException) {
-                // Senha já estava salva como padrão, nada a fazer.
+                // Password was already saved as default, nothing to do.
             }
         }
     }
 
-    fun limpar() {
-        _arquivoSelecionado.value = null
+    fun clear() {
+        _selectedFile.value = null
         _uploadState.value = UploadState.Idle
     }
 }

@@ -26,17 +26,17 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
         setContent {
             val preferencesRepository = remember { PreferencesRepository(applicationContext) }
-            val temaPreferido by preferencesRepository.temaPreferido.collectAsState(
-                initial = PreferencesRepository.TEMA_SISTEMA,
+            val preferredTheme by preferencesRepository.preferredTheme.collectAsState(
+                initial = PreferencesRepository.THEME_SYSTEM,
             )
-            val temaEscuro = when (temaPreferido) {
-                PreferencesRepository.TEMA_CLARO -> false
-                PreferencesRepository.TEMA_ESCURO -> true
+            val darkTheme = when (preferredTheme) {
+                PreferencesRepository.THEME_LIGHT -> false
+                PreferencesRepository.THEME_DARK -> true
                 else -> null
             }
             val windowSizeClass = calculateWindowSizeClass(this)
 
-            FaturaAppTheme(temaEscuro = temaEscuro) {
+            FaturaAppTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(
                     LocalWindowWidthSizeClass provides windowSizeClass.widthSizeClass,
                 ) {

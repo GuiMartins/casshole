@@ -25,14 +25,14 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 
 object DatabaseProvider {
     @Volatile
-    private var instancia: AppDatabase? = null
+    private var instance: AppDatabase? = null
 
     fun getDatabase(context: Context): AppDatabase =
-        instancia ?: synchronized(this) {
-            instancia ?: Room.databaseBuilder(
+        instance ?: synchronized(this) {
+            instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
                 "fatura_app.db",
-            ).addMigrations(MIGRATION_1_2).build().also { instancia = it }
+            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
         }
 }

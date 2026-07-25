@@ -1,88 +1,89 @@
 package com.faturaapp.parsing
 
-private val VENCIMENTO_RE = Regex("Vencimento:\\s*(\\d{2})/(\\d{2})/(\\d{4})", RegexOption.IGNORE_CASE)
-private val CARTAO_RE = Regex("Cart[aã]o\\s+\\w+\\s*\\[\\*+(\\d{4})\\]", RegexOption.IGNORE_CASE)
+private val DUE_DATE_REGEX = Regex("Vencimento:\\s*(\\d{2})/(\\d{2})/(\\d{4})", RegexOption.IGNORE_CASE)
+private val CARD_REGEX = Regex("Cart[aã]o\\s+\\w+\\s*\\[\\*+(\\d{4})\\]", RegexOption.IGNORE_CASE)
 
 // Ex: "28/11 MERCADOLIVRE*ESHOPIMPORTA Parcela 19 de 24 R$ 116,21"
-// Ex: "15/06 Pagamento da fatura de junho/2026 R$ 1.200,00" (pagamento, ignorar)
-private val LINHA_TRANSACAO_RE = Regex(
-    "^(?<dia>\\d{2})/(?<mes>\\d{2})\\s+" +
-        "(?<descricao>.+?)" +
-        "(?:\\s+Parcela\\s+(?<parcelaAtual>\\d{1,2})\\s+de\\s+(?<parcelaTotal>\\d{1,2}))?" +
-        "\\s+R\\$\\s*(?<valor>\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*$",
+// Ex: "15/06 Pagamento da fatura de junho/2026 R$ 1.200,00" (payment, ignore)
+private val TRANSACTION_LINE_REGEX = Regex(
+    "^(?<day>\\d{2})/(?<month>\\d{2})\\s+" +
+        "(?<description>.+?)" +
+        "(?:\\s+Parcela\\s+(?<currentInstallment>\\d{1,2})\\s+de\\s+(?<totalInstallments>\\d{1,2}))?" +
+        "\\s+R\\$\\s*(?<amount>\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*$",
     RegexOption.IGNORE_CASE,
 )
 
-private val DESCRICAO_IGNORAR_RE = Regex("^pagamento da fatura", RegexOption.IGNORE_CASE)
-private val TITULAR_RE = Regex("^(.*?)\\s*Emitida em:", setOf(RegexOption.DOT_MATCHES_ALL))
-private val ESPACOS_RE = Regex("\\s+")
+private val IGNORED_DESCRIPTION_REGEX = Regex("^pagamento da fatura", RegexOption.IGNORE_CASE)
+private val CARDHOLDER_REGEX = Regex("^(.*?)\\s*Emitida em:", setOf(RegexOption.DOT_MATCHES_ALL))
+private val WHITESPACE_REGEX = Regex("\\s+")
 
 class MercadoPagoParser : BankParser {
-    override val banco = "mercadopago"
+    override val bank = "mercadopago"
 
-    override fun matches(texto: String): Boolean {
-        val textoLower = texto.lowercase()
-        return textoLower.contains("mercado pago") || textoLower.contains("mercadopago")
+    override fun matches(text: String): Boolean {
+        val textLower = text.lowercase()
+        return textLower.contains("mercado pago") || textLower.contains("mercadopago")
     }
 
-    override fun parse(texto: String, pdfBytes: ByteArray, senha: String): ParsedFatura {
-        val (mes, ano) = extrairMesAnoReferencia(texto)
-        val cartao = extrairCartao(texto)
-        val titular = extrairTitular(texto)
-        val transacoes = extrairTransacoes(texto, mes, ano, titular)
-        return ParsedFatura(banco = banco, cartao = cartao, mesReferencia = mes, anoReferencia = ano, transacoes = transacoes)
+    override fun parse(text: String, pdfBytes: ByteArray, password: String): ParsedInvoice {
+        val (month, year) = extractReferenceMonthYear(text)
+        val card = extractCard(text)
+        val cardholder = extractCardholder(text)
+        val transactions = extractTransactions(text, month, year, cardholder)
+        return ParsedInvoice(bank = bank, card = card, referenceMonth = month, referenceYear = year, transactions = transactions)
     }
 
-    private fun extrairMesAnoReferencia(texto: String): Pair<Int, Int> {
-        val match = VENCIMENTO_RE.find(texto)
+    private fun extractReferenceMonthYear(text: String): Pair<Int, Int> {
+        val match = DUE_DATE_REGEX.find(text)
             ?: throw IllegalStateException("Não foi possível identificar o mês/ano de referência da fatura Mercado Pago")
         return match.groupValues[2].toInt() to match.groupValues[3].toInt()
     }
 
-    private fun extrairCartao(texto: String): String =
-        CARTAO_RE.find(texto)?.groupValues?.get(1) ?: ""
+    private fun extractCard(text: String): String =
+        CARD_REGEX.find(text)?.groupValues?.get(1) ?: ""
 
     /**
-     * O nome do titular aparece no topo da fatura, antes de 'Emitida em:',
-     * as vezes quebrado em mais de uma linha por causa da largura da coluna.
+     * The cardholder's name appears at the top of the invoice, before
+     * 'Emitida em:', sometimes wrapped across more than one line because of
+     * column width.
      */
-    private fun extrairTitular(texto: String): String {
-        val match = TITULAR_RE.find(texto) ?: return ""
-        return match.groupValues[1].trim().replace(ESPACOS_RE, " ")
+    private fun extractCardholder(text: String): String {
+        val match = CARDHOLDER_REGEX.find(text) ?: return ""
+        return match.groupValues[1].trim().replace(WHITESPACE_REGEX, " ")
     }
 
-    private fun extrairTransacoes(
-        texto: String,
-        mesReferencia: Int,
-        anoReferencia: Int,
-        titular: String,
-    ): List<ParsedTransacao> {
-        val transacoes = mutableListOf<ParsedTransacao>()
-        for (linha in texto.lines()) {
-            val match = LINHA_TRANSACAO_RE.matchEntire(linha.trim()) ?: continue
-            val descricao = match.groups["descricao"]!!.value.trim()
-            if (DESCRICAO_IGNORAR_RE.containsMatchIn(descricao)) continue
+    private fun extractTransactions(
+        text: String,
+        referenceMonth: Int,
+        referenceYear: Int,
+        cardholder: String,
+    ): List<ParsedTransaction> {
+        val transactions = mutableListOf<ParsedTransaction>()
+        for (line in text.lines()) {
+            val match = TRANSACTION_LINE_REGEX.matchEntire(line.trim()) ?: continue
+            val description = match.groups["description"]!!.value.trim()
+            if (IGNORED_DESCRIPTION_REGEX.containsMatchIn(description)) continue
 
-            val mesTransacao = match.groups["mes"]!!.value.toInt()
-            var anoTransacao = anoReferencia
-            if (mesTransacao > mesReferencia) {
-                // Compras parceladas mostram a data da compra original, que
-                // pode ser de meses ou anos atras (nao a data de cobranca).
-                anoTransacao -= 1
+            val transactionMonth = match.groups["month"]!!.value.toInt()
+            var transactionYear = referenceYear
+            if (transactionMonth > referenceMonth) {
+                // Installment purchases show the original purchase date, which
+                // can be months or years in the past (not the billing date).
+                transactionYear -= 1
             }
 
-            val dia = match.groups["dia"]!!.value.toInt()
-            transacoes.add(
-                ParsedTransacao(
-                    data = "%04d-%02d-%02d".format(anoTransacao, mesTransacao, dia),
-                    descricao = descricao,
-                    valor = parseValorBr(match.groups["valor"]!!.value),
-                    parcelaAtual = match.groups["parcelaAtual"]?.value?.toInt(),
-                    parcelaTotal = match.groups["parcelaTotal"]?.value?.toInt(),
-                    titular = titular,
+            val day = match.groups["day"]!!.value.toInt()
+            transactions.add(
+                ParsedTransaction(
+                    date = "%04d-%02d-%02d".format(transactionYear, transactionMonth, day),
+                    description = description,
+                    amount = parseBrazilianAmount(match.groups["amount"]!!.value),
+                    currentInstallment = match.groups["currentInstallment"]?.value?.toInt(),
+                    totalInstallments = match.groups["totalInstallments"]?.value?.toInt(),
+                    cardholder = cardholder,
                 )
             )
         }
-        return transacoes
+        return transactions
     }
 }

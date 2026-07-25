@@ -1,121 +1,121 @@
 package com.faturaapp.parsing
 
-private val VENCIMENTO_RE = Regex("Vencimento:\\s*(\\d{2})/(\\d{2})/(\\d{4})", RegexOption.IGNORE_CASE)
-private val CARTAO_RE = Regex("Cart[aã]o\\s+\\d{4}\\.XXXX\\.XXXX\\.(\\d{4})", RegexOption.IGNORE_CASE)
+private val DUE_DATE_REGEX = Regex("Vencimento:\\s*(\\d{2})/(\\d{2})/(\\d{4})", RegexOption.IGNORE_CASE)
+private val CARD_REGEX = Regex("Cart[aã]o\\s+\\d{4}\\.XXXX\\.XXXX\\.(\\d{4})", RegexOption.IGNORE_CASE)
 
 // Ex: "30/12 SHOPEE *LOJAPI 07/07 65,58"
-// Ex: "07/06 IFD*SORVETERIA EXEMPLO 51,88" (sem parcela)
-// Ex: "16/06 PAGAMENTO -1.100,00" (pagamento, sinal negativo, deve ser ignorado)
-private val LINHA_TRANSACAO_RE = Regex(
-    "^(?<dia>\\d{2})/(?<mes>\\d{2})\\s+" +
-        "(?<descricao>.+?)" +
-        "(?:\\s+(?<parcelaAtual>\\d{2})/(?<parcelaTotal>\\d{2}))?" +
-        "\\s+(?<sinal>[-−])?(?:R\\$\\s*)?(?<valor>\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*$"
+// Ex: "07/06 IFD*SORVETERIA EXEMPLO 51,88" (no installment)
+// Ex: "16/06 PAGAMENTO -1.100,00" (payment, negative sign, must be ignored)
+private val TRANSACTION_LINE_REGEX = Regex(
+    "^(?<day>\\d{2})/(?<month>\\d{2})\\s+" +
+        "(?<description>.+?)" +
+        "(?:\\s+(?<currentInstallment>\\d{2})/(?<totalInstallments>\\d{2}))?" +
+        "\\s+(?<sign>[-−])?(?:R\\$\\s*)?(?<amount>\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*$"
 )
 
-private val TITULAR_RE = Regex("^[A-ZÀ-Ú][A-ZÀ-Ú ]+$")
+private val CARDHOLDER_REGEX = Regex("^[A-ZÀ-Ú][A-ZÀ-Ú ]+$")
 
 class ItauParser : BankParser {
-    override val banco = "itau"
+    override val bank = "itau"
 
-    override fun matches(texto: String): Boolean {
-        val textoLower = texto.lowercase()
-        return textoLower.contains("itau") || textoLower.contains("itaú")
+    override fun matches(text: String): Boolean {
+        val textLower = text.lowercase()
+        return textLower.contains("itau") || textLower.contains("itaú")
     }
 
-    override fun parse(texto: String, pdfBytes: ByteArray, senha: String): ParsedFatura {
-        val (mes, ano) = extrairMesAnoReferencia(texto)
-        val cartao = extrairCartao(texto)
-        val textoColunas = if (pdfBytes.isNotEmpty()) {
-            extrairTextoPdfPorColunas(pdfBytes, senha, fracaoCorte = 0.57f)
+    override fun parse(text: String, pdfBytes: ByteArray, password: String): ParsedInvoice {
+        val (month, year) = extractReferenceMonthYear(text)
+        val card = extractCard(text)
+        val columnText = if (pdfBytes.isNotEmpty()) {
+            extractPdfTextByColumns(pdfBytes, password, cutFraction = 0.57f)
         } else {
-            texto
+            text
         }
-        val titular = extrairTitular(textoColunas)
-        val transacoes = extrairTransacoes(textoColunas, mes, ano, titular)
-        return ParsedFatura(banco = banco, cartao = cartao, mesReferencia = mes, anoReferencia = ano, transacoes = transacoes)
+        val cardholder = extractCardholder(columnText)
+        val transactions = extractTransactions(columnText, month, year, cardholder)
+        return ParsedInvoice(bank = bank, card = card, referenceMonth = month, referenceYear = year, transactions = transactions)
     }
 
-    private fun extrairMesAnoReferencia(texto: String): Pair<Int, Int> {
-        val match = VENCIMENTO_RE.find(texto)
+    private fun extractReferenceMonthYear(text: String): Pair<Int, Int> {
+        val match = DUE_DATE_REGEX.find(text)
             ?: throw IllegalStateException("Não foi possível identificar o mês/ano de referência da fatura Itaú")
         return match.groupValues[2].toInt() to match.groupValues[3].toInt()
     }
 
-    private fun extrairCartao(texto: String): String =
-        CARTAO_RE.find(texto)?.groupValues?.get(1) ?: ""
+    private fun extractCard(text: String): String =
+        CARD_REGEX.find(text)?.groupValues?.get(1) ?: ""
 
-    private fun extrairTitular(texto: String): String {
-        val header = Regex("Lançamentos:\\s*compras e saques", RegexOption.IGNORE_CASE).find(texto) ?: return ""
-        for (linha in texto.substring(header.range.last + 1).lines()) {
-            val linhaLimpa = linha.trim()
-            if (linhaLimpa.isNotEmpty() && TITULAR_RE.matches(linhaLimpa)) {
-                return tituloSimples(linhaLimpa)
+    private fun extractCardholder(text: String): String {
+        val header = Regex("Lançamentos:\\s*compras e saques", RegexOption.IGNORE_CASE).find(text) ?: return ""
+        for (line in text.substring(header.range.last + 1).lines()) {
+            val cleanLine = line.trim()
+            if (cleanLine.isNotEmpty() && CARDHOLDER_REGEX.matches(cleanLine)) {
+                return simpleTitleCase(cleanLine)
             }
         }
         return ""
     }
 
-    private fun extrairSecaoLancamentosAtuais(texto: String): String {
-        val inicio = Regex("Lançamentos:\\s*compras e saques", RegexOption.IGNORE_CASE).find(texto) ?: return texto
-        val fim = Regex("Total dos lançamentos atuais", RegexOption.IGNORE_CASE).find(texto)
-        val fimPos = fim?.range?.first ?: texto.length
-        return texto.substring(inicio.range.first, fimPos)
+    private fun extractCurrentEntriesSection(text: String): String {
+        val start = Regex("Lançamentos:\\s*compras e saques", RegexOption.IGNORE_CASE).find(text) ?: return text
+        val end = Regex("Total dos lançamentos atuais", RegexOption.IGNORE_CASE).find(text)
+        val endPos = end?.range?.first ?: text.length
+        return text.substring(start.range.first, endPos)
     }
 
-    private fun extrairCidade(proximaLinha: String): String {
-        val linhaLimpa = proximaLinha.trim()
-        if (linhaLimpa.isEmpty() || LINHA_TRANSACAO_RE.matchEntire(linhaLimpa) != null) {
+    private fun extractCity(nextLine: String): String {
+        val cleanLine = nextLine.trim()
+        if (cleanLine.isEmpty() || TRANSACTION_LINE_REGEX.matchEntire(cleanLine) != null) {
             return ""
         }
-        val palavras = linhaLimpa.split(" ", limit = 2)
-        if (palavras.size == 2 && palavras[0] == palavras[0].lowercase()) {
-            return palavras[1].trim()
+        val words = cleanLine.split(" ", limit = 2)
+        if (words.size == 2 && words[0] == words[0].lowercase()) {
+            return words[1].trim()
         }
-        return linhaLimpa
+        return cleanLine
     }
 
-    private fun extrairTransacoes(
-        texto: String,
-        mesReferencia: Int,
-        anoReferencia: Int,
-        titular: String,
-    ): List<ParsedTransacao> {
-        val secao = extrairSecaoLancamentosAtuais(texto)
-        val linhas = secao.lines()
-        val transacoes = mutableListOf<ParsedTransacao>()
+    private fun extractTransactions(
+        text: String,
+        referenceMonth: Int,
+        referenceYear: Int,
+        cardholder: String,
+    ): List<ParsedTransaction> {
+        val section = extractCurrentEntriesSection(text)
+        val lines = section.lines()
+        val transactions = mutableListOf<ParsedTransaction>()
 
-        for (indice in linhas.indices) {
-            val match = LINHA_TRANSACAO_RE.matchEntire(linhas[indice].trim()) ?: continue
-            if (match.groups["sinal"] != null) continue
+        for (index in lines.indices) {
+            val match = TRANSACTION_LINE_REGEX.matchEntire(lines[index].trim()) ?: continue
+            if (match.groups["sign"] != null) continue
 
-            val mesTransacao = match.groups["mes"]!!.value.toInt()
-            var anoTransacao = anoReferencia
-            if (mesTransacao > mesReferencia) {
-                anoTransacao -= 1
+            val transactionMonth = match.groups["month"]!!.value.toInt()
+            var transactionYear = referenceYear
+            if (transactionMonth > referenceMonth) {
+                transactionYear -= 1
             }
 
-            val cidade = if (indice + 1 < linhas.size) extrairCidade(linhas[indice + 1]) else ""
-            val dia = match.groups["dia"]!!.value.toInt()
+            val city = if (index + 1 < lines.size) extractCity(lines[index + 1]) else ""
+            val day = match.groups["day"]!!.value.toInt()
 
-            transacoes.add(
-                ParsedTransacao(
-                    data = "%04d-%02d-%02d".format(anoTransacao, mesTransacao, dia),
-                    descricao = match.groups["descricao"]!!.value.trim(),
-                    valor = parseValorBr(match.groups["valor"]!!.value),
-                    parcelaAtual = match.groups["parcelaAtual"]?.value?.toInt(),
-                    parcelaTotal = match.groups["parcelaTotal"]?.value?.toInt(),
-                    titular = titular,
-                    cidade = cidade,
+            transactions.add(
+                ParsedTransaction(
+                    date = "%04d-%02d-%02d".format(transactionYear, transactionMonth, day),
+                    description = match.groups["description"]!!.value.trim(),
+                    amount = parseBrazilianAmount(match.groups["amount"]!!.value),
+                    currentInstallment = match.groups["currentInstallment"]?.value?.toInt(),
+                    totalInstallments = match.groups["totalInstallments"]?.value?.toInt(),
+                    cardholder = cardholder,
+                    city = city,
                 )
             )
         }
-        return transacoes
+        return transactions
     }
 }
 
-/** Equivalente ao str.title() do Python: capitaliza a primeira letra de cada palavra. */
-private fun tituloSimples(texto: String): String =
-    texto.lowercase().split(" ").joinToString(" ") { palavra ->
-        palavra.replaceFirstChar { it.uppercase() }
+/** Equivalent to Python's str.title(): capitalizes the first letter of each word. */
+private fun simpleTitleCase(text: String): String =
+    text.lowercase().split(" ").joinToString(" ") { word ->
+        word.replaceFirstChar { it.uppercase() }
     }

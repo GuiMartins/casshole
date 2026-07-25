@@ -1,9 +1,9 @@
 package com.faturaapp.categorizer
 
-// Ordem importa: categorias mais especificas (ex: "amazon prime", "mercado
-// livre") ficam antes das mais genericas que colidiriam por substring (ex:
-// "amazon" sozinho, ou "mercado" dentro de "mercadolivre").
-private val REGRAS_CATEGORIA: List<Pair<String, Regex>> = listOf(
+// Order matters: more specific categories (ex: "amazon prime", "mercado
+// livre") come before more generic ones that would collide by substring
+// (ex: "amazon" alone, or "mercado" inside "mercadolivre").
+private val CATEGORY_RULES: List<Pair<String, Regex>> = listOf(
     "Streaming/Assinaturas" to Regex(
         "netflix|spotify|amazon prime|disney|hbo|youtube|icloud|universal music|apple\\.com|" +
             "wellhub|gympass",
@@ -31,8 +31,8 @@ private val REGRAS_CATEGORIA: List<Pair<String, Regex>> = listOf(
         RegexOption.IGNORE_CASE,
     ),
     "Saúde" to Regex(
-        // Lookahead evita falso-positivo tipo "Hospital das Bonecas" (loja de
-        // reparo de bonecas, nao um hospital de verdade).
+        // Lookahead avoids a false positive like "Hospital das Bonecas" (a
+        // doll-repair shop, not an actual hospital).
         "farmacia|drogaria|drogasil|pague\\s?menos|ultrafarma|raia\\d|" +
             "clinica|hospital(?!\\s*das\\s*bonecas)|laboratorio",
         RegexOption.IGNORE_CASE,
@@ -41,13 +41,13 @@ private val REGRAS_CATEGORIA: List<Pair<String, Regex>> = listOf(
     "Contas/Serviços" to Regex("energia|luz|agua|telefone|internet|claro|vivo|tim|oi\\b", RegexOption.IGNORE_CASE),
 )
 
-const val CATEGORIA_PADRAO = "Outros"
+const val DEFAULT_CATEGORY = "Outros"
 
-val CATEGORIAS_DISPONIVEIS: List<String> = REGRAS_CATEGORIA.map { it.first } + CATEGORIA_PADRAO
+val AVAILABLE_CATEGORIES: List<String> = CATEGORY_RULES.map { it.first } + DEFAULT_CATEGORY
 
-fun categorizar(descricao: String): String {
-    for ((categoria, padrao) in REGRAS_CATEGORIA) {
-        if (padrao.containsMatchIn(descricao)) return categoria
+fun categorize(description: String): String {
+    for ((category, pattern) in CATEGORY_RULES) {
+        if (pattern.containsMatchIn(description)) return category
     }
-    return CATEGORIA_PADRAO
+    return DEFAULT_CATEGORY
 }

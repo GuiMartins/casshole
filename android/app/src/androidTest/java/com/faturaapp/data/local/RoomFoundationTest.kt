@@ -4,9 +4,9 @@ import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.faturaapp.data.local.entity.FaturaEntity
-import com.faturaapp.data.local.entity.SenhaPadraoEntity
-import com.faturaapp.data.local.entity.TransacaoEntity
+import com.faturaapp.data.local.entity.InvoiceEntity
+import com.faturaapp.data.local.entity.DefaultPasswordEntity
+import com.faturaapp.data.local.entity.TransactionEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -22,95 +22,95 @@ class RoomFoundationTest {
     private lateinit var db: AppDatabase
 
     @Before
-    fun criarBanco() {
+    fun createDatabase() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
     }
 
     @After
-    fun fecharBanco() {
+    fun closeDatabase() {
         db.close()
     }
 
     @Test
-    fun inserirFaturaComTransacoes_apareceNaConsulta() = runBlocking {
-        val faturaId = db.faturaDao().inserir(
-            FaturaEntity(
-                banco = "itau",
-                cartao = "2222",
-                mesReferencia = 7,
-                anoReferencia = 2026,
-                arquivoHash = "hash-1",
-                processadaEm = "2026-07-24T00:00:00",
+    fun insertInvoiceWithTransactions_showsUpInQuery() = runBlocking {
+        val invoiceId = db.invoiceDao().insert(
+            InvoiceEntity(
+                bank = "itau",
+                card = "2222",
+                referenceMonth = 7,
+                referenceYear = 2026,
+                fileHash = "hash-1",
+                processedAt = "2026-07-24T00:00:00",
             )
         )
-        db.transacaoDao().inserirTodas(
+        db.transactionDao().insertAll(
             listOf(
-                TransacaoEntity(faturaId = faturaId, data = "2026-06-07", descricao = "IFOOD", valor = 51.88),
-                TransacaoEntity(faturaId = faturaId, data = "2026-06-08", descricao = "WELLHUB", valor = 69.99),
+                TransactionEntity(invoiceId = invoiceId, date = "2026-06-07", description = "IFOOD", amount = 51.88),
+                TransactionEntity(invoiceId = invoiceId, date = "2026-06-08", description = "WELLHUB", amount = 69.99),
             )
         )
 
-        val resultado = db.faturaDao().obterComTransacoes(faturaId)
-        assertEquals(2, resultado?.transacoes?.size)
-        assertEquals(121.87, resultado!!.transacoes.sumOf { it.valor }, 0.001)
+        val result = db.invoiceDao().getWithTransactions(invoiceId)
+        assertEquals(2, result?.transactions?.size)
+        assertEquals(121.87, result!!.transactions.sumOf { it.amount }, 0.001)
     }
 
     @Test
-    fun deletarFatura_apagaTransacoesEmCascata() = runBlocking {
-        val fatura = FaturaEntity(
-            banco = "nubank",
-            mesReferencia = 7,
-            anoReferencia = 2026,
-            arquivoHash = "hash-cascade",
-            processadaEm = "2026-07-24T00:00:00",
+    fun deleteInvoice_cascadeDeletesTransactions() = runBlocking {
+        val invoice = InvoiceEntity(
+            bank = "nubank",
+            referenceMonth = 7,
+            referenceYear = 2026,
+            fileHash = "hash-cascade",
+            processedAt = "2026-07-24T00:00:00",
         )
-        val faturaId = db.faturaDao().inserir(fatura)
-        db.transacaoDao().inserirTodas(
-            listOf(TransacaoEntity(faturaId = faturaId, data = "2026-06-01", descricao = "X", valor = 10.0))
+        val invoiceId = db.invoiceDao().insert(invoice)
+        db.transactionDao().insertAll(
+            listOf(TransactionEntity(invoiceId = invoiceId, date = "2026-06-01", description = "X", amount = 10.0))
         )
 
-        db.faturaDao().deletar(fatura.copy(id = faturaId))
+        db.invoiceDao().delete(invoice.copy(id = invoiceId))
 
-        assertNull(db.faturaDao().obterComTransacoes(faturaId))
-        assertTrue(db.transacaoDao().listarPorPeriodo(7, 2026).isEmpty())
+        assertNull(db.invoiceDao().getWithTransactions(invoiceId))
+        assertTrue(db.transactionDao().listByPeriod(7, 2026).isEmpty())
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun arquivoHashDuplicado_lancaExcecao(): Unit = runBlocking {
-        val base = FaturaEntity(
-            banco = "itau",
-            mesReferencia = 7,
-            anoReferencia = 2026,
-            arquivoHash = "hash-repetido",
-            processadaEm = "2026-07-24T00:00:00",
+    fun duplicateFileHash_throwsException(): Unit = runBlocking {
+        val base = InvoiceEntity(
+            bank = "itau",
+            referenceMonth = 7,
+            referenceYear = 2026,
+            fileHash = "hash-repetido",
+            processedAt = "2026-07-24T00:00:00",
         )
-        db.faturaDao().inserir(base)
-        db.faturaDao().inserir(base.copy(cartao = "outro-cartao"))
+        db.invoiceDao().insert(base)
+        db.invoiceDao().insert(base.copy(card = "outro-cartao"))
         Unit
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun periodoDuplicadoMesmoBancoECartao_lancaExcecao(): Unit = runBlocking {
-        db.faturaDao().inserir(
-            FaturaEntity(
-                banco = "mercadopago", cartao = "1111", mesReferencia = 7, anoReferencia = 2026,
-                arquivoHash = "hash-a", processadaEm = "2026-07-24T00:00:00",
+    fun duplicatePeriodSameBankAndCard_throwsException(): Unit = runBlocking {
+        db.invoiceDao().insert(
+            InvoiceEntity(
+                bank = "mercadopago", card = "1111", referenceMonth = 7, referenceYear = 2026,
+                fileHash = "hash-a", processedAt = "2026-07-24T00:00:00",
             )
         )
-        db.faturaDao().inserir(
-            FaturaEntity(
-                banco = "mercadopago", cartao = "1111", mesReferencia = 7, anoReferencia = 2026,
-                arquivoHash = "hash-b", processadaEm = "2026-07-24T00:00:00",
+        db.invoiceDao().insert(
+            InvoiceEntity(
+                bank = "mercadopago", card = "1111", referenceMonth = 7, referenceYear = 2026,
+                fileHash = "hash-b", processedAt = "2026-07-24T00:00:00",
             )
         )
         Unit
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun senhaPadraoDuplicada_lancaExcecao(): Unit = runBlocking {
-        db.senhaPadraoDao().inserir(SenhaPadraoEntity(valor = "12345"))
-        db.senhaPadraoDao().inserir(SenhaPadraoEntity(valor = "12345"))
+    fun duplicateDefaultPassword_throwsException(): Unit = runBlocking {
+        db.defaultPasswordDao().insert(DefaultPasswordEntity(value = "12345"))
+        db.defaultPasswordDao().insert(DefaultPasswordEntity(value = "12345"))
         Unit
     }
 }

@@ -16,40 +16,40 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.faturaapp.ui.categorias.CategoriaOverridesScreen
-import com.faturaapp.ui.comparacao.ComparacaoScreen
-import com.faturaapp.ui.components.BarraNavegacaoFlutuante
-import com.faturaapp.ui.components.TelaPrincipal
-import com.faturaapp.ui.configuracoes.ConfiguracoesScreen
+import com.faturaapp.ui.categories.CategoryOverridesScreen
+import com.faturaapp.ui.comparison.ComparisonScreen
+import com.faturaapp.ui.components.FloatingNavigationBar
+import com.faturaapp.ui.components.MainScreen
+import com.faturaapp.ui.settings.SettingsScreen
 import com.faturaapp.ui.dashboard.DashboardScreen
-import com.faturaapp.ui.faturadetalhe.FaturaDetalheScreen
-import com.faturaapp.ui.faturasporcartao.FaturasPorCartaoScreen
-import com.faturaapp.ui.senhas.SenhasScreen
+import com.faturaapp.ui.invoicedetail.InvoiceDetailScreen
+import com.faturaapp.ui.invoicesbycard.InvoicesByCardScreen
+import com.faturaapp.ui.passwords.PasswordsScreen
 import com.faturaapp.ui.upload.UploadScreen
 
-private object Rotas {
+private object Routes {
     const val DASHBOARD = "dashboard"
     const val UPLOAD = "upload"
-    const val COMPARACAO = "comparacao"
-    const val CONFIGURACOES = "configuracoes"
-    const val SENHAS = "senhas"
-    const val CATEGORIAS_PERSONALIZADAS = "categorias-personalizadas"
-    const val FATURAS_POR_CARTAO = "faturas-por-cartao"
-    const val FATURA_DETALHE = "fatura/{faturaId}"
+    const val COMPARISON = "comparison"
+    const val SETTINGS = "settings"
+    const val PASSWORDS = "passwords"
+    const val CATEGORY_OVERRIDES = "category-overrides"
+    const val INVOICES_BY_CARD = "invoices-by-card"
+    const val INVOICE_DETAIL = "invoice/{invoiceId}"
 }
 
-private fun telaPrincipalDaRota(rota: String?): TelaPrincipal = when (rota) {
-    Rotas.FATURAS_POR_CARTAO -> TelaPrincipal.FATURAS_POR_CARTAO
-    Rotas.COMPARACAO -> TelaPrincipal.COMPARAR
-    Rotas.CONFIGURACOES, Rotas.SENHAS, Rotas.CATEGORIAS_PERSONALIZADAS -> TelaPrincipal.CONFIGURACOES
-    else -> TelaPrincipal.INICIO
+private fun mainScreenForRoute(route: String?): MainScreen = when (route) {
+    Routes.INVOICES_BY_CARD -> MainScreen.INVOICES_BY_CARD
+    Routes.COMPARISON -> MainScreen.COMPARE
+    Routes.SETTINGS, Routes.PASSWORDS, Routes.CATEGORY_OVERRIDES -> MainScreen.SETTINGS
+    else -> MainScreen.HOME
 }
 
-private fun NavHostController.navegarParaAba(rota: String) {
-    // Sem saveState/restoreState de propósito: tocar numa aba deve sempre levar
-    // pra raiz dela, nunca reaparecer numa tela filha (ex: Senhas) em que o
-    // usuário tenha ficado antes de trocar de aba.
-    navigate(rota) {
+private fun NavHostController.navigateToTab(route: String) {
+    // No saveState/restoreState on purpose: tapping a tab should always land
+    // on its root, never resurface a child screen (e.g. Passwords) the user
+    // happened to leave open before switching tabs.
+    navigate(route) {
         popUpTo(graph.findStartDestination().id)
         launchSingleTop = true
     }
@@ -58,16 +58,16 @@ private fun NavHostController.navegarParaAba(rota: String) {
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val telaAtual = telaPrincipalDaRota(backStackEntry?.destination?.route)
+    val currentScreen = mainScreenForRoute(backStackEntry?.destination?.route)
 
     Scaffold(
         floatingActionButton = {
-            BarraNavegacaoFlutuante(
-                telaAtual = telaAtual,
-                onIrParaInicio = { navController.navegarParaAba(Rotas.DASHBOARD) },
-                onVerPorCartao = { navController.navegarParaAba(Rotas.FATURAS_POR_CARTAO) },
-                onComparar = { navController.navegarParaAba(Rotas.COMPARACAO) },
-                onConfiguracoes = { navController.navegarParaAba(Rotas.CONFIGURACOES) },
+            FloatingNavigationBar(
+                currentScreen = currentScreen,
+                onGoHome = { navController.navigateToTab(Routes.DASHBOARD) },
+                onViewByCard = { navController.navigateToTab(Routes.INVOICES_BY_CARD) },
+                onCompare = { navController.navigateToTab(Routes.COMPARISON) },
+                onSettings = { navController.navigateToTab(Routes.SETTINGS) },
             )
         },
         floatingActionButtonPosition = FabPosition.Center,
@@ -77,42 +77,42 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            NavHost(navController = navController, startDestination = Rotas.DASHBOARD) {
-                composable(Rotas.DASHBOARD) {
+            NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
+                composable(Routes.DASHBOARD) {
                     DashboardScreen(
-                        onEnviarFatura = { navController.navigate(Rotas.UPLOAD) },
+                        onSendInvoice = { navController.navigate(Routes.UPLOAD) },
                     )
                 }
-                composable(Rotas.FATURAS_POR_CARTAO) {
-                    FaturasPorCartaoScreen(
-                        onAbrirFatura = { faturaId -> navController.navigate("fatura/$faturaId") },
+                composable(Routes.INVOICES_BY_CARD) {
+                    InvoicesByCardScreen(
+                        onOpenInvoice = { invoiceId -> navController.navigate("invoice/$invoiceId") },
                     )
                 }
-                composable(Rotas.UPLOAD) {
+                composable(Routes.UPLOAD) {
                     UploadScreen(
-                        onFaturaEnviada = { navController.popBackStack() }
+                        onInvoiceSent = { navController.popBackStack() }
                     )
                 }
-                composable(Rotas.COMPARACAO) {
-                    ComparacaoScreen()
+                composable(Routes.COMPARISON) {
+                    ComparisonScreen()
                 }
-                composable(Rotas.CONFIGURACOES) {
-                    ConfiguracoesScreen(
-                        onAbrirSenhas = { navController.navigate(Rotas.SENHAS) },
-                        onAbrirCategoriasPersonalizadas = { navController.navigate(Rotas.CATEGORIAS_PERSONALIZADAS) },
+                composable(Routes.SETTINGS) {
+                    SettingsScreen(
+                        onOpenPasswords = { navController.navigate(Routes.PASSWORDS) },
+                        onOpenCategoryOverrides = { navController.navigate(Routes.CATEGORY_OVERRIDES) },
                     )
                 }
-                composable(Rotas.SENHAS) {
-                    SenhasScreen()
+                composable(Routes.PASSWORDS) {
+                    PasswordsScreen()
                 }
-                composable(Rotas.CATEGORIAS_PERSONALIZADAS) {
-                    CategoriaOverridesScreen()
+                composable(Routes.CATEGORY_OVERRIDES) {
+                    CategoryOverridesScreen()
                 }
                 composable(
-                    Rotas.FATURA_DETALHE,
-                    arguments = listOf(navArgument("faturaId") { type = NavType.LongType }),
+                    Routes.INVOICE_DETAIL,
+                    arguments = listOf(navArgument("invoiceId") { type = NavType.LongType }),
                 ) {
-                    FaturaDetalheScreen()
+                    InvoiceDetailScreen()
                 }
             }
         }

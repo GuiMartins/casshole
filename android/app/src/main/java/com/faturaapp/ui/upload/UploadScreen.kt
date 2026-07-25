@@ -29,31 +29,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.SharedFileHolder
-import com.faturaapp.ui.components.TelaAdaptavel
+import com.faturaapp.ui.components.AdaptiveScreen
 
 @Composable
 fun UploadScreen(
-    onFaturaEnviada: () -> Unit,
+    onInvoiceSent: () -> Unit,
     viewModel: UploadViewModel = viewModel(),
 ) {
-    val arquivoSelecionado by viewModel.arquivoSelecionado.collectAsState()
-    val senha by viewModel.senha.collectAsState()
-    val salvarSenha by viewModel.salvarSenha.collectAsState()
+    val selectedFile by viewModel.selectedFile.collectAsState()
+    val password by viewModel.password.collectAsState()
+    val savePassword by viewModel.savePassword.collectAsState()
     val uploadState by viewModel.uploadState.collectAsState()
 
-    val seletorArquivo = rememberLauncherForActivityResult(
+    val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-    ) { uri -> uri?.let(viewModel::selecionarArquivo) }
+    ) { uri -> uri?.let(viewModel::selectFile) }
 
     LaunchedEffect(Unit) {
-        SharedFileHolder.consume()?.let(viewModel::selecionarArquivo)
+        SharedFileHolder.consume()?.let(viewModel::selectFile)
     }
 
     LaunchedEffect(uploadState) {
-        if (uploadState is UploadState.Sucesso) onFaturaEnviada()
+        if (uploadState is UploadState.Success) onInvoiceSent()
     }
 
-    TelaAdaptavel(alignment = Alignment.Center) {
+    AdaptiveScreen(alignment = Alignment.Center) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -73,12 +73,12 @@ fun UploadScreen(
             )
 
             Text(
-                text = arquivoSelecionado?.nome ?: "Nenhum arquivo selecionado",
+                text = selectedFile?.name ?: "Nenhum arquivo selecionado",
                 style = MaterialTheme.typography.bodyLarge,
             )
 
             OutlinedButton(
-                onClick = { seletorArquivo.launch(arrayOf("application/pdf")) },
+                onClick = { filePicker.launch(arrayOf("application/pdf")) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp),
@@ -87,8 +87,8 @@ fun UploadScreen(
             }
 
             OutlinedTextField(
-                value = senha,
-                onValueChange = viewModel::onSenhaChange,
+                value = password,
+                onValueChange = viewModel::onPasswordChange,
                 label = { Text("Senha do PDF (opcional)") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
@@ -104,9 +104,9 @@ fun UploadScreen(
                     .padding(top = 4.dp),
             ) {
                 Switch(
-                    checked = salvarSenha,
-                    onCheckedChange = viewModel::onSalvarSenhaChange,
-                    enabled = senha.isNotBlank(),
+                    checked = savePassword,
+                    onCheckedChange = viewModel::onSavePasswordChange,
+                    enabled = password.isNotBlank(),
                 )
                 Text(
                     text = "Salvar como senha padrão, pra abrir futuras faturas automaticamente",
@@ -115,9 +115,9 @@ fun UploadScreen(
                 )
             }
 
-            when (val estado = uploadState) {
-                is UploadState.Erro -> Text(
-                    text = estado.mensagem,
+            when (val state = uploadState) {
+                is UploadState.Error -> Text(
+                    text = state.message,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 16.dp),
                 )
@@ -125,13 +125,13 @@ fun UploadScreen(
             }
 
             Button(
-                onClick = viewModel::enviarFatura,
-                enabled = arquivoSelecionado != null && uploadState != UploadState.Enviando,
+                onClick = viewModel::sendInvoice,
+                enabled = selectedFile != null && uploadState != UploadState.Sending,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
             ) {
-                if (uploadState == UploadState.Enviando) {
+                if (uploadState == UploadState.Sending) {
                     CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
                 }
                 Text("Enviar fatura")

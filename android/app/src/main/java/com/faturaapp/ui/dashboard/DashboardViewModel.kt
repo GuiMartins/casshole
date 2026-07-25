@@ -3,8 +3,8 @@ package com.faturaapp.ui.dashboard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.faturaapp.data.local.FaturaComTransacoes
-import com.faturaapp.data.local.FaturaRepository
+import com.faturaapp.data.local.InvoiceWithTransactions
+import com.faturaapp.data.local.InvoiceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,42 +12,43 @@ import kotlinx.coroutines.launch
 
 sealed class DashboardState {
     data object Loading : DashboardState()
-    data class Carregado(val faturas: List<FaturaComTransacoes>) : DashboardState()
-    data class Erro(val mensagem: String) : DashboardState()
+    data class Loaded(val invoices: List<InvoiceWithTransactions>) : DashboardState()
+    data class Error(val message: String) : DashboardState()
 }
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = FaturaRepository(application)
+    private val repository = InvoiceRepository(application)
 
     private val _state = MutableStateFlow<DashboardState>(DashboardState.Loading)
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
     init {
-        carregarFaturas()
+        loadInvoices()
     }
 
-    fun carregarFaturas() {
+    fun loadInvoices() {
         viewModelScope.launch {
             _state.value = DashboardState.Loading
             try {
-                val faturas = repository.listarFaturas()
-                _state.value = DashboardState.Carregado(faturas)
+                val invoices = repository.listInvoices()
+                _state.value = DashboardState.Loaded(invoices)
             } catch (e: Exception) {
-                _state.value = DashboardState.Erro(e.message ?: "Erro ao carregar faturas")
+                _state.value = DashboardState.Error(e.message ?: "Erro ao carregar faturas")
             }
         }
     }
 
-    fun atualizarCategoria(transacaoId: Long, novaCategoria: String) {
+    fun updateCategory(transactionId: Long, newCategory: String) {
         viewModelScope.launch {
             try {
-                repository.atualizarCategoria(transacaoId, novaCategoria)
-                // Atualiza sem passar por Loading, pra não fechar os diálogos abertos
-                // (o Resumo geral e a edição de categoria vivem dentro do branch Carregado).
-                _state.value = DashboardState.Carregado(repository.listarFaturas())
+                repository.updateCategory(transactionId, newCategory)
+                // Update without going through Loading, so it doesn't close
+                // any open dialogs (the summary and category edit both live
+                // inside the Loaded branch).
+                _state.value = DashboardState.Loaded(repository.listInvoices())
             } catch (e: Exception) {
-                _state.value = DashboardState.Erro(e.message ?: "Erro ao atualizar categoria")
+                _state.value = DashboardState.Error(e.message ?: "Erro ao atualizar categoria")
             }
         }
     }

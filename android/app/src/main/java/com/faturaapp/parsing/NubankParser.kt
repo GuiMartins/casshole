@@ -1,101 +1,101 @@
 package com.faturaapp.parsing
 
-private val MESES_ABREV = mapOf(
+private val MONTH_ABBREVIATIONS = mapOf(
     "JAN" to 1, "FEV" to 2, "MAR" to 3, "ABR" to 4, "MAI" to 5, "JUN" to 6,
     "JUL" to 7, "AGO" to 8, "SET" to 9, "OUT" to 10, "NOV" to 11, "DEZ" to 12,
 )
-private val MESES_ALTERNATIVAS = MESES_ABREV.keys.joinToString("|")
+private val MONTH_ALTERNATIVES = MONTH_ABBREVIATIONS.keys.joinToString("|")
 
-private val DATA_VENCIMENTO_RE = Regex(
-    "Data de vencimento:\\s*\\d{1,2}\\s+($MESES_ALTERNATIVAS)\\s+(\\d{4})",
+private val DUE_DATE_REGEX = Regex(
+    "Data de vencimento:\\s*\\d{1,2}\\s+($MONTH_ALTERNATIVES)\\s+(\\d{4})",
     RegexOption.IGNORE_CASE,
 )
 
 // Ex: "16 JUN •••• 3333 Pg *Universal Music St - Parcela 2/2 R$ 99,90"
-// Ex: "16 JUN KaBuM! - NuPay - Parcela 2/8 R$ 28,00" (sem digitos do cartao)
-// Ex: "23 JUN Pagamento em 23 JUN −R$ 1.500,00" (pagamento, sinal negativo)
-private val LINHA_TRANSACAO_RE = Regex(
-    "^(?<dia>\\d{2})\\s+(?<mes>$MESES_ALTERNATIVAS)\\s+" +
-        "(?:•{2,6}\\s*(?<cartao>\\d{3,4})\\s+)?" +
-        "(?<descricao>.+?)" +
-        "(?:\\s-\\s*Parcela\\s+(?<parcelaAtual>\\d{1,2})/(?<parcelaTotal>\\d{1,2}))?" +
-        "\\s+(?<sinal>[−-])?R\\$\\s*(?<valor>\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*$",
+// Ex: "16 JUN KaBuM! - NuPay - Parcela 2/8 R$ 28,00" (no card digits)
+// Ex: "23 JUN Pagamento em 23 JUN −R$ 1.500,00" (payment, negative sign)
+private val TRANSACTION_LINE_REGEX = Regex(
+    "^(?<day>\\d{2})\\s+(?<month>$MONTH_ALTERNATIVES)\\s+" +
+        "(?:•{2,6}\\s*(?<card>\\d{3,4})\\s+)?" +
+        "(?<description>.+?)" +
+        "(?:\\s-\\s*Parcela\\s+(?<currentInstallment>\\d{1,2})/(?<totalInstallments>\\d{1,2}))?" +
+        "\\s+(?<sign>[−-])?R\\$\\s*(?<amount>\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*$",
     RegexOption.IGNORE_CASE,
 )
 
-// Linhas de "Pagamentos e Financiamentos" que nao sao gastos reais.
-private val DESCRICAO_IGNORAR_RE = Regex("^(pagamento em|saldo restante da fatura)", RegexOption.IGNORE_CASE)
+// "Pagamentos e Financiamentos" lines that aren't real expenses.
+private val IGNORED_DESCRIPTION_REGEX = Regex("^(pagamento em|saldo restante da fatura)", RegexOption.IGNORE_CASE)
 
-// Cabecalho de secao que marca o titular das compras seguintes, ex:
-// "Fulano de Tal R$ 1.111,10" ou "Compras de Beltrana B Souza R$ 2.222,20"
-private val TITULAR_HEADER_RE = Regex(
+// Section header marking the cardholder for the following purchases, ex:
+// "Fulano de Tal R$ 1.111,10" or "Compras de Beltrana B Souza R$ 2.222,20"
+private val CARDHOLDER_HEADER_REGEX = Regex(
     "^(?:Compras de\\s+)?([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .]+?)\\s+R\\$\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2}\\s*$"
 )
 
 class NubankParser : BankParser {
-    override val banco = "nubank"
+    override val bank = "nubank"
 
-    override fun matches(texto: String): Boolean = texto.lowercase().contains("nubank")
+    override fun matches(text: String): Boolean = text.lowercase().contains("nubank")
 
-    override fun parse(texto: String, pdfBytes: ByteArray, senha: String): ParsedFatura {
-        val (mes, ano) = extrairMesAnoReferencia(texto)
-        val transacoes = extrairTransacoes(texto, mes, ano)
-        return ParsedFatura(banco = banco, mesReferencia = mes, anoReferencia = ano, transacoes = transacoes)
+    override fun parse(text: String, pdfBytes: ByteArray, password: String): ParsedInvoice {
+        val (month, year) = extractReferenceMonthYear(text)
+        val transactions = extractTransactions(text, month, year)
+        return ParsedInvoice(bank = bank, referenceMonth = month, referenceYear = year, transactions = transactions)
     }
 
-    private fun extrairMesAnoReferencia(texto: String): Pair<Int, Int> {
-        val match = DATA_VENCIMENTO_RE.find(texto)
+    private fun extractReferenceMonthYear(text: String): Pair<Int, Int> {
+        val match = DUE_DATE_REGEX.find(text)
             ?: throw IllegalStateException("Não foi possível identificar o mês/ano de referência da fatura Nubank")
-        val mes = MESES_ABREV.getValue(match.groupValues[1].uppercase())
-        val ano = match.groupValues[2].toInt()
-        return mes to ano
+        val month = MONTH_ABBREVIATIONS.getValue(match.groupValues[1].uppercase())
+        val year = match.groupValues[2].toInt()
+        return month to year
     }
 
-    private fun extrairTransacoes(
-        texto: String,
-        mesReferencia: Int,
-        anoReferencia: Int,
-    ): List<ParsedTransacao> {
-        val transacoes = mutableListOf<ParsedTransacao>()
-        var titularAtual = ""
+    private fun extractTransactions(
+        text: String,
+        referenceMonth: Int,
+        referenceYear: Int,
+    ): List<ParsedTransaction> {
+        val transactions = mutableListOf<ParsedTransaction>()
+        var currentCardholder = ""
 
-        for (linha in texto.lines()) {
-            val linhaLimpa = linha.trim()
-            val match = LINHA_TRANSACAO_RE.matchEntire(linhaLimpa)
+        for (line in text.lines()) {
+            val cleanLine = line.trim()
+            val match = TRANSACTION_LINE_REGEX.matchEntire(cleanLine)
             if (match == null) {
-                val matchTitular = TITULAR_HEADER_RE.matchEntire(linhaLimpa)
-                if (matchTitular != null && !linhaLimpa.lowercase().contains("pagamento")) {
-                    titularAtual = matchTitular.groupValues[1].trim()
+                val cardholderMatch = CARDHOLDER_HEADER_REGEX.matchEntire(cleanLine)
+                if (cardholderMatch != null && !cleanLine.lowercase().contains("pagamento")) {
+                    currentCardholder = cardholderMatch.groupValues[1].trim()
                 }
                 continue
             }
 
-            val descricao = match.groups["descricao"]!!.value.trim()
-            val sinal = match.groups["sinal"]?.value
+            val description = match.groups["description"]!!.value.trim()
+            val sign = match.groups["sign"]?.value
 
-            if (sinal != null || DESCRICAO_IGNORAR_RE.containsMatchIn(descricao)) {
+            if (sign != null || IGNORED_DESCRIPTION_REGEX.containsMatchIn(description)) {
                 continue
             }
 
-            val mesTransacao = MESES_ABREV.getValue(match.groups["mes"]!!.value.uppercase())
-            var anoTransacao = anoReferencia
-            if (mesTransacao > mesReferencia) {
-                anoTransacao -= 1
+            val transactionMonth = MONTH_ABBREVIATIONS.getValue(match.groups["month"]!!.value.uppercase())
+            var transactionYear = referenceYear
+            if (transactionMonth > referenceMonth) {
+                transactionYear -= 1
             }
 
-            val dia = match.groups["dia"]!!.value.toInt()
-            transacoes.add(
-                ParsedTransacao(
-                    data = "%04d-%02d-%02d".format(anoTransacao, mesTransacao, dia),
-                    descricao = descricao,
-                    valor = parseValorBr(match.groups["valor"]!!.value),
-                    parcelaAtual = match.groups["parcelaAtual"]?.value?.toInt(),
-                    parcelaTotal = match.groups["parcelaTotal"]?.value?.toInt(),
-                    titular = titularAtual,
-                    cartao = match.groups["cartao"]?.value ?: "",
+            val day = match.groups["day"]!!.value.toInt()
+            transactions.add(
+                ParsedTransaction(
+                    date = "%04d-%02d-%02d".format(transactionYear, transactionMonth, day),
+                    description = description,
+                    amount = parseBrazilianAmount(match.groups["amount"]!!.value),
+                    currentInstallment = match.groups["currentInstallment"]?.value?.toInt(),
+                    totalInstallments = match.groups["totalInstallments"]?.value?.toInt(),
+                    cardholder = currentCardholder,
+                    card = match.groups["card"]?.value ?: "",
                 )
             )
         }
-        return transacoes
+        return transactions
     }
 }

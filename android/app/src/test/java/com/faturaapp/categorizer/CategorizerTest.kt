@@ -4,81 +4,82 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Casos vindos de descricoes reais das 4 faturas ja usadas no projeto
- * inteiro (Nubank, Itau Mastercard, Itau Visa, Mercado Pago) que estavam
- * caindo em "Outros" por falta de palavra-chave, ou pior, caindo na
- * categoria errada por colisao de substring (Hospital das Bonecas).
+ * Cases coming from real descriptions in the 4 invoices already used
+ * throughout the project (Nubank, Itau Mastercard, Itau Visa, Mercado Pago)
+ * that were falling into "Outros" for lack of a keyword, or worse, falling
+ * into the wrong category due to a substring collision (Hospital das
+ * Bonecas).
  */
 class CategorizerTest {
 
     @Test
-    fun `nao confunde loja de reparo de bonecas com hospital de verdade`() {
-        assertEquals("Outros", categorizar("Hospital das Bonecas"))
+    fun `does not confuse a doll repair shop with a real hospital`() {
+        assertEquals("Outros", categorize("Hospital das Bonecas"))
     }
 
     @Test
-    fun `ainda reconhece hospital de verdade`() {
-        assertEquals("Saúde", categorizar("Hospital Sao Lucas"))
+    fun `still recognizes a real hospital`() {
+        assertEquals("Saúde", categorize("Hospital Sao Lucas"))
     }
 
     @Test
-    fun `farmacias conhecidas vao pra Saude`() {
-        assertEquals("Saúde", categorizar("Raia2674"))
-        assertEquals("Saúde", categorizar("Drogarias Pacheco"))
-        assertEquals("Saúde", categorizar("Drogariamodernafl"))
+    fun `known pharmacies go to Saude`() {
+        assertEquals("Saúde", categorize("Raia2674"))
+        assertEquals("Saúde", categorize("Drogarias Pacheco"))
+        assertEquals("Saúde", categorize("Drogariamodernafl"))
     }
 
     @Test
-    fun `mercearia vai pra Alimentacao`() {
-        assertEquals("Alimentação", categorizar("Mercearia Esperanca"))
+    fun `mercearia goes to Alimentacao`() {
+        assertEquals("Alimentação", categorize("Mercearia Esperanca"))
     }
 
     @Test
-    fun `doces sorvetes e salgados vao pra Alimentacao`() {
-        assertEquals("Alimentação", categorizar("Novilha Top Gelados"))
-        assertEquals("Alimentação", categorizar("Maria Torta"))
-        assertEquals("Alimentação", categorizar("Croc Salgaderia"))
-        assertEquals("Alimentação", categorizar("BOTECO DO DAIRIO DE JAN"))
+    fun `sweets ice cream and salty snacks go to Alimentacao`() {
+        assertEquals("Alimentação", categorize("Novilha Top Gelados"))
+        assertEquals("Alimentação", categorize("Maria Torta"))
+        assertEquals("Alimentação", categorize("Croc Salgaderia"))
+        assertEquals("Alimentação", categorize("BOTECO DO DAIRIO DE JAN"))
     }
 
     @Test
-    fun `pet shops vao pra categoria Pets`() {
-        assertEquals("Pets", categorizar("Green Pet Shop"))
-        assertEquals("Pets", categorizar("PETSUPERMARK*O"))
+    fun `pet shops go to the Pets category`() {
+        assertEquals("Pets", categorize("Green Pet Shop"))
+        assertEquals("Pets", categorize("PETSUPERMARK*O"))
     }
 
     @Test
-    fun `lojas de varejo especificas vao pra Compras`() {
-        assertEquals("Compras", categorizar("Don Pablo Papelaria"))
-        assertEquals("Compras", categorizar("Mls 142 Calcados"))
-        assertEquals("Compras", categorizar("Dakotton Confeccoes"))
-        assertEquals("Compras", categorizar("Outlet H Estevo"))
-        assertEquals("Compras", categorizar("Fama Biju"))
-        assertEquals("Compras", categorizar("So Tintas-Sempre A"))
-        assertEquals("Compras", categorizar("Unitintas Tintas e Mat"))
-        assertEquals("Compras", categorizar("Socartucho"))
-        assertEquals("Compras", categorizar("LG ELECTRONICS"))
-        assertEquals("Compras", categorizar("SAMSUNG *I"))
+    fun `specific retail stores go to Compras`() {
+        assertEquals("Compras", categorize("Don Pablo Papelaria"))
+        assertEquals("Compras", categorize("Mls 142 Calcados"))
+        assertEquals("Compras", categorize("Dakotton Confeccoes"))
+        assertEquals("Compras", categorize("Outlet H Estevo"))
+        assertEquals("Compras", categorize("Fama Biju"))
+        assertEquals("Compras", categorize("So Tintas-Sempre A"))
+        assertEquals("Compras", categorize("Unitintas Tintas e Mat"))
+        assertEquals("Compras", categorize("Socartucho"))
+        assertEquals("Compras", categorize("LG ELECTRONICS"))
+        assertEquals("Compras", categorize("SAMSUNG *I"))
     }
 
     @Test
-    fun `pneu vai pra Transporte`() {
-        assertEquals("Transporte", categorizar("Padok Pneus"))
+    fun `tire shop goes to Transporte`() {
+        assertEquals("Transporte", categorize("Padok Pneus"))
     }
 
     @Test
-    fun `wellhub vai pra Streaming-Assinaturas`() {
-        assertEquals("Streaming/Assinaturas", categorizar("Wellhub Fulana Silva"))
+    fun `wellhub goes to Streaming-Assinaturas`() {
+        assertEquals("Streaming/Assinaturas", categorize("Wellhub Fulana Silva"))
     }
 
     @Test
-    fun `mercado livre continua batendo antes do mercado generico`() {
-        assertEquals("Compras", categorizar("MERCADOLIVRE*MERCADOLIVRE"))
-        assertEquals("Alimentação", categorizar("Mercado Extra"))
+    fun `mercado livre still matches before the generic mercado`() {
+        assertEquals("Compras", categorize("MERCADOLIVRE*MERCADOLIVRE"))
+        assertEquals("Alimentação", categorize("Mercado Extra"))
     }
 
     @Test
-    fun `descricao sem nenhuma palavra-chave cai em Outros`() {
-        assertEquals("Outros", categorizar("Barbaramagalhaes"))
+    fun `description with no matching keyword falls into Outros`() {
+        assertEquals("Outros", categorize("Barbaramagalhaes"))
     }
 }

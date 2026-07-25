@@ -1,15 +1,16 @@
 package com.faturaapp.parsing
 
 interface BankParser {
-    val banco: String
+    val bank: String
 
-    /** Retorna true se o texto extraido do PDF pertence a este banco. */
-    fun matches(texto: String): Boolean
+    /** Returns true if the text extracted from the PDF belongs to this bank. */
+    fun matches(text: String): Boolean
 
     /**
-     * Extrai mes/ano de referencia e lista de transacoes do texto do PDF.
-     * pdfBytes/senha sao fornecidos para parsers que precisam reabrir o PDF
-     * com uma extracao diferente (ex: layout de duas colunas do Itau).
+     * Extracts the reference month/year and the list of transactions from the
+     * PDF text. pdfBytes/password are provided for parsers that need to
+     * reopen the PDF with a different extraction (e.g. Itau's two-column
+     * layout).
      */
-    fun parse(texto: String, pdfBytes: ByteArray, senha: String): ParsedFatura
+    fun parse(text: String, pdfBytes: ByteArray, password: String): ParsedInvoice
 }

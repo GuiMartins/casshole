@@ -48,24 +48,24 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.faturaapp.categorizer.CATEGORIAS_DISPONIVEIS
-import com.faturaapp.data.local.FaturaComTransacoes
-import com.faturaapp.data.local.entity.TransacaoEntity
+import com.faturaapp.categorizer.AVAILABLE_CATEGORIES
+import com.faturaapp.data.local.InvoiceWithTransactions
+import com.faturaapp.data.local.entity.TransactionEntity
 import androidx.compose.material3.HorizontalDivider
-import com.faturaapp.ui.components.DialogEditarCategoria
-import com.faturaapp.ui.components.TelaAdaptavel
-import com.faturaapp.ui.theme.CategoriaIcone
+import com.faturaapp.ui.components.EditCategoryDialog
+import com.faturaapp.ui.components.AdaptiveScreen
+import com.faturaapp.ui.theme.CategoryIcon
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    onEnviarFatura: () -> Unit,
+    onSendInvoice: () -> Unit,
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val onResumeAction by rememberUpdatedState(viewModel::carregarFaturas)
+    val onResumeAction by rememberUpdatedState(viewModel::loadInvoices)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) onResumeAction()
@@ -84,7 +84,7 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onEnviarFatura) {
+                    IconButton(onClick = onSendInvoice) {
                         Icon(imageVector = Icons.Filled.Add, contentDescription = "Enviar fatura")
                     }
                 },
@@ -96,26 +96,26 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (val estadoAtual = state) {
+            when (val currentState = state) {
                 is DashboardState.Loading -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
-                is DashboardState.Erro -> Text(
-                    text = estadoAtual.mensagem,
+                is DashboardState.Error -> Text(
+                    text = currentState.message,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .padding(24.dp),
                 )
-                is DashboardState.Carregado -> {
-                    if (estadoAtual.faturas.isEmpty()) {
+                is DashboardState.Loaded -> {
+                    if (currentState.invoices.isEmpty()) {
                         Text(
                             text = "Nenhuma fatura enviada ainda",
                             modifier = Modifier.align(Alignment.Center),
                         )
                     } else {
-                        ResumoGeralConteudo(
-                            faturas = estadoAtual.faturas,
-                            onAtualizarCategoria = viewModel::atualizarCategoria,
+                        GeneralSummaryContent(
+                            invoices = currentState.invoices,
+                            onUpdateCategory = viewModel::updateCategory,
                         )
                     }
                 }
@@ -125,88 +125,88 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun ResumoGeralConteudo(
-    faturas: List<FaturaComTransacoes>,
-    onAtualizarCategoria: (Long, String) -> Unit,
+private fun GeneralSummaryContent(
+    invoices: List<InvoiceWithTransactions>,
+    onUpdateCategory: (Long, String) -> Unit,
 ) {
-    val faturasMaisRecentes = faturas
-        .groupBy { it.banco to it.cartao }
+    val mostRecentInvoices = invoices
+        .groupBy { it.bank to it.card }
         .values
-        .map { faturasDoGrupo -> faturasDoGrupo.maxBy { it.anoReferencia * 100 + it.mesReferencia } }
+        .map { groupInvoices -> groupInvoices.maxBy { it.referenceYear * 100 + it.referenceMonth } }
 
-    var categoriaSelecionada by remember { mutableStateOf<String?>(null) }
-    var transacaoEmEdicao by remember { mutableStateOf<TransacaoEntity?>(null) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }
 
-    TelaAdaptavel {
+    AdaptiveScreen {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
-            ResumoGeralCard(faturasMaisRecentes, onCategoriaClick = { categoriaSelecionada = it })
+            GeneralSummaryCard(mostRecentInvoices, onCategoryClick = { selectedCategory = it })
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
-    categoriaSelecionada?.let { categoria ->
-        val transacoesDaCategoria = faturasMaisRecentes
-            .flatMap { fatura -> fatura.transacoes.map { it to fatura } }
-            .filter { (transacao, _) -> transacao.categoria == categoria }
-            .sortedByDescending { (transacao, _) -> transacao.valor }
+    selectedCategory?.let { category ->
+        val categoryTransactions = mostRecentInvoices
+            .flatMap { invoice -> invoice.transactions.map { it to invoice } }
+            .filter { (transaction, _) -> transaction.category == category }
+            .sortedByDescending { (transaction, _) -> transaction.amount }
 
-        DialogTransacoesCategoria(
-            categoria = categoria,
-            transacoes = transacoesDaCategoria,
-            onDismiss = { categoriaSelecionada = null },
-            onTransacaoClick = { transacaoEmEdicao = it },
+        CategoryTransactionsDialog(
+            category = category,
+            transactions = categoryTransactions,
+            onDismiss = { selectedCategory = null },
+            onTransactionClick = { transactionBeingEdited = it },
         )
     }
 
-    transacaoEmEdicao?.let { transacao ->
-        DialogEditarCategoria(
-            transacao = transacao,
-            categorias = CATEGORIAS_DISPONIVEIS,
-            onConfirmar = { novaCategoria ->
-                onAtualizarCategoria(transacao.id, novaCategoria)
-                transacaoEmEdicao = null
+    transactionBeingEdited?.let { transaction ->
+        EditCategoryDialog(
+            transaction = transaction,
+            categories = AVAILABLE_CATEGORIES,
+            onConfirm = { newCategory ->
+                onUpdateCategory(transaction.id, newCategory)
+                transactionBeingEdited = null
             },
-            onCancelar = { transacaoEmEdicao = null },
+            onCancel = { transactionBeingEdited = null },
         )
     }
 }
 
 @Composable
-private fun DialogTransacoesCategoria(
-    categoria: String,
-    transacoes: List<Pair<TransacaoEntity, FaturaComTransacoes>>,
+private fun CategoryTransactionsDialog(
+    category: String,
+    transactions: List<Pair<TransactionEntity, InvoiceWithTransactions>>,
     onDismiss: () -> Unit,
-    onTransacaoClick: (TransacaoEntity) -> Unit,
+    onTransactionClick: (TransactionEntity) -> Unit,
 ) {
-    val total = transacoes.sumOf { (transacao, _) -> transacao.valor }
+    val total = transactions.sumOf { (transaction, _) -> transaction.amount }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CategoriaIcone(categoria = categoria, tamanho = 28.dp)
-                Text(categoria, modifier = Modifier.padding(start = 8.dp))
+                CategoryIcon(category = category, size = 28.dp)
+                Text(category, modifier = Modifier.padding(start = 8.dp))
             }
         },
         text = {
             Column {
                 Text(
-                    text = "${transacoes.size} transações • R$ %.2f".format(total),
+                    text = "${transactions.size} transações • R$ %.2f".format(total),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                    items(transacoes) { (transacao, fatura) ->
-                        TransacaoResumoRow(
-                            transacao = transacao,
-                            fatura = fatura,
-                            onClick = { onTransacaoClick(transacao) },
+                    items(transactions) { (transaction, invoice) ->
+                        TransactionSummaryRow(
+                            transaction = transaction,
+                            invoice = invoice,
+                            onClick = { onTransactionClick(transaction) },
                         )
                     }
                 }
@@ -219,8 +219,8 @@ private fun DialogTransacoesCategoria(
 }
 
 @Composable
-private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTransacoes, onClick: () -> Unit) {
-    val sufixoCartao = if (fatura.cartao.isNotBlank()) " ••••${fatura.cartao}" else ""
+private fun TransactionSummaryRow(transaction: TransactionEntity, invoice: InvoiceWithTransactions, onClick: () -> Unit) {
+    val cardSuffix = if (invoice.card.isNotBlank()) " ••••${invoice.card}" else ""
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -232,19 +232,19 @@ private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTran
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = transacao.descricao,
+                text = transaction.description,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "R$ %.2f".format(transacao.valor),
+                text = "R$ %.2f".format(transaction.amount),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
         Text(
-            text = "${transacao.data} • ${fatura.banco.replaceFirstChar { it.uppercase() }}$sufixoCartao",
+            text = "${transaction.date} • ${invoice.bank.replaceFirstChar { it.uppercase() }}$cardSuffix",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -253,12 +253,12 @@ private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTran
 }
 
 @Composable
-private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>, onCategoriaClick: (String) -> Unit) {
-    val transacoes = faturasMaisRecentes.flatMap { it.transacoes }
-    val totalGeral = transacoes.sumOf { it.valor }
-    val porCategoria = transacoes
-        .groupBy { it.categoria }
-        .mapValues { (_, itens) -> itens.sumOf { it.valor } }
+private fun GeneralSummaryCard(mostRecentInvoices: List<InvoiceWithTransactions>, onCategoryClick: (String) -> Unit) {
+    val transactions = mostRecentInvoices.flatMap { it.transactions }
+    val totalAmount = transactions.sumOf { it.amount }
+    val byCategory = transactions
+        .groupBy { it.category }
+        .mapValues { (_, items) -> items.sumOf { it.amount } }
         .toList()
         .sortedByDescending { (_, total) -> total }
 
@@ -279,19 +279,19 @@ private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>, onCa
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             Text(
-                text = "R$ %.2f".format(totalGeral),
+                text = "R$ %.2f".format(totalAmount),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
 
-            if (porCategoria.isNotEmpty()) {
+            if (byCategory.isNotEmpty()) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                porCategoria.forEach { (categoria, total) ->
-                    CategoriaResumoRow(
-                        categoria = categoria,
+                byCategory.forEach { (category, total) ->
+                    CategorySummaryRow(
+                        category = category,
                         total = total,
-                        onClick = { onCategoriaClick(categoria) },
+                        onClick = { onCategoryClick(category) },
                     )
                 }
             }
@@ -300,7 +300,7 @@ private fun ResumoGeralCard(faturasMaisRecentes: List<FaturaComTransacoes>, onCa
 }
 
 @Composable
-private fun CategoriaResumoRow(categoria: String, total: Double, onClick: () -> Unit) {
+private fun CategorySummaryRow(category: String, total: Double, onClick: () -> Unit) {
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -322,9 +322,9 @@ private fun CategoriaResumoRow(categoria: String, total: Double, onClick: () -> 
                     .weight(1f)
                     .padding(end = 8.dp),
             ) {
-                CategoriaIcone(categoria = categoria, tamanho = 28.dp)
+                CategoryIcon(category = category, size = 28.dp)
                 Text(
-                    text = categoria,
+                    text = category,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

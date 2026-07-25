@@ -43,10 +43,10 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun FaturaAppTheme(
-    temaEscuro: Boolean? = null,
+    darkTheme: Boolean? = null,
     content: @Composable () -> Unit,
 ) {
-    val usarEscuro = temaEscuro ?: isSystemInDarkTheme()
-    val colorScheme = if (usarEscuro) DarkColors else LightColors
+    val useDarkTheme = darkTheme ?: isSystemInDarkTheme()
+    val colorScheme = if (useDarkTheme) DarkColors else LightColors
     MaterialTheme(colorScheme = colorScheme, content = content)
 }
