@@ -55,6 +55,7 @@ import androidx.compose.material3.HorizontalDivider
 import com.faturaapp.ui.components.EditCategoryDialog
 import com.faturaapp.ui.components.AdaptiveScreen
 import com.faturaapp.ui.theme.CategoryIcon
+import java.time.YearMonth
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -124,15 +125,21 @@ fun DashboardScreen(
     }
 }
 
+/** Month/year label for the current-month filter, e.g. "07/2026". */
+private fun currentMonthLabel(): String {
+    val now = YearMonth.now()
+    return "%02d/%d".format(now.monthValue, now.year)
+}
+
 @Composable
 private fun GeneralSummaryContent(
     invoices: List<InvoiceWithTransactions>,
     onUpdateCategory: (Long, String) -> Unit,
 ) {
-    val mostRecentInvoices = invoices
-        .groupBy { it.bank to it.card }
-        .values
-        .map { groupInvoices -> groupInvoices.maxBy { it.referenceYear * 100 + it.referenceMonth } }
+    val now = remember { YearMonth.now() }
+    val currentMonthInvoices = invoices.filter {
+        it.referenceMonth == now.monthValue && it.referenceYear == now.year
+    }
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }
@@ -144,13 +151,22 @@ private fun GeneralSummaryContent(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
-            GeneralSummaryCard(mostRecentInvoices, onCategoryClick = { selectedCategory = it })
+            if (currentMonthInvoices.isEmpty()) {
+                Text(
+                    text = "Nenhuma fatura de ${currentMonthLabel()} enviada ainda",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 24.dp),
+                )
+            } else {
+                GeneralSummaryCard(currentMonthInvoices, onCategoryClick = { selectedCategory = it })
+            }
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
     selectedCategory?.let { category ->
-        val categoryTransactions = mostRecentInvoices
+        val categoryTransactions = currentMonthInvoices
             .flatMap { invoice -> invoice.transactions.map { it to invoice } }
             .filter { (transaction, _) -> transaction.category == category }
             .sortedByDescending { (transaction, _) -> transaction.amount }
@@ -253,8 +269,8 @@ private fun TransactionSummaryRow(transaction: TransactionEntity, invoice: Invoi
 }
 
 @Composable
-private fun GeneralSummaryCard(mostRecentInvoices: List<InvoiceWithTransactions>, onCategoryClick: (String) -> Unit) {
-    val transactions = mostRecentInvoices.flatMap { it.transactions }
+private fun GeneralSummaryCard(currentMonthInvoices: List<InvoiceWithTransactions>, onCategoryClick: (String) -> Unit) {
+    val transactions = currentMonthInvoices.flatMap { it.transactions }
     val totalAmount = transactions.sumOf { it.amount }
     val byCategory = transactions
         .groupBy { it.category }
@@ -273,7 +289,7 @@ private fun GeneralSummaryCard(mostRecentInvoices: List<InvoiceWithTransactions>
                 fontWeight = FontWeight.Medium,
             )
             Text(
-                text = "Mês mais recente de cada cartão",
+                text = "Mês atual (${currentMonthLabel()})",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
