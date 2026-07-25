@@ -21,12 +21,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -88,6 +89,23 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onEnviarFatura) {
+                        Icon(imageVector = Icons.Filled.Add, contentDescription = "Enviar fatura")
+                    }
+                },
+            )
+        },
+        floatingActionButton = {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                tonalElevation = 4.dp,
+                shadowElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                ) {
                     IconButton(onClick = onVerPorCartao) {
                         Icon(imageVector = Icons.Filled.CreditCard, contentDescription = "Faturas por cartão")
                     }
@@ -97,14 +115,10 @@ fun DashboardScreen(
                     IconButton(onClick = onConfiguracoes) {
                         Icon(imageVector = Icons.Filled.Settings, contentDescription = "Configurações")
                     }
-                },
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onEnviarFatura) {
-                Icon(Icons.Filled.Add, contentDescription = "Enviar fatura")
+                }
             }
-        }
+        },
+        floatingActionButtonPosition = FabPosition.Center,
     ) { paddingValues ->
         Box(
             modifier = Modifier

@@ -1,12 +1,14 @@
 package com.faturaapp.ui.upload
 
 import android.app.Application
+import android.database.sqlite.SQLiteConstraintException
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.faturaapp.data.local.FaturaComTransacoes
 import com.faturaapp.data.local.FaturaRepository
+import com.faturaapp.data.local.PeriodoDuplicadoException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,20 +35,18 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
     private val _senha = MutableStateFlow("")
     val senha: StateFlow<String> = _senha.asStateFlow()
 
-    private val _temSenhasCadastradas = MutableStateFlow(false)
-    val temSenhasCadastradas: StateFlow<Boolean> = _temSenhasCadastradas.asStateFlow()
+    private val _salvarSenha = MutableStateFlow(false)
+    val salvarSenha: StateFlow<Boolean> = _salvarSenha.asStateFlow()
 
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState: StateFlow<UploadState> = _uploadState.asStateFlow()
 
-    init {
-        viewModelScope.launch {
-            _temSenhasCadastradas.value = repository.temSenhasCadastradas()
-        }
-    }
-
     fun onSenhaChange(novaSenha: String) {
         _senha.value = novaSenha
+    }
+
+    fun onSalvarSenhaChange(valor: Boolean) {
+        _salvarSenha.value = valor
     }
 
     fun selecionarArquivo(uri: Uri) {
@@ -82,9 +82,25 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
 
                 val senhaDigitada = _senha.value.trim().ifBlank { null }
                 val fatura = repository.processarEArmazenar(bytes, senhaDigitada)
+                salvarSenhaComoPadraoSeNecessario(senhaDigitada)
                 _uploadState.value = UploadState.Sucesso(fatura)
+            } catch (e: PeriodoDuplicadoException) {
+                // A senha já foi validada com sucesso (o PDF foi aberto e identificado)
+                // antes dessa checagem de duplicidade, então ainda vale a pena salvá-la.
+                salvarSenhaComoPadraoSeNecessario(_senha.value.trim().ifBlank { null })
+                _uploadState.value = UploadState.Erro(e.message ?: "Fatura já existe")
             } catch (e: Exception) {
                 _uploadState.value = UploadState.Erro(e.message ?: "Erro ao enviar a fatura")
+            }
+        }
+    }
+
+    private suspend fun salvarSenhaComoPadraoSeNecessario(senhaDigitada: String?) {
+        if (_salvarSenha.value && senhaDigitada != null) {
+            try {
+                repository.adicionarSenhaPadrao(senhaDigitada)
+            } catch (e: SQLiteConstraintException) {
+                // Senha já estava salva como padrão, nada a fazer.
             }
         }
     }
