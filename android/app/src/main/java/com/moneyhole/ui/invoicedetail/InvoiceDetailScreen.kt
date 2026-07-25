@@ -36,9 +36,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.local.entity.TransactionEntity
 import com.moneyhole.ui.components.EditCategoryDialog
 import com.moneyhole.ui.components.AdaptiveScreen
@@ -124,12 +126,12 @@ private fun InvoiceDetailContent(
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Text(
-                    text = "${invoice.referenceMonth}/${invoice.referenceYear} — Total: R$ %.2f".format(totalSpent),
+                    text = stringResource(R.string.invoice_detail_total, invoice.referenceMonth, invoice.referenceYear, totalSpent),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
                 )
 
-                Text(text = "Por categoria", style = MaterialTheme.typography.titleSmall)
+                Text(text = stringResource(R.string.invoice_detail_by_category), style = MaterialTheme.typography.titleSmall)
                 state.byCategory.forEach { item ->
                     Row(
                         modifier = Modifier
@@ -155,7 +157,7 @@ private fun InvoiceDetailContent(
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = { searchText = it },
-                    label = { Text("Buscar por descrição ou cidade") },
+                    label = { Text(stringResource(R.string.invoice_detail_search_hint)) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -240,14 +242,14 @@ private fun InvoiceDetailContent(
                         },
                         modifier = Modifier.padding(bottom = 4.dp),
                     ) {
-                        Text("Limpar filtros")
+                        Text(stringResource(R.string.action_clear_filters))
                     }
                 }
 
                 val counterText = if (filtersActive) {
-                    "Transações (${filteredTransactions.size} de ${invoice.transactions.size})"
+                    stringResource(R.string.invoice_detail_transactions_count_filtered, filteredTransactions.size, invoice.transactions.size)
                 } else {
-                    "Transações (${invoice.transactions.size})"
+                    stringResource(R.string.invoice_detail_transactions_count, invoice.transactions.size)
                 }
                 Text(
                     text = counterText,
@@ -358,7 +360,7 @@ private fun TransactionRow(transaction: TransactionEntity, onClick: () -> Unit) 
                     )
                 }
                 val installmentText = if (transaction.currentInstallment != null && transaction.totalInstallments != null) {
-                    " • Parcela ${transaction.currentInstallment}/${transaction.totalInstallments}"
+                    stringResource(R.string.invoice_detail_installment, transaction.currentInstallment, transaction.totalInstallments)
                 } else ""
                 val cityText = if (transaction.city.isNotBlank()) " • ${transaction.city}" else ""
                 Text(

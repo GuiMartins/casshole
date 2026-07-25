@@ -92,7 +92,7 @@ fun DashboardScreen(
                 },
                 actions = {
                     IconButton(onClick = onSendInvoice) {
-                        Icon(imageVector = Icons.Filled.Add, contentDescription = "Enviar fatura")
+                        Icon(imageVector = Icons.Filled.Add, contentDescription = stringResource(R.string.action_send_invoice))
                     }
                 },
             )
@@ -116,7 +116,7 @@ fun DashboardScreen(
                 is DashboardState.Loaded -> {
                     if (currentState.invoices.isEmpty()) {
                         Text(
-                            text = "Nenhuma fatura enviada ainda",
+                            text = stringResource(R.string.empty_no_invoices),
                             modifier = Modifier.align(Alignment.Center),
                         )
                     } else {
@@ -159,7 +159,7 @@ private fun GeneralSummaryContent(
         ) {
             if (currentMonthInvoices.isEmpty()) {
                 Text(
-                    text = "Nenhuma fatura de ${currentMonthLabel()} enviada ainda",
+                    text = stringResource(R.string.dashboard_no_invoices_for_month, currentMonthLabel()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp),
@@ -222,7 +222,7 @@ private fun CategoryTransactionsDialog(
         text = {
             Column {
                 Text(
-                    text = "${transactions.size} transações • R$ %.2f".format(total),
+                    text = stringResource(R.string.dashboard_transactions_and_total, transactions.size, total),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp),
@@ -239,7 +239,7 @@ private fun CategoryTransactionsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Fechar") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
     )
 }
@@ -298,12 +298,12 @@ private fun GeneralSummaryCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Resumo geral",
+                text = stringResource(R.string.dashboard_summary_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
             )
             Text(
-                text = "Mês atual (${currentMonthLabel()})",
+                text = stringResource(R.string.dashboard_current_month_label, currentMonthLabel()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),

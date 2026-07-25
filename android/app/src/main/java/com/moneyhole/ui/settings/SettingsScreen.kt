@@ -35,10 +35,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.PreferencesRepository
 import com.moneyhole.ui.components.AdaptiveScreen
 
@@ -50,6 +53,10 @@ fun SettingsScreen(
 ) {
     val preferredTheme by viewModel.preferredTheme.collectAsState()
     val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
+    val appLanguage by viewModel.appLanguage.collectAsState()
+    val onSelectLanguage: (String?) -> Unit = { language ->
+        viewModel.selectLanguage(language)
+    }
 
     AdaptiveScreen {
         Column(
@@ -72,7 +79,7 @@ fun SettingsScreen(
                     )
                 }
                 Text(
-                    text = "Configurações",
+                    text = stringResource(R.string.nav_settings),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 12.dp),
@@ -80,25 +87,25 @@ fun SettingsScreen(
             }
 
             Text(
-                text = "Aparência",
+                text = stringResource(R.string.settings_appearance),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 28.dp, bottom = 4.dp),
             )
             RadioOption(
-                label = "Sistema",
+                label = stringResource(R.string.theme_system),
                 icon = Icons.Filled.BrightnessAuto,
                 selected = preferredTheme == PreferencesRepository.THEME_SYSTEM,
                 onClick = { viewModel.selectTheme(PreferencesRepository.THEME_SYSTEM) },
             )
             RadioOption(
-                label = "Claro",
+                label = stringResource(R.string.theme_light),
                 icon = Icons.Filled.LightMode,
                 selected = preferredTheme == PreferencesRepository.THEME_LIGHT,
                 onClick = { viewModel.selectTheme(PreferencesRepository.THEME_LIGHT) },
             )
             RadioOption(
-                label = "Escuro",
+                label = stringResource(R.string.theme_dark),
                 icon = Icons.Filled.DarkMode,
                 selected = preferredTheme == PreferencesRepository.THEME_DARK,
                 onClick = { viewModel.selectTheme(PreferencesRepository.THEME_DARK) },
@@ -107,19 +114,19 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
 
             Text(
-                text = "Resumo da tela inicial",
+                text = stringResource(R.string.settings_summary_display),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             RadioOption(
-                label = "Números",
+                label = stringResource(R.string.summary_display_numbers),
                 icon = Icons.Filled.BarChart,
                 selected = summaryDisplayMode == PreferencesRepository.SUMMARY_DISPLAY_NUMBERS,
                 onClick = { viewModel.selectSummaryDisplayMode(PreferencesRepository.SUMMARY_DISPLAY_NUMBERS) },
             )
             RadioOption(
-                label = "Gráfico de pizza",
+                label = stringResource(R.string.summary_display_pie_chart),
                 icon = Icons.Filled.PieChart,
                 selected = summaryDisplayMode == PreferencesRepository.SUMMARY_DISPLAY_PIE_CHART,
                 onClick = { viewModel.selectSummaryDisplayMode(PreferencesRepository.SUMMARY_DISPLAY_PIE_CHART) },
@@ -128,30 +135,63 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
 
             Text(
-                text = "Segurança",
+                text = stringResource(R.string.settings_language),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            RadioOption(
+                label = stringResource(R.string.language_system),
+                icon = Icons.Filled.Language,
+                selected = appLanguage == null,
+                onClick = { onSelectLanguage(null) },
+            )
+            RadioOption(
+                label = stringResource(R.string.language_pt),
+                icon = Icons.Filled.Language,
+                selected = appLanguage == "pt",
+                onClick = { onSelectLanguage("pt") },
+            )
+            RadioOption(
+                label = stringResource(R.string.language_en),
+                icon = Icons.Filled.Language,
+                selected = appLanguage == "en",
+                onClick = { onSelectLanguage("en") },
+            )
+            RadioOption(
+                label = stringResource(R.string.language_es),
+                icon = Icons.Filled.Language,
+                selected = appLanguage == "es",
+                onClick = { onSelectLanguage("es") },
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = stringResource(R.string.settings_security),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             NavigableRow(
                 icon = Icons.Filled.Lock,
-                title = "Senhas padrão de PDF",
-                subtitle = "Tentar abrir faturas protegidas automaticamente",
+                title = stringResource(R.string.settings_passwords_title),
+                subtitle = stringResource(R.string.settings_passwords_subtitle),
                 onClick = onOpenPasswords,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
 
             Text(
-                text = "Categorização",
+                text = stringResource(R.string.settings_categorization),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             NavigableRow(
                 icon = Icons.Filled.EditNote,
-                title = "Categorização manual",
-                subtitle = "Correções que o app já aplica automaticamente",
+                title = stringResource(R.string.category_overrides_title),
+                subtitle = stringResource(R.string.settings_category_overrides_subtitle),
                 onClick = onOpenCategoryOverrides,
             )
             Spacer(modifier = Modifier.height(80.dp))

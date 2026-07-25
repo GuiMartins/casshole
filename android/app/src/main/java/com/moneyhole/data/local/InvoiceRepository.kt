@@ -2,6 +2,7 @@ package com.moneyhole.data.local
 
 import android.content.Context
 import androidx.room.withTransaction
+import com.moneyhole.R
 import com.moneyhole.categorizer.categorize
 import com.moneyhole.data.local.entity.CategoryOverrideEntity
 import com.moneyhole.data.local.entity.InvoiceEntity
@@ -23,7 +24,7 @@ private fun normalizeDescription(description: String): String = description.trim
  * the real on-disk one.
  */
 class InvoiceRepository(
-    context: Context,
+    private val context: Context,
     database: AppDatabase = DatabaseProvider.getDatabase(context),
 ) {
     private val db = database
@@ -74,7 +75,7 @@ class InvoiceRepository(
     suspend fun processAndStore(bytes: ByteArray, enteredPassword: String?): InvoiceWithTransactions {
         val hash = calculateHash(bytes)
         if (invoiceDao.findByHash(hash) != null) {
-            throw DuplicateFileException("Esta fatura já foi processada anteriormente")
+            throw DuplicateFileException(context.getString(R.string.error_invoice_already_processed))
         }
 
         val defaultPasswords = defaultPasswordDao.list().map { it.value }
@@ -90,13 +91,15 @@ class InvoiceRepository(
         )
         if (existingInvoice != null) {
             val cardDetail = if (parsedInvoice.card.isNotBlank()) {
-                " (cartão final ${parsedInvoice.card})"
+                context.getString(R.string.error_invoice_duplicate_period_card_detail, parsedInvoice.card)
             } else {
                 ""
             }
             throw DuplicatePeriodException(
-                "Já existe uma fatura de ${parsedInvoice.bank}$cardDetail para " +
-                    "${parsedInvoice.referenceMonth}/${parsedInvoice.referenceYear}"
+                context.getString(
+                    R.string.error_invoice_duplicate_period,
+                    parsedInvoice.bank, cardDetail, parsedInvoice.referenceMonth, parsedInvoice.referenceYear,
+                )
             )
         }
 

@@ -26,8 +26,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.SharedFileHolder
 import com.moneyhole.ui.components.AdaptiveScreen
 
@@ -63,17 +65,17 @@ fun UploadScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Enviar fatura",
+                text = stringResource(R.string.action_send_invoice),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = "Selecione o PDF da fatura (Nubank, Itaú, Bradesco ou Mercado Pago)",
+                text = stringResource(R.string.upload_instructions),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
             )
 
             Text(
-                text = selectedFile?.name ?: "Nenhum arquivo selecionado",
+                text = selectedFile?.name ?: stringResource(R.string.upload_no_file_selected),
                 style = MaterialTheme.typography.bodyLarge,
             )
 
@@ -83,13 +85,13 @@ fun UploadScreen(
                     .fillMaxWidth()
                     .padding(top = 12.dp),
             ) {
-                Text("Escolher arquivo")
+                Text(stringResource(R.string.action_choose_file))
             }
 
             OutlinedTextField(
                 value = password,
                 onValueChange = viewModel::onPasswordChange,
-                label = { Text("Senha do PDF (opcional)") },
+                label = { Text(stringResource(R.string.upload_password_label)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -109,7 +111,7 @@ fun UploadScreen(
                     enabled = password.isNotBlank(),
                 )
                 Text(
-                    text = "Salvar como senha padrão, pra abrir futuras faturas automaticamente",
+                    text = stringResource(R.string.upload_save_as_default_password),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 12.dp),
                 )
@@ -134,7 +136,7 @@ fun UploadScreen(
                 if (uploadState == UploadState.Sending) {
                     CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
                 }
-                Text("Enviar fatura")
+                Text(stringResource(R.string.action_send_invoice))
             }
         }
     }

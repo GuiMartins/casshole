@@ -3,6 +3,7 @@ package com.moneyhole.ui.categories
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.data.local.InvoiceRepository
 import com.moneyhole.data.local.entity.CategoryOverrideEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +34,7 @@ class CategoryOverridesViewModel(application: Application) : AndroidViewModel(ap
             try {
                 _state.value = CategoryOverridesState.Loaded(repository.listCategoryOverrides())
             } catch (e: Exception) {
-                _state.value = CategoryOverridesState.Error(e.message ?: "Erro ao carregar categorizações")
+                _state.value = CategoryOverridesState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_category_overrides))
             }
         }
     }

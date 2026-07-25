@@ -1,4 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Product name - not translated across locales, same in every language. -->
     <string name="app_name">Money Hole</string>
+
+    <!-- Ações reutilizadas em mais de uma tela -->
+    <string name="action_save">Salvar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_close">Fechar</string>
+    <string name="action_compare">Comparar</string>
+    <string name="action_choose_file">Escolher arquivo</string>
+    <string name="action_add_password">Adicionar senha</string>
+    <string name="action_clear_filters">Limpar filtros</string>
+    <string name="action_send_invoice">Enviar fatura</string>
+
+    <!-- Estados vazios / erros reutilizados -->
+    <string name="empty_no_invoices">Nenhuma fatura enviada ainda</string>
+    <string name="error_load_invoices">Erro ao carregar faturas</string>
+    <string name="error_update_category">Erro ao atualizar categoria</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_no_invoices_for_month">Nenhuma fatura de %1$s enviada ainda</string>
+    <string name="dashboard_summary_title">Resumo geral</string>
+    <string name="dashboard_current_month_label">Mês atual (%1$s)</string>
+    <string name="dashboard_transactions_and_total">%1$d transações • R$ %2$.2f</string>
+
+    <!-- EditCategoryDialog -->
+    <string name="edit_category_title">Categoria de \"%1$s\"</string>
+
+    <!-- Navegação (FloatingNavigationBar) -->
+    <string name="nav_home_cd">Início</string>
+    <string name="nav_invoices_by_card">Faturas por cartão</string>
+    <string name="nav_settings">Configurações</string>
+
+    <!-- Categorização manual -->
+    <string name="category_overrides_title">Categorização manual</string>
+    <string name="category_overrides_description">Toda vez que você corrige a categoria de uma transação, o app guarda essa descrição aqui e já aplica a mesma categoria automaticamente nas próximas faturas com o mesmo estabelecimento.</string>
+    <string name="category_overrides_empty">Nenhuma correção manual ainda</string>
+    <string name="category_overrides_remove_cd">Remover categorização manual</string>
+    <string name="error_load_category_overrides">Erro ao carregar categorizações</string>
+
+    <!-- Comparação -->
+    <string name="comparison_title">Comparar meses</string>
+    <string name="comparison_variation">Variação do primeiro ao último mês selecionado: %1$s%2$.1f%%</string>
+    <string name="comparison_month_total">%1$02d/%2$d — Total: R$ %3$.2f</string>
+    <string name="error_load_periods">Erro ao carregar períodos</string>
+    <string name="error_select_month">Selecione ao menos um mês</string>
+    <string name="error_compare_months">Erro ao comparar meses</string>
+
+    <!-- Detalhe da fatura -->
+    <string name="invoice_detail_total">%1$d/%2$d — Total: R$ %3$.2f</string>
+    <string name="invoice_detail_by_category">Por categoria</string>
+    <string name="invoice_detail_search_hint">Buscar por descrição ou cidade</string>
+    <string name="invoice_detail_transactions_count_filtered">Transações (%1$d de %2$d)</string>
+    <string name="invoice_detail_transactions_count">Transações (%1$d)</string>
+    <string name="invoice_detail_installment">" • Parcela %1$d/%2$d"</string>
+    <string name="error_invalid_invoice_id">ID da fatura inválido</string>
+    <string name="error_invoice_not_found">Fatura não encontrada</string>
+    <string name="error_load_invoice">Erro ao carregar fatura</string>
+
+    <!-- Faturas por cartão -->
+    <string name="invoices_by_card_transactions_count">%1$d transações</string>
+
+    <!-- Senhas -->
+    <string name="passwords_title">Senhas padrão</string>
+    <string name="passwords_description">Cadastre senhas (ex: dígitos do CPF) para o app tentar abrir faturas protegidas automaticamente, sem precisar digitar toda vez.</string>
+    <string name="password_new_label">Nova senha</string>
+    <string name="passwords_registered_title">Senhas cadastradas</string>
+    <string name="passwords_empty">Nenhuma senha cadastrada ainda</string>
+    <string name="password_hide_cd">Ocultar senha</string>
+    <string name="password_show_cd">Mostrar senha</string>
+    <string name="password_remove_cd">Remover senha</string>
+    <string name="error_load_passwords">Erro ao carregar senhas</string>
+    <string name="error_password_required">Informe uma senha</string>
+    <string name="error_password_duplicate">Esta senha já está cadastrada</string>
+    <string name="error_save_password">Erro ao salvar senha</string>
+    <string name="error_remove_password">Erro ao remover senha</string>
+
+    <!-- Configurações -->
+    <string name="settings_appearance">Aparência</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Escuro</string>
+    <string name="settings_summary_display">Resumo da tela inicial</string>
+    <string name="summary_display_numbers">Números</string>
+    <string name="summary_display_pie_chart">Gráfico de pizza</string>
+    <string name="settings_security">Segurança</string>
+    <string name="settings_passwords_title">Senhas padrão de PDF</string>
+    <string name="settings_passwords_subtitle">Tentar abrir faturas protegidas automaticamente</string>
+    <string name="settings_categorization">Categorização</string>
+    <string name="settings_category_overrides_subtitle">Correções que o app já aplica automaticamente</string>
+    <string name="settings_language">Idioma</string>
+    <string name="language_system">Automático (idioma do sistema)</string>
+    <!-- Nomes de idioma não são traduzidos - aparecem iguais em qualquer idioma da UI. -->
+    <string name="language_pt" translatable="false">Português</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="language_es" translatable="false">Español</string>
+
+    <!-- Envio de fatura -->
+    <string name="upload_instructions">Selecione o PDF da fatura (Nubank, Itaú, Bradesco ou Mercado Pago)</string>
+    <string name="upload_no_file_selected">Nenhum arquivo selecionado</string>
+    <string name="upload_password_label">Senha do PDF (opcional)</string>
+    <string name="upload_save_as_default_password">Salvar como senha padrão, pra abrir futuras faturas automaticamente</string>
+    <string name="upload_default_filename">fatura.pdf</string>
+    <string name="error_select_file">Selecione um arquivo PDF primeiro</string>
+    <string name="error_read_file">Não foi possível ler o arquivo selecionado</string>
+    <string name="error_invoice_duplicate">Fatura já existe</string>
+    <string name="error_upload_invoice">Erro ao enviar a fatura</string>
+
+    <!-- Erros de negócio (InvoiceRepository), surgem na tela de Upload -->
+    <string name="error_invoice_already_processed">Esta fatura já foi processada anteriormente</string>
+    <string name="error_invoice_duplicate_period">Já existe uma fatura de %1$s%2$s para %3$d/%4$d</string>
+    <string name="error_invoice_duplicate_period_card_detail">" (cartão final %1$s)"</string>
 </resources>

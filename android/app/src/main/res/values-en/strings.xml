@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Money Hole</string>
+
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_compare">Compare</string>
+    <string name="action_choose_file">Choose file</string>
+    <string name="action_add_password">Add password</string>
+    <string name="action_clear_filters">Clear filters</string>
+    <string name="action_send_invoice">Send invoice</string>
+
+    <string name="empty_no_invoices">No invoices sent yet</string>
+    <string name="error_load_invoices">Error loading invoices</string>
+    <string name="error_update_category">Error updating category</string>
+
+    <string name="dashboard_no_invoices_for_month">No invoice for %1$s yet</string>
+    <string name="dashboard_summary_title">Overview</string>
+    <string name="dashboard_current_month_label">Current month (%1$s)</string>
+    <string name="dashboard_transactions_and_total">%1$d transactions • R$ %2$.2f</string>
+
+    <string name="edit_category_title">Category for \"%1$s\"</string>
+
+    <string name="nav_home_cd">Home</string>
+    <string name="nav_invoices_by_card">Invoices by card</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="category_overrides_title">Manual categorization</string>
+    <string name="category_overrides_description">Every time you correct a transaction\'s category, the app remembers this description and automatically applies the same category to future invoices from the same merchant.</string>
+    <string name="category_overrides_empty">No manual corrections yet</string>
+    <string name="category_overrides_remove_cd">Remove manual categorization</string>
+    <string name="error_load_category_overrides">Error loading categorizations</string>
+
+    <string name="comparison_title">Compare months</string>
+    <string name="comparison_variation">Change from the first to the last selected month: %1$s%2$.1f%%</string>
+    <string name="comparison_month_total">%1$02d/%2$d — Total: R$ %3$.2f</string>
+    <string name="error_load_periods">Error loading periods</string>
+    <string name="error_select_month">Select at least one month</string>
+    <string name="error_compare_months">Error comparing months</string>
+
+    <string name="invoice_detail_total">%1$d/%2$d — Total: R$ %3$.2f</string>
+    <string name="invoice_detail_by_category">By category</string>
+    <string name="invoice_detail_search_hint">Search by description or city</string>
+    <string name="invoice_detail_transactions_count_filtered">Transactions (%1$d of %2$d)</string>
+    <string name="invoice_detail_transactions_count">Transactions (%1$d)</string>
+    <string name="invoice_detail_installment">" • Installment %1$d/%2$d"</string>
+    <string name="error_invalid_invoice_id">Invalid invoice ID</string>
+    <string name="error_invoice_not_found">Invoice not found</string>
+    <string name="error_load_invoice">Error loading invoice</string>
+
+    <string name="invoices_by_card_transactions_count">%1$d transactions</string>
+
+    <string name="passwords_title">Default passwords</string>
+    <string name="passwords_description">Register passwords (e.g. digits of your ID) so the app can automatically try to open protected invoices, without typing it every time.</string>
+    <string name="password_new_label">New password</string>
+    <string name="passwords_registered_title">Registered passwords</string>
+    <string name="passwords_empty">No passwords registered yet</string>
+    <string name="password_hide_cd">Hide password</string>
+    <string name="password_show_cd">Show password</string>
+    <string name="password_remove_cd">Remove password</string>
+    <string name="error_load_passwords">Error loading passwords</string>
+    <string name="error_password_required">Enter a password</string>
+    <string name="error_password_duplicate">This password is already registered</string>
+    <string name="error_save_password">Error saving password</string>
+    <string name="error_remove_password">Error removing password</string>
+
+    <string name="settings_appearance">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_summary_display">Home screen summary</string>
+    <string name="summary_display_numbers">Numbers</string>
+    <string name="summary_display_pie_chart">Pie chart</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_passwords_title">Default PDF passwords</string>
+    <string name="settings_passwords_subtitle">Automatically try to open protected invoices</string>
+    <string name="settings_categorization">Categorization</string>
+    <string name="settings_category_overrides_subtitle">Corrections the app already applies automatically</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">Automatic (system language)</string>
+    <string name="language_pt" translatable="false">Português</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="language_es" translatable="false">Español</string>
+
+    <string name="upload_instructions">Select the invoice PDF (Nubank, Itaú, Bradesco or Mercado Pago)</string>
+    <string name="upload_no_file_selected">No file selected</string>
+    <string name="upload_password_label">PDF password (optional)</string>
+    <string name="upload_save_as_default_password">Save as a default password, to open future invoices automatically</string>
+    <string name="upload_default_filename">invoice.pdf</string>
+    <string name="error_select_file">Select a PDF file first</string>
+    <string name="error_read_file">Could not read the selected file</string>
+    <string name="error_invoice_duplicate">Invoice already exists</string>
+    <string name="error_upload_invoice">Error sending the invoice</string>
+
+    <string name="error_invoice_already_processed">This invoice has already been processed before</string>
+    <string name="error_invoice_duplicate_period">There\'s already an invoice from %1$s%2$s for %3$d/%4$d</string>
+    <string name="error_invoice_duplicate_period_card_detail">" (card ending in %1$s)"</string>
+</resources>

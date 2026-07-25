@@ -21,9 +21,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.local.MonthlySummary
 import com.moneyhole.ui.components.AdaptiveScreen
 import com.moneyhole.ui.theme.CategoryIcon
@@ -43,7 +45,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
         ) {
             item {
                 Text(
-                    text = "Comparar meses",
+                    text = stringResource(R.string.comparison_title),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 12.dp),
                 )
@@ -58,7 +60,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
                 }
                 is PeriodsState.Available -> {
                     if (state.periods.isEmpty()) {
-                        item { Text("Nenhuma fatura enviada ainda") }
+                        item { Text(stringResource(R.string.empty_no_invoices)) }
                     } else {
                         items(state.periods) { period ->
                             Row(
@@ -80,7 +82,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
                                     .fillMaxWidth()
                                     .padding(vertical = 12.dp),
                             ) {
-                                Text("Comparar")
+                                Text(stringResource(R.string.action_compare))
                             }
                         }
                     }
@@ -106,7 +108,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
                         state.comparison.totalPercentageChange?.let { change ->
                             val sign = if (change >= 0) "+" else ""
                             Text(
-                                text = "Variação do primeiro ao último mês selecionado: $sign%.1f%%".format(change),
+                                text = stringResource(R.string.comparison_variation, sign, change),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = if (change > 0) {
@@ -138,8 +140,9 @@ private fun MonthlySummaryCard(summary: MonthlySummary) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "%02d/%d — Total: R$ %.2f".format(
-                    summary.referenceMonth, summary.referenceYear, summary.totalSpent
+                text = stringResource(
+                    R.string.comparison_month_total,
+                    summary.referenceMonth, summary.referenceYear, summary.totalSpent,
                 ),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,

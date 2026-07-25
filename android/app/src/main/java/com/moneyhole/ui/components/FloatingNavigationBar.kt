@@ -20,8 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.moneyhole.R
 
 enum class MainScreen {
     HOME,
@@ -50,25 +52,25 @@ fun FloatingNavigationBar(
         ) {
             NavigationItem(
                 icon = Icons.Filled.Home,
-                description = "Início",
+                description = stringResource(R.string.nav_home_cd),
                 selected = currentScreen == MainScreen.HOME,
                 onClick = onGoHome,
             )
             NavigationItem(
                 icon = Icons.Filled.CreditCard,
-                description = "Faturas por cartão",
+                description = stringResource(R.string.nav_invoices_by_card),
                 selected = currentScreen == MainScreen.INVOICES_BY_CARD,
                 onClick = onViewByCard,
             )
             NavigationItem(
                 icon = Icons.Filled.BarChart,
-                description = "Comparar",
+                description = stringResource(R.string.action_compare),
                 selected = currentScreen == MainScreen.COMPARE,
                 onClick = onCompare,
             )
             NavigationItem(
                 icon = Icons.Filled.Settings,
-                description = "Configurações",
+                description = stringResource(R.string.nav_settings),
                 selected = currentScreen == MainScreen.SETTINGS,
                 onClick = onSettings,
             )

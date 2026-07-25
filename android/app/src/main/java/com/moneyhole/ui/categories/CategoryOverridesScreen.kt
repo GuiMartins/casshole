@@ -28,10 +28,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.local.entity.CategoryOverrideEntity
 import com.moneyhole.ui.components.AdaptiveScreen
 import com.moneyhole.ui.theme.CategoryIcon
@@ -62,16 +64,14 @@ fun CategoryOverridesScreen(viewModel: CategoryOverridesViewModel = viewModel())
                         )
                     }
                     Text(
-                        text = "Categorização manual",
+                        text = stringResource(R.string.category_overrides_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 12.dp),
                     )
                 }
                 Text(
-                    text = "Toda vez que você corrige a categoria de uma transação, o app guarda " +
-                        "essa descrição aqui e já aplica a mesma categoria automaticamente nas " +
-                        "próximas faturas com o mesmo estabelecimento.",
+                    text = stringResource(R.string.category_overrides_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
@@ -89,7 +89,7 @@ fun CategoryOverridesScreen(viewModel: CategoryOverridesViewModel = viewModel())
                     if (currentState.overrides.isEmpty()) {
                         item {
                             Text(
-                                text = "Nenhuma correção manual ainda",
+                                text = stringResource(R.string.category_overrides_empty),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -143,7 +143,7 @@ private fun OverrideRow(override: CategoryOverrideEntity, onRemove: (Long) -> Un
                 }
             }
             IconButton(onClick = { onRemove(override.id) }) {
-                Icon(Icons.Filled.Close, contentDescription = "Remover categorização manual")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.category_overrides_remove_cd))
             }
         }
     }

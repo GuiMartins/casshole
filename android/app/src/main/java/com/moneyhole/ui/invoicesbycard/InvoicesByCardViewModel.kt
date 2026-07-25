@@ -3,6 +3,7 @@ package com.moneyhole.ui.invoicesbycard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.data.local.InvoiceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +34,7 @@ class InvoicesByCardViewModel(application: Application) : AndroidViewModel(appli
             try {
                 _state.value = InvoicesByCardState.Loaded(repository.listInvoices())
             } catch (e: Exception) {
-                _state.value = InvoicesByCardState.Error(e.message ?: "Erro ao carregar faturas")
+                _state.value = InvoicesByCardState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_invoices))
             }
         }
     }

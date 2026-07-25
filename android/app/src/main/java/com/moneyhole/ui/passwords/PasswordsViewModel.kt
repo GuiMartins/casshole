@@ -4,6 +4,7 @@ import android.app.Application
 import android.database.sqlite.SQLiteConstraintException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.data.local.InvoiceRepository
 import com.moneyhole.data.local.entity.DefaultPasswordEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,14 +39,14 @@ class PasswordsViewModel(application: Application) : AndroidViewModel(applicatio
                 val passwords = repository.listDefaultPasswords()
                 _state.value = PasswordsState.Loaded(passwords)
             } catch (e: Exception) {
-                _state.value = PasswordsState.Error(e.message ?: "Erro ao carregar senhas")
+                _state.value = PasswordsState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_passwords))
             }
         }
     }
 
     fun add(value: String) {
         if (value.isBlank()) {
-            _actionError.value = "Informe uma senha"
+            _actionError.value = getApplication<Application>().getString(R.string.error_password_required)
             return
         }
         viewModelScope.launch {
@@ -54,9 +55,9 @@ class PasswordsViewModel(application: Application) : AndroidViewModel(applicatio
                 _actionError.value = null
                 load()
             } catch (e: SQLiteConstraintException) {
-                _actionError.value = "Esta senha já está cadastrada"
+                _actionError.value = getApplication<Application>().getString(R.string.error_password_duplicate)
             } catch (e: Exception) {
-                _actionError.value = e.message ?: "Erro ao salvar senha"
+                _actionError.value = e.message ?: getApplication<Application>().getString(R.string.error_save_password)
             }
         }
     }
@@ -67,7 +68,7 @@ class PasswordsViewModel(application: Application) : AndroidViewModel(applicatio
                 repository.removeDefaultPassword(id)
                 load()
             } catch (e: Exception) {
-                _actionError.value = e.message ?: "Erro ao remover senha"
+                _actionError.value = e.message ?: getApplication<Application>().getString(R.string.error_remove_password)
             }
         }
     }

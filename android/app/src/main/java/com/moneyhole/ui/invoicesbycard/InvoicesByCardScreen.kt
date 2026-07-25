@@ -27,11 +27,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.ui.components.AdaptiveScreen
 import com.moneyhole.ui.theme.BankBadge
@@ -57,7 +59,7 @@ fun InvoicesByCardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Faturas por cartão", fontWeight = FontWeight.Bold) },
+                title = { Text(text = stringResource(R.string.nav_invoices_by_card), fontWeight = FontWeight.Bold) },
             )
         },
     ) { paddingValues ->
@@ -79,7 +81,7 @@ fun InvoicesByCardScreen(
                 is InvoicesByCardState.Loaded -> {
                     if (currentState.invoices.isEmpty()) {
                         Text(
-                            text = "Nenhuma fatura enviada ainda",
+                            text = stringResource(R.string.empty_no_invoices),
                             modifier = Modifier.align(Alignment.Center),
                         )
                     } else {
@@ -162,7 +164,7 @@ private fun InvoiceMonthRow(invoice: InvoiceWithTransactions, onClick: () -> Uni
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    text = "${invoice.transactions.size} transações",
+                    text = stringResource(R.string.invoices_by_card_transactions_count, invoice.transactions.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

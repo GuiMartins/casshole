@@ -40,9 +40,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moneyhole.R
 import com.moneyhole.data.local.entity.DefaultPasswordEntity
 import com.moneyhole.ui.components.AdaptiveScreen
 import kotlinx.coroutines.delay
@@ -76,15 +78,14 @@ fun PasswordsScreen(viewModel: PasswordsViewModel = viewModel()) {
                         )
                     }
                     Text(
-                        text = "Senhas padrão",
+                        text = stringResource(R.string.passwords_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 12.dp),
                     )
                 }
                 Text(
-                    text = "Cadastre senhas (ex: dígitos do CPF) para o app tentar abrir " +
-                        "faturas protegidas automaticamente, sem precisar digitar toda vez.",
+                    text = stringResource(R.string.passwords_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
@@ -98,7 +99,7 @@ fun PasswordsScreen(viewModel: PasswordsViewModel = viewModel()) {
                         PasswordFieldWithReveal(
                             value = newPassword,
                             onValueChange = { newPassword = it },
-                            label = "Nova senha",
+                            label = stringResource(R.string.password_new_label),
                             modifier = Modifier.fillMaxWidth(),
                         )
 
@@ -120,13 +121,13 @@ fun PasswordsScreen(viewModel: PasswordsViewModel = viewModel()) {
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
                         ) {
-                            Text("Adicionar senha")
+                            Text(stringResource(R.string.action_add_password))
                         }
                     }
                 }
 
                 Text(
-                    text = "Senhas cadastradas",
+                    text = stringResource(R.string.passwords_registered_title),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = 24.dp, bottom = 8.dp),
                 )
@@ -143,7 +144,7 @@ fun PasswordsScreen(viewModel: PasswordsViewModel = viewModel()) {
                     if (currentState.passwords.isEmpty()) {
                         item {
                             Text(
-                                text = "Nenhuma senha cadastrada ainda",
+                                text = stringResource(R.string.passwords_empty),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -183,11 +184,11 @@ private fun PasswordRow(password: DefaultPasswordEntity, onRemove: (Long) -> Uni
                 IconButton(onClick = { revealed = !revealed }) {
                     Icon(
                         imageVector = if (revealed) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = if (revealed) "Ocultar senha" else "Mostrar senha",
+                        contentDescription = if (revealed) stringResource(R.string.password_hide_cd) else stringResource(R.string.password_show_cd),
                     )
                 }
                 IconButton(onClick = { onRemove(password.id) }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Remover senha")
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.password_remove_cd))
                 }
             }
         }
@@ -245,7 +246,7 @@ private fun PasswordFieldWithReveal(
             IconButton(onClick = { showAll = !showAll }) {
                 Icon(
                     imageVector = if (showAll) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                    contentDescription = if (showAll) "Ocultar senha" else "Mostrar senha",
+                    contentDescription = if (showAll) stringResource(R.string.password_hide_cd) else stringResource(R.string.password_show_cd),
                 )
             }
         },

@@ -3,6 +3,7 @@ package com.moneyhole.ui.dashboard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.data.PreferencesRepository
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.data.local.InvoiceRepository
@@ -44,7 +45,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 val invoices = repository.listInvoices()
                 _state.value = DashboardState.Loaded(invoices)
             } catch (e: Exception) {
-                _state.value = DashboardState.Error(e.message ?: "Erro ao carregar faturas")
+                _state.value = DashboardState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_invoices))
             }
         }
     }
@@ -58,7 +59,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 // inside the Loaded branch).
                 _state.value = DashboardState.Loaded(repository.listInvoices())
             } catch (e: Exception) {
-                _state.value = DashboardState.Error(e.message ?: "Erro ao atualizar categoria")
+                _state.value = DashboardState.Error(e.message ?: getApplication<Application>().getString(R.string.error_update_category))
             }
         }
     }

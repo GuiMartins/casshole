@@ -15,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.moneyhole.R
 import com.moneyhole.data.local.entity.TransactionEntity
 
 @Composable
@@ -28,7 +30,7 @@ fun EditCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Categoria de \"${transaction.description}\"") },
+        title = { Text(stringResource(R.string.edit_category_title, transaction.description)) },
         text = {
             Column {
                 categories.forEach { category ->
@@ -49,12 +51,12 @@ fun EditCategoryDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selected) }) {
-                Text("Salvar")
+                Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onCancel) {
-                Text("Cancelar")
+                Text(stringResource(R.string.action_cancel))
             }
         },
     )

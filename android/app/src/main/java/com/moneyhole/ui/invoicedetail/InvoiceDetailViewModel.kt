@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.categorizer.AVAILABLE_CATEGORIES
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.data.local.InvoiceRepository
@@ -41,7 +42,7 @@ class InvoiceDetailViewModel(
 
     fun load() {
         val invoiceId = savedStateHandle.get<Long>("invoiceId") ?: run {
-            _state.value = InvoiceDetailState.Error("ID da fatura inválido")
+            _state.value = InvoiceDetailState.Error(getApplication<Application>().getString(R.string.error_invalid_invoice_id))
             return
         }
 
@@ -49,14 +50,14 @@ class InvoiceDetailViewModel(
             _state.value = InvoiceDetailState.Loading
             try {
                 val invoice = repository.getInvoice(invoiceId)
-                    ?: throw IllegalStateException("Fatura não encontrada")
+                    ?: throw IllegalStateException(getApplication<Application>().getString(R.string.error_invoice_not_found))
                 val byCategory = invoice.transactions
                     .groupBy { it.category }
                     .map { (category, transactions) -> CategoryTotal(category, transactions.sumOf { it.amount }) }
                     .sortedByDescending { it.total }
                 _state.value = InvoiceDetailState.Loaded(invoice, byCategory)
             } catch (e: Exception) {
-                _state.value = InvoiceDetailState.Error(e.message ?: "Erro ao carregar fatura")
+                _state.value = InvoiceDetailState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_invoice))
             }
         }
     }
@@ -68,7 +69,7 @@ class InvoiceDetailViewModel(
                 _editError.value = null
                 load()
             } catch (e: Exception) {
-                _editError.value = e.message ?: "Erro ao atualizar categoria"
+                _editError.value = e.message ?: getApplication<Application>().getString(R.string.error_update_category)
             }
         }
     }

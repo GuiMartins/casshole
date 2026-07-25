@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.data.local.InvoiceRepository
 import com.moneyhole.data.local.DuplicatePeriodException
@@ -50,7 +51,7 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectFile(uri: Uri) {
-        val name = resolveFileName(uri) ?: "fatura.pdf"
+        val name = resolveFileName(uri) ?: getApplication<Application>().getString(R.string.upload_default_filename)
         _selectedFile.value = SelectedFile(uri, name)
         _uploadState.value = UploadState.Idle
     }
@@ -68,7 +69,7 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
 
     fun sendInvoice() {
         val file = _selectedFile.value ?: run {
-            _uploadState.value = UploadState.Error("Selecione um arquivo PDF primeiro")
+            _uploadState.value = UploadState.Error(getApplication<Application>().getString(R.string.error_select_file))
             return
         }
 
@@ -78,7 +79,7 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                 val bytes = withContext(Dispatchers.IO) {
                     getApplication<Application>().contentResolver
                         .openInputStream(file.uri)?.use { it.readBytes() }
-                } ?: throw IllegalStateException("Não foi possível ler o arquivo selecionado")
+                } ?: throw IllegalStateException(getApplication<Application>().getString(R.string.error_read_file))
 
                 val enteredPassword = _password.value.trim().ifBlank { null }
                 val invoice = repository.processAndStore(bytes, enteredPassword)
@@ -89,9 +90,9 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                 // was opened and identified) before this duplicate check, so
                 // it's still worth saving.
                 saveDefaultPasswordIfNeeded(_password.value.trim().ifBlank { null })
-                _uploadState.value = UploadState.Error(e.message ?: "Fatura já existe")
+                _uploadState.value = UploadState.Error(e.message ?: getApplication<Application>().getString(R.string.error_invoice_duplicate))
             } catch (e: Exception) {
-                _uploadState.value = UploadState.Error(e.message ?: "Erro ao enviar a fatura")
+                _uploadState.value = UploadState.Error(e.message ?: getApplication<Application>().getString(R.string.error_upload_invoice))
             }
         }
     }

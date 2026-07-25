@@ -3,6 +3,7 @@ package com.moneyhole.ui.comparison
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.moneyhole.R
 import com.moneyhole.data.local.MonthlyComparison
 import com.moneyhole.data.local.InvoiceRepository
 import com.moneyhole.data.local.SummaryAggregator
@@ -60,7 +61,7 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
                 _periodsState.value = PeriodsState.Available(periods)
                 _selected.value = periods.takeLast(3).toSet()
             } catch (e: Exception) {
-                _periodsState.value = PeriodsState.Error(e.message ?: "Erro ao carregar períodos")
+                _periodsState.value = PeriodsState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_periods))
             }
         }
     }
@@ -76,7 +77,7 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
     fun compare() {
         val periods = _selected.value.sorted()
         if (periods.isEmpty()) {
-            _comparisonState.value = ComparisonUiState.Error("Selecione ao menos um mês")
+            _comparisonState.value = ComparisonUiState.Error(getApplication<Application>().getString(R.string.error_select_month))
             return
         }
 
@@ -89,7 +90,7 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
                 val result = SummaryAggregator.compareMonths(transactionsByPeriod)
                 _comparisonState.value = ComparisonUiState.Result(result)
             } catch (e: Exception) {
-                _comparisonState.value = ComparisonUiState.Error(e.message ?: "Erro ao comparar meses")
+                _comparisonState.value = ComparisonUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_compare_months))
             }
         }
     }

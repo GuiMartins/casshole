@@ -34,7 +34,9 @@ Android). Diferente do rename PT→EN anterior (esse sim preservou dados via
 
 ## Stack e arquitetura
 
-- **UI**: Jetpack Compose + Material3, tema claro/escuro/sistema.
+- **UI**: Jetpack Compose + Material3, tema claro/escuro/sistema,
+  i18n (PT/EN/ES) com troca de idioma por-app (ver "Decisões de
+  arquitetura").
 - **Persistência**: Room (`AppDatabase`, versão incrementada com `Migration`
   explícita — nunca destrutiva, o app guarda dados reais do usuário).
 - **Parsing de PDF**: PdfBox-Android (`com.tom-roush:pdfbox-android`),
@@ -133,21 +135,61 @@ android/app/src/main/java/com/moneyhole/
 - **Diálogos e composables repetidos em mais de um lugar vão pra
   `ui/components/`** (ex: `EditCategoryDialog`, usado em Dashboard e
   Invoice Detail). Não duplicar.
+- **`MainActivity` é `AppCompatActivity`, não `ComponentActivity`** — só
+  por causa da troca de idioma por-app (item abaixo). O app é 100%
+  Compose/Material3, `AppCompatActivity` aqui não traz Views nem o
+  visual "Material 2" do AppCompat: o único efeito é o tema da activity
+  ter que herdar de `Theme.AppCompat.*` em vez de `android:Theme.*`
+  (`themes.xml`) — toda UI real continua vindo do `MoneyHoleTheme`
+  (Material3) via `setContent`. Não trocar de volta pra
+  `ComponentActivity` sem entender a troca de idioma primeiro.
+- **Troca de idioma via `AppCompatDelegate.setApplicationLocales()`**
+  (Settings > Idioma). Duas pegadinhas não óbvias descobertas na prática,
+  testando ao vivo (`adb shell cmd locale get-app-locales com.moneyhole`
+  ficava `[]` mesmo depois de selecionar um idioma):
+  1. Sem `AndroidManifest.xml` declarar
+     `<service android:name="androidx.appcompat.app.AppLocalesMetadataHolderService" android:enabled="false" android:exported="false"><meta-data android:name="autoStoreLocales" android:value="true" /></service>`,
+     a chamada não sincroniza com o `LocaleManager` da plataforma (API
+     33+) nem persiste nada — não é automático só de ter a dependência
+     `androidx.appcompat:appcompat` no Gradle.
+  2. Sem a Activity ser `AppCompatActivity` (item acima), não existe
+     nenhum `AppCompatDelegate` de verdade registrado pra receber a
+     notificação de mudança — `setApplicationLocales` roda mas não tem
+     efeito nenhum (nem no rádio de idioma, nem no locale persistido).
+     Com os dois em vigor, a troca funciona e persiste sozinha; **não**
+     chamar `activity.recreate()` manualmente depois de
+     `setApplicationLocales()` — isso causa uma corrida de fato observada
+     (o relaunch manual chega antes do sistema persistir o locale, e a
+     troca não pega) — deixar o próprio framework recriar a Activity.
 
 ## Convenções de código
 
-- **Padrão de código agora é inglês** (decisão tomada após a migração pro
-  Room deixar isso seguro de fazer). Identificadores Kotlin (classes,
-  funções, variáveis, nomes de arquivo e de pacote) e comentários são em
-  inglês. **A UI continua em português** — labels, mensagens de erro
-  mostradas ao usuário, nomes de categoria (`"Compras"`, `"Alimentação"`,
-  etc.) e códigos de banco (`"nubank"`, `"itau"`) são dados/conteúdo do
-  app pessoal, não identificadores de código, e não são traduzidos.
+- **Padrão de código é inglês** (decisão tomada após a migração pro Room
+  deixar isso seguro de fazer). Identificadores Kotlin (classes, funções,
+  variáveis, nomes de arquivo e de pacote) e comentários são em inglês.
   Strings de schema (nomes de tabela/coluna do Room via `@ColumnInfo`/
-  `tableName`, chaves do DataStore) também ficam como estão — são valores
+  `tableName`, chaves do DataStore) ficam como estão — são valores
   gravados em disco, renomear quebraria dados existentes sem uma
-  `Migration`. Ao adicionar código novo: identificadores em inglês, texto
-  visível ao usuário em português.
+  `Migration`. Nomes de categoria (`"Compras"`, `"Alimentação"`, etc.) e
+  códigos de banco (`"nubank"`, `"itau"`) são dados/conteúdo do app
+  pessoal, não identificadores de código nem texto de UI — não são
+  traduzidos, não viram `strings.xml`.
+- **UI é internacionalizada (i18n)** — decisão de 2026-07-25, superando a
+  antiga regra "UI sempre em português". Todo texto visível ao usuário
+  vive em `res/values/strings.xml` (português, idioma base/fallback),
+  `res/values-en/strings.xml` e `res/values-es/strings.xml`. Ao adicionar
+  UI nova: nunca hardcodar string visível, sempre `stringResource(R.string...)`
+  (Compose) ou `context.getString(...)`/`getApplication<Application>().getString(...)`
+  (ViewModel) — e adicionar a entrada correspondente nos 3 arquivos.
+  `./gradlew lintDebug` falha silenciosamente em avisar (não é erro fatal)
+  se um idioma ficar com string faltando (`MissingTranslation`) — rodar e
+  checar o report depois de mexer em strings. Troca de idioma é via
+  `AppCompatDelegate.setApplicationLocales()` (Configurações > Idioma:
+  Automático/Português/English/Español) — ver "Troca de idioma" abaixo
+  pro porquê `MainActivity` precisa ser `AppCompatActivity`, não
+  `ComponentActivity`. "R$" (símbolo de Real) nunca é traduzido/trocado
+  por `NumberFormat` de moeda — o app só lida com faturas em reais,
+  independente do idioma da UI.
 - **Comentários só quando explicam um "porquê" não óbvio** (uma
   invariante escondida, um workaround, um comportamento que surpreenderia
   quem lê). Não comentar o óbvio.
