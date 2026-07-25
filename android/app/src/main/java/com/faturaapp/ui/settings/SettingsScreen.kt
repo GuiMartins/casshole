@@ -16,12 +16,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +49,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val preferredTheme by viewModel.preferredTheme.collectAsState()
+    val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
 
     AdaptiveScreen {
         Column(
@@ -82,23 +85,44 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 28.dp, bottom = 4.dp),
             )
-            ThemeOption(
+            RadioOption(
                 label = "Sistema",
                 icon = Icons.Filled.BrightnessAuto,
                 selected = preferredTheme == PreferencesRepository.THEME_SYSTEM,
                 onClick = { viewModel.selectTheme(PreferencesRepository.THEME_SYSTEM) },
             )
-            ThemeOption(
+            RadioOption(
                 label = "Claro",
                 icon = Icons.Filled.LightMode,
                 selected = preferredTheme == PreferencesRepository.THEME_LIGHT,
                 onClick = { viewModel.selectTheme(PreferencesRepository.THEME_LIGHT) },
             )
-            ThemeOption(
+            RadioOption(
                 label = "Escuro",
                 icon = Icons.Filled.DarkMode,
                 selected = preferredTheme == PreferencesRepository.THEME_DARK,
                 onClick = { viewModel.selectTheme(PreferencesRepository.THEME_DARK) },
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = "Resumo da tela inicial",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            RadioOption(
+                label = "Números",
+                icon = Icons.Filled.BarChart,
+                selected = summaryDisplayMode == PreferencesRepository.SUMMARY_DISPLAY_NUMBERS,
+                onClick = { viewModel.selectSummaryDisplayMode(PreferencesRepository.SUMMARY_DISPLAY_NUMBERS) },
+            )
+            RadioOption(
+                label = "Gráfico de pizza",
+                icon = Icons.Filled.PieChart,
+                selected = summaryDisplayMode == PreferencesRepository.SUMMARY_DISPLAY_PIE_CHART,
+                onClick = { viewModel.selectSummaryDisplayMode(PreferencesRepository.SUMMARY_DISPLAY_PIE_CHART) },
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
@@ -136,7 +160,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ThemeOption(
+private fun RadioOption(
     label: String,
     icon: ImageVector,
     selected: Boolean,

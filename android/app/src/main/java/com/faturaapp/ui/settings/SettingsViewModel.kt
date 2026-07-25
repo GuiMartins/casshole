@@ -22,4 +22,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun selectTheme(value: String) {
         viewModelScope.launch { preferencesRepository.setPreferredTheme(value) }
     }
+
+    val summaryDisplayMode: StateFlow<String> = preferencesRepository.summaryDisplayMode.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = PreferencesRepository.SUMMARY_DISPLAY_NUMBERS,
+    )
+
+    fun selectSummaryDisplayMode(value: String) {
+        viewModelScope.launch { preferencesRepository.setSummaryDisplayMode(value) }
+    }
 }

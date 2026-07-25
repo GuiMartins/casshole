@@ -3,11 +3,14 @@ package com.faturaapp.ui.dashboard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.faturaapp.data.PreferencesRepository
 import com.faturaapp.data.local.InvoiceWithTransactions
 import com.faturaapp.data.local.InvoiceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed class DashboardState {
@@ -19,9 +22,16 @@ sealed class DashboardState {
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = InvoiceRepository(application)
+    private val preferencesRepository = PreferencesRepository(application)
 
     private val _state = MutableStateFlow<DashboardState>(DashboardState.Loading)
     val state: StateFlow<DashboardState> = _state.asStateFlow()
+
+    val summaryDisplayMode: StateFlow<String> = preferencesRepository.summaryDisplayMode.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = PreferencesRepository.SUMMARY_DISPLAY_NUMBERS,
+    )
 
     init {
         loadInvoices()

@@ -49,12 +49,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.categorizer.AVAILABLE_CATEGORIES
+import com.faturaapp.data.PreferencesRepository
 import com.faturaapp.data.local.InvoiceWithTransactions
 import com.faturaapp.data.local.entity.TransactionEntity
 import androidx.compose.material3.HorizontalDivider
 import com.faturaapp.ui.components.EditCategoryDialog
 import com.faturaapp.ui.components.AdaptiveScreen
 import com.faturaapp.ui.theme.CategoryIcon
+import com.faturaapp.ui.theme.categoryVisual
 import java.time.YearMonth
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -64,6 +66,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val onResumeAction by rememberUpdatedState(viewModel::loadInvoices)
@@ -116,6 +119,7 @@ fun DashboardScreen(
                     } else {
                         GeneralSummaryContent(
                             invoices = currentState.invoices,
+                            summaryDisplayMode = summaryDisplayMode,
                             onUpdateCategory = viewModel::updateCategory,
                         )
                     }
@@ -134,6 +138,7 @@ private fun currentMonthLabel(): String {
 @Composable
 private fun GeneralSummaryContent(
     invoices: List<InvoiceWithTransactions>,
+    summaryDisplayMode: String,
     onUpdateCategory: (Long, String) -> Unit,
 ) {
     val now = remember { YearMonth.now() }
@@ -159,7 +164,11 @@ private fun GeneralSummaryContent(
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
             } else {
-                GeneralSummaryCard(currentMonthInvoices, onCategoryClick = { selectedCategory = it })
+                GeneralSummaryCard(
+                    currentMonthInvoices = currentMonthInvoices,
+                    summaryDisplayMode = summaryDisplayMode,
+                    onCategoryClick = { selectedCategory = it },
+                )
             }
             Spacer(modifier = Modifier.height(80.dp))
         }
@@ -269,7 +278,11 @@ private fun TransactionSummaryRow(transaction: TransactionEntity, invoice: Invoi
 }
 
 @Composable
-private fun GeneralSummaryCard(currentMonthInvoices: List<InvoiceWithTransactions>, onCategoryClick: (String) -> Unit) {
+private fun GeneralSummaryCard(
+    currentMonthInvoices: List<InvoiceWithTransactions>,
+    summaryDisplayMode: String,
+    onCategoryClick: (String) -> Unit,
+) {
     val transactions = currentMonthInvoices.flatMap { it.transactions }
     val totalAmount = transactions.sumOf { it.amount }
     val byCategory = transactions
@@ -303,6 +316,15 @@ private fun GeneralSummaryCard(currentMonthInvoices: List<InvoiceWithTransaction
 
             if (byCategory.isNotEmpty()) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                if (summaryDisplayMode == PreferencesRepository.SUMMARY_DISPLAY_PIE_CHART) {
+                    PieChart(
+                        data = byCategory.map { (category, total) ->
+                            PieSlice(category, total, categoryVisual(category).color)
+                        },
+                    )
+                }
+
                 byCategory.forEach { (category, total) ->
                     CategorySummaryRow(
                         category = category,
