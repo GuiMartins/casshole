@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -156,6 +157,7 @@ private fun ConteudoFaturaDetalhe(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
+        contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         item {
             Text(

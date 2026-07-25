@@ -21,21 +21,16 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -62,9 +57,6 @@ import com.faturaapp.ui.theme.CategoriaIcone
 @Composable
 fun DashboardScreen(
     onEnviarFatura: () -> Unit,
-    onComparar: () -> Unit,
-    onConfiguracoes: () -> Unit,
-    onVerPorCartao: () -> Unit,
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -95,30 +87,6 @@ fun DashboardScreen(
                 },
             )
         },
-        floatingActionButton = {
-            Surface(
-                shape = RoundedCornerShape(28.dp),
-                tonalElevation = 4.dp,
-                shadowElevation = 6.dp,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                ) {
-                    IconButton(onClick = onVerPorCartao) {
-                        Icon(imageVector = Icons.Filled.CreditCard, contentDescription = "Faturas por cartão")
-                    }
-                    IconButton(onClick = onComparar) {
-                        Icon(imageVector = Icons.Filled.BarChart, contentDescription = "Comparar")
-                    }
-                    IconButton(onClick = onConfiguracoes) {
-                        Icon(imageVector = Icons.Filled.Settings, contentDescription = "Configurações")
-                    }
-                }
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center,
     ) { paddingValues ->
         Box(
             modifier = Modifier

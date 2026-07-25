@@ -2,6 +2,7 @@ package com.faturaapp.ui.comparacao
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +36,8 @@ fun ComparacaoScreen(viewModel: ComparacaoViewModel = viewModel()) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         item {
             Text(
