@@ -33,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.FaturaComTransacoes
+import com.faturaapp.ui.components.larguraDeLeituraConfortavel
 import com.faturaapp.ui.theme.BancoBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,13 +98,15 @@ private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFat
         .toList()
         .sortedBy { (chave, _) -> "${chave.first}${chave.second}" }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
-    ) {
-        grupos.forEach { (chave, faturasDoGrupo) ->
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        LazyColumn(
+            modifier = Modifier
+                .larguraDeLeituraConfortavel()
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
+        ) {
+            grupos.forEach { (chave, faturasDoGrupo) ->
             val (banco, cartao) = chave
             item(key = "header-$banco-$cartao") {
                 val sufixoCartao = if (cartao.isNotBlank()) " (••••$cartao)" else ""
@@ -125,6 +128,7 @@ private fun ListaFaturasPorCartao(faturas: List<FaturaComTransacoes>, onAbrirFat
                 key = { it.id },
             ) { fatura ->
                 FaturaMesRow(fatura, onClick = { onAbrirFatura(fatura.id) })
+            }
             }
         }
     }

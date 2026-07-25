@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.PreferencesRepository
+import com.faturaapp.ui.components.larguraDeLeituraConfortavel
 
 @Composable
 fun ConfiguracoesScreen(
@@ -47,9 +48,11 @@ fun ConfiguracoesScreen(
 ) {
     val temaPreferido by viewModel.temaPreferido.collectAsState()
 
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .larguraDeLeituraConfortavel()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
@@ -129,6 +132,7 @@ fun ConfiguracoesScreen(
             onClick = onAbrirCategoriasPersonalizadas,
         )
         Spacer(modifier = Modifier.height(80.dp))
+    }
     }
 }
 

@@ -33,15 +33,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faturaapp.data.local.entity.CategoriaOverrideEntity
+import com.faturaapp.ui.components.larguraDeLeituraConfortavel
 import com.faturaapp.ui.theme.CategoriaIcone
 
 @Composable
 fun CategoriaOverridesScreen(viewModel: CategoriaOverridesViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
+            .larguraDeLeituraConfortavel()
+            .fillMaxWidth()
             .padding(16.dp),
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
@@ -98,6 +101,7 @@ fun CategoriaOverridesScreen(viewModel: CategoriaOverridesViewModel = viewModel(
                 }
             }
         }
+    }
     }
 }
 
