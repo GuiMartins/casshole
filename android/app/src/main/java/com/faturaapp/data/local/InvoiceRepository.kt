@@ -17,8 +17,16 @@ class DuplicatePeriodException(message: String) : Exception(message)
 /** Normalizes a description for comparison, tolerant to case/whitespace. */
 private fun normalizeDescription(description: String): String = description.trim().uppercase()
 
-class InvoiceRepository(context: Context) {
-    private val db = DatabaseProvider.getDatabase(context)
+/**
+ * [database] defaults to the app-wide singleton but can be overridden — the
+ * hook that lets tests pass an in-memory Room database instead of touching
+ * the real on-disk one.
+ */
+class InvoiceRepository(
+    context: Context,
+    database: AppDatabase = DatabaseProvider.getDatabase(context),
+) {
+    private val db = database
     private val invoiceDao = db.invoiceDao()
     private val transactionDao = db.transactionDao()
     private val defaultPasswordDao = db.defaultPasswordDao()

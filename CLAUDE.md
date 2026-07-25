@@ -4,6 +4,21 @@ App pessoal Android (Kotlin/Jetpack Compose) pra analisar faturas de cartão de
 crédito em PDF (Nubank, Itaú, Mercado Pago). 100% on-device — sem backend, sem
 rede, sem servidor pra manter.
 
+## Princípios gerais
+
+- **Nada de gambiarra.** Toda escolha de ferramenta, biblioteca ou padrão
+  arquitetural segue recomendação oficial (documentação do Android/Google,
+  docs oficiais da lib) ou um padrão já consolidado de mercado — não uma
+  solução improvisada só porque "funciona agora". Vale tanto pra decisões
+  grandes (Room em vez de storage caseiro, `WindowSizeClass` oficial em vez
+  de breakpoint chutado, KSP em vez de kapt) quanto pra atalhos de
+  teste/debug (por isso simular telas grandes via `wm size`/`wm density` em
+  produção de teste é evitado — ver "Dev loop / testes"). Na dúvida entre o
+  jeito oficial/consolidado e um atalho mais rápido, o oficial vence, mesmo
+  que dê mais trabalho. As decisões abaixo em "Decisões de arquitetura" são
+  a aplicação concreta desse princípio; ao adicionar algo novo, justificar
+  contra ele.
+
 ## Stack e arquitetura
 
 - **UI**: Jetpack Compose + Material3, tema claro/escuro/sistema.
@@ -146,13 +161,19 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
 1. `git checkout -b feature/nome-descritivo` (ou `fix/...`) a partir de
    `main` atualizado.
 2. Implementar, buildar (`./dev.sh build`), testar ao vivo no emulador.
-3. `git add` arquivos específicos (nunca `-A` sem checar o `git status`
+3. Rodar a suíte de testes automatizados (`./gradlew testDebugUnitTest
+   connectedDebugAndroidTest` — ver "Dev loop / testes") **antes de
+   commitar**. É o único momento em que os testes são obrigatórios; não
+   precisa ficar rodando a suíte inteira a cada mudança pequena durante o
+   desenvolvimento.
+4. `git add` arquivos específicos (nunca `-A` sem checar o `git status`
    antes), commit com mensagem explicando o *porquê*.
-4. `git push -u origin <branch>`.
-5. `gh pr create` com corpo descrevendo mudança + evidência de teste.
-6. `gh pr merge --squash --delete-branch`.
-7. `git fetch origin --prune && git checkout main && git pull`.
-8. Rebuildar e copiar o APK atualizado pro Desktop quando o usuário pedir
+5. `git push -u origin <branch>`.
+6. `gh pr create` com corpo descrevendo mudança + evidência de teste
+   (incluindo o resultado da suíte automatizada do passo 3).
+7. `gh pr merge --squash --delete-branch`.
+8. `git fetch origin --prune && git checkout main && git pull`.
+9. Rebuildar e copiar o APK atualizado pro Desktop quando o usuário pedir
    (`cp android/app/build/outputs/apk/debug/app-debug.apk` pro
    OneDrive/Desktop — a pasta Desktop real fica em `OneDrive/Desktop`,
    não em `C:\Users\<user>\Desktop`).
@@ -162,12 +183,33 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
 - `android/dev.sh <comando>`: `emulator` (abre o AVD `fatura_test`),
   `build`, `install`, `start`, `run` (build+install+start), `logs`
   (logcat do processo do app).
-- Testes JVM puros (`src/test/`) pra lógica sem Android runtime
-  (Categorizer): `./gradlew testDebugUnitTest`.
-- Testes instrumentados (`src/androidTest/`) pra Room e pipeline de
-  parsing contra PDFs reais.
+- **Testes são obrigatórios em todo PR, não durante o desenvolvimento
+  iterativo.** Rodar a suíte inteira a cada mudança pequena é desperdício
+  de tempo — só roda uma vez, no passo 3 do fluxo de git, antes de
+  commitar/abrir o PR. Ao implementar feature nova, sempre que fizer
+  sentido (lógica de negócio, não Compose puro), escrever o teste
+  automatizado junto — não depois, como tarefa separada.
+- Testes JVM puros (`src/test/`), sem Android runtime, rodam com
+  `./gradlew testDebugUnitTest`:
+  - `CategorizerTest` — regras de categorização por regex.
+  - `SummaryAggregatorTest` — agregação/comparação mensal (arredondamento,
+    variação %, casos vazios).
+- Testes instrumentados (`src/androidTest/`), precisam de emulador/device
+  rodando, com `./gradlew connectedDebugAndroidTest`:
+  - `RoomFoundationTest` — schema Room (cascade delete, unique constraints).
+  - `InvoiceRepositoryTest` — regras de negócio do `InvoiceRepository`
+    (rejeição de reenvio duplicado, aprendizado/remoção de categoria) contra
+    um banco Room em memória; usa o parâmetro `database` do construtor de
+    `InvoiceRepository` pra injetar esse banco de teste em vez do singleton
+    real (`DatabaseProvider`).
+  - `InvoiceDispatcherTest` — pipeline de parsing contra PDFs reais dos 3
+    bancos suportados.
 - **PDFs de fatura reais nunca vão pro git** — `android/app/src/androidTest/assets/`
   está no `.gitignore` de propósito. Testados localmente, nunca commitados.
+  Isso significa que `InvoiceDispatcherTest` só roda em quem já tem essas
+  cópias locais (não existe CI neste projeto) — os demais testes
+  instrumentados (Room, InvoiceRepository) não dependem delas e sempre
+  rodam.
 - Pra inspecionar o banco Room ao vivo: puxar `.db`, `.db-wal` e `.db-shm`
   juntos (Room usa WAL, dado recente pode não estar no `.db` principal)
   via `adb exec-out run-as com.faturaapp cat databases/fatura_app.db > arquivo`
