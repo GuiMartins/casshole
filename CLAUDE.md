@@ -161,16 +161,20 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
 1. `git checkout -b feature/nome-descritivo` (ou `fix/...`) a partir de
    `main` atualizado.
 2. Implementar, buildar (`./dev.sh build`), testar ao vivo no emulador.
-3. Rodar a suíte de testes automatizados (`./gradlew testDebugUnitTest
-   connectedDebugAndroidTest` — ver "Dev loop / testes") **antes de
-   commitar**. É o único momento em que os testes são obrigatórios; não
-   precisa ficar rodando a suíte inteira a cada mudança pequena durante o
-   desenvolvimento.
-4. `git add` arquivos específicos (nunca `-A` sem checar o `git status`
+   **A suíte automatizada (`./gradlew testDebugUnitTest
+   connectedDebugAndroidTest`) não é rodada localmente em nenhum ponto
+   deste fluxo** — nem durante o desenvolvimento, nem antes de commitar.
+   Ela roda exclusivamente no CI, um único lugar de verdade (ver "CI
+   (GitHub Actions)" abaixo).
+3. `git add` arquivos específicos (nunca `-A` sem checar o `git status`
    antes), commit com mensagem explicando o *porquê*.
-5. `git push -u origin <branch>`.
-6. `gh pr create` com corpo descrevendo mudança + evidência de teste
-   (incluindo o resultado da suíte automatizada do passo 3).
+4. `git push -u origin <branch>`.
+5. `gh pr create` com corpo descrevendo mudança + evidência do teste
+   manual no emulador (passo 2).
+6. **Esperar o CI do GitHub Actions terminar verde antes de mergear**
+   (`gh pr checks <número> --watch`) — é o único gate de teste automatizado
+   que existe. Ver "CI (GitHub Actions)" abaixo pro que ele roda e a
+   limitação atual de enforcement.
 7. `gh pr merge --squash --delete-branch`.
 8. `git fetch origin --prune && git checkout main && git pull`.
 9. Rebuildar e copiar o APK atualizado pro Desktop quando o usuário pedir
@@ -178,24 +182,57 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
    OneDrive/Desktop — a pasta Desktop real fica em `OneDrive/Desktop`,
    não em `C:\Users\<user>\Desktop`).
 
+## CI (GitHub Actions)
+
+`.github/workflows/ci.yml` roda em todo PR (e push em `main`), dois jobs
+independentes, ambos em `ubuntu-latest`:
+
+- **`unit-tests`**: `./gradlew testDebugUnitTest` (Categorizer,
+  SummaryAggregator) — sempre roda, sem dependência externa.
+- **`instrumented-tests`**: emulador Android via
+  `reactivecircus/android-emulator-runner` (API 30, AVD sempre criado do
+  zero — **sem** cache de snapshot, ver nota no próprio `ci.yml`: a
+  combinação de snapshot salvo + recarregado bateu num bug real de
+  compatibilidade com a versão atual do emulator, `adb` nunca saía de
+  "device offline" e o job estourava os 10min de timeout; um boot único
+  por execução é ~1min mais lento mas confiável) rodando `./gradlew
+  connectedDebugAndroidTest`, **excluindo `InvoiceDispatcherTest`** via
+  `-Pandroid.testInstrumentationRunnerArguments.notClass=...` — esse
+  teste precisa dos PDFs reais de `src/androidTest/assets/`, que são
+  gitignored de propósito (dado pessoal, nunca commitados) e por isso
+  não existem no runner do CI. `RoomFoundationTest` e
+  `InvoiceRepositoryTest` não dependem deles e rodam normalmente.
+
+**Limitação atual de enforcement**: o repo é privado e branch protection
+com required status checks é feature paga do GitHub (Pro ou repo
+público) — `gh api repos/.../branches/main/protection` retorna 403 nesse
+plano. Ou seja, o CI roda e mostra o resultado no PR, mas o GitHub não
+bloqueia fisicamente o merge se estiver vermelho; o gate depende de
+checar o status antes de rodar `gh pr merge` (passo 7 acima). Se
+quiser o bloqueio de verdade, as opções são upgrade pra GitHub Pro ou
+tornar o repo público — decisão do usuário, não tomar sozinho.
+
 ## Dev loop / testes
 
 - `android/dev.sh <comando>`: `emulator` (abre o AVD `fatura_test`),
   `build`, `install`, `start`, `run` (build+install+start), `logs`
   (logcat do processo do app).
-- **Testes são obrigatórios em todo PR, não durante o desenvolvimento
-  iterativo.** Rodar a suíte inteira a cada mudança pequena é desperdício
-  de tempo — só roda uma vez, no passo 3 do fluxo de git, antes de
-  commitar/abrir o PR. Ao implementar feature nova, sempre que fizer
-  sentido (lógica de negócio, não Compose puro), escrever o teste
-  automatizado junto — não depois, como tarefa separada.
-- Testes JVM puros (`src/test/`), sem Android runtime, rodam com
-  `./gradlew testDebugUnitTest`:
+- **Testes automatizados rodam só no CI, nunca localmente.** Não fazem
+  parte do desenvolvimento iterativo nem de um passo manual antes do
+  commit — o único lugar onde a suíte executa é o GitHub Actions, ao abrir
+  o PR (ver "CI (GitHub Actions)"). Localmente, a verificação é o teste
+  manual ao vivo no emulador (passo 2 do fluxo de git). Ao implementar
+  feature nova, sempre que fizer sentido (lógica de negócio, não Compose
+  puro), escrever o teste automatizado junto do código — ele só vai ser
+  executado depois, no PR, mas a cobertura entra no mesmo commit.
+- Testes JVM puros (`src/test/`), sem Android runtime — rodados pelo job
+  `unit-tests` do CI via `./gradlew testDebugUnitTest`:
   - `CategorizerTest` — regras de categorização por regex.
   - `SummaryAggregatorTest` — agregação/comparação mensal (arredondamento,
     variação %, casos vazios).
 - Testes instrumentados (`src/androidTest/`), precisam de emulador/device
-  rodando, com `./gradlew connectedDebugAndroidTest`:
+  — rodados pelo job `instrumented-tests` do CI via `./gradlew
+  connectedDebugAndroidTest`:
   - `RoomFoundationTest` — schema Room (cascade delete, unique constraints).
   - `InvoiceRepositoryTest` — regras de negócio do `InvoiceRepository`
     (rejeição de reenvio duplicado, aprendizado/remoção de categoria) contra
@@ -203,13 +240,13 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
     `InvoiceRepository` pra injetar esse banco de teste em vez do singleton
     real (`DatabaseProvider`).
   - `InvoiceDispatcherTest` — pipeline de parsing contra PDFs reais dos 3
-    bancos suportados.
+    bancos suportados. **Não roda no CI** (ver próximo bullet).
 - **PDFs de fatura reais nunca vão pro git** — `android/app/src/androidTest/assets/`
-  está no `.gitignore` de propósito. Testados localmente, nunca commitados.
-  Isso significa que `InvoiceDispatcherTest` só roda em quem já tem essas
-  cópias locais (não existe CI neste projeto) — os demais testes
-  instrumentados (Room, InvoiceRepository) não dependem delas e sempre
-  rodam.
+  está no `.gitignore` de propósito (dado pessoal). Por isso
+  `InvoiceDispatcherTest` é excluído explicitamente do job `instrumented-tests`
+  do CI (`-Pandroid.testInstrumentationRunnerArguments.notClass=...`) — o
+  runner nunca tem esses arquivos. `RoomFoundationTest` e
+  `InvoiceRepositoryTest` não dependem deles e rodam normalmente no CI.
 - Pra inspecionar o banco Room ao vivo: puxar `.db`, `.db-wal` e `.db-shm`
   juntos (Room usa WAL, dado recente pode não estar no `.db` principal)
   via `adb exec-out run-as com.faturaapp cat databases/fatura_app.db > arquivo`

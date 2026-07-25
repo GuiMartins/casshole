@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: JVM unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run JVM unit tests (Categorizer, SummaryAggregator)
+        working-directory: android
+        run: ./gradlew testDebugUnitTest
+
+  instrumented-tests:
+    name: Instrumented tests (Room, InvoiceRepository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM for hardware-accelerated emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # No AVD/snapshot caching here on purpose: the two-boot cache dance
+      # (create + snapshot, then reload the snapshot in a second boot) hit a
+      # real compatibility bug between the current emulator build and
+      # quickboot snapshots on this system image - the reloaded emulator
+      # never left "adb: device offline" and the job timed out at 10min.
+      # A single fresh boot per run (no snapshot involved) works reliably;
+      # it costs ~1 extra minute per CI run, an easy trade for a project
+      # with infrequent PRs.
+      #
+      # InvoiceDispatcherTest reads real invoice PDFs from src/androidTest/assets/,
+      # which are deliberately gitignored (real personal financial data, see
+      # CLAUDE.md "Dev loop / testes") and therefore don't exist in CI. Every
+      # other instrumented test (Room, InvoiceRepository) doesn't depend on them.
+      - name: Run instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          working-directory: android
+          script: ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=com.faturaapp.parsing.InvoiceDispatcherTest
