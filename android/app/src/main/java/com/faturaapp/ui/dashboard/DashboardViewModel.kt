@@ -38,4 +38,17 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    fun atualizarCategoria(transacaoId: Long, novaCategoria: String) {
+        viewModelScope.launch {
+            try {
+                repository.atualizarCategoria(transacaoId, novaCategoria)
+                // Atualiza sem passar por Loading, pra não fechar os diálogos abertos
+                // (o Resumo geral e a edição de categoria vivem dentro do branch Carregado).
+                _state.value = DashboardState.Carregado(repository.listarFaturas())
+            } catch (e: Exception) {
+                _state.value = DashboardState.Erro(e.message ?: "Erro ao atualizar categoria")
+            }
+        }
+    }
 }

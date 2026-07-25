@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.faturaapp.categorizer.CATEGORIAS_DISPONIVEIS
 import com.faturaapp.data.local.FaturaComTransacoes
 import com.faturaapp.data.local.entity.TransacaoEntity
 import androidx.compose.material3.HorizontalDivider
@@ -110,7 +112,10 @@ fun DashboardScreen(
                             modifier = Modifier.align(Alignment.Center),
                         )
                     } else {
-                        ResumoGeralConteudo(estadoAtual.faturas)
+                        ResumoGeralConteudo(
+                            faturas = estadoAtual.faturas,
+                            onAtualizarCategoria = viewModel::atualizarCategoria,
+                        )
                     }
                 }
             }
@@ -119,13 +124,17 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun ResumoGeralConteudo(faturas: List<FaturaComTransacoes>) {
+private fun ResumoGeralConteudo(
+    faturas: List<FaturaComTransacoes>,
+    onAtualizarCategoria: (Long, String) -> Unit,
+) {
     val faturasMaisRecentes = faturas
         .groupBy { it.banco to it.cartao }
         .values
         .map { faturasDoGrupo -> faturasDoGrupo.maxBy { it.anoReferencia * 100 + it.mesReferencia } }
 
     var categoriaSelecionada by remember { mutableStateOf<String?>(null) }
+    var transacaoEmEdicao by remember { mutableStateOf<TransacaoEntity?>(null) }
 
     Column(
         modifier = Modifier
@@ -147,6 +156,19 @@ private fun ResumoGeralConteudo(faturas: List<FaturaComTransacoes>) {
             categoria = categoria,
             transacoes = transacoesDaCategoria,
             onDismiss = { categoriaSelecionada = null },
+            onTransacaoClick = { transacaoEmEdicao = it },
+        )
+    }
+
+    transacaoEmEdicao?.let { transacao ->
+        DialogEditarCategoria(
+            transacao = transacao,
+            categorias = CATEGORIAS_DISPONIVEIS,
+            onConfirmar = { novaCategoria ->
+                onAtualizarCategoria(transacao.id, novaCategoria)
+                transacaoEmEdicao = null
+            },
+            onCancelar = { transacaoEmEdicao = null },
         )
     }
 }
@@ -156,6 +178,7 @@ private fun DialogTransacoesCategoria(
     categoria: String,
     transacoes: List<Pair<TransacaoEntity, FaturaComTransacoes>>,
     onDismiss: () -> Unit,
+    onTransacaoClick: (TransacaoEntity) -> Unit,
 ) {
     val total = transacoes.sumOf { (transacao, _) -> transacao.valor }
 
@@ -177,7 +200,11 @@ private fun DialogTransacoesCategoria(
                 )
                 LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
                     items(transacoes) { (transacao, fatura) ->
-                        TransacaoResumoRow(transacao, fatura)
+                        TransacaoResumoRow(
+                            transacao = transacao,
+                            fatura = fatura,
+                            onClick = { onTransacaoClick(transacao) },
+                        )
                     }
                 }
             }
@@ -189,9 +216,14 @@ private fun DialogTransacoesCategoria(
 }
 
 @Composable
-private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTransacoes) {
+private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTransacoes, onClick: () -> Unit) {
     val sufixoCartao = if (fatura.cartao.isNotBlank()) " ••••${fatura.cartao}" else ""
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -215,6 +247,49 @@ private fun TransacaoResumoRow(transacao: TransacaoEntity, fatura: FaturaComTran
         )
     }
     HorizontalDivider()
+}
+
+@Composable
+private fun DialogEditarCategoria(
+    transacao: TransacaoEntity,
+    categorias: List<String>,
+    onConfirmar: (String) -> Unit,
+    onCancelar: () -> Unit,
+) {
+    var selecionada by remember(transacao.id) { mutableStateOf(transacao.categoria) }
+
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text("Categoria de \"${transacao.descricao}\"") },
+        text = {
+            Column {
+                categorias.forEach { categoria ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selecionada = categoria },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = categoria == selecionada,
+                            onClick = { selecionada = categoria },
+                        )
+                        Text(categoria)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirmar(selecionada) }) {
+                Text("Salvar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) {
+                Text("Cancelar")
+            }
+        },
+    )
 }
 
 @Composable

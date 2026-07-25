@@ -46,10 +46,12 @@ private fun telaPrincipalDaRota(rota: String?): TelaPrincipal = when (rota) {
 }
 
 private fun NavHostController.navegarParaAba(rota: String) {
+    // Sem saveState/restoreState de propósito: tocar numa aba deve sempre levar
+    // pra raiz dela, nunca reaparecer numa tela filha (ex: Senhas) em que o
+    // usuário tenha ficado antes de trocar de aba.
     navigate(rota) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
+        popUpTo(graph.findStartDestination().id)
         launchSingleTop = true
-        restoreState = true
     }
 }
 
