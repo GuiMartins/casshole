@@ -12,6 +12,7 @@ import com.faturaapp.ui.comparacao.ComparacaoScreen
 import com.faturaapp.ui.configuracoes.ConfiguracoesScreen
 import com.faturaapp.ui.dashboard.DashboardScreen
 import com.faturaapp.ui.faturadetalhe.FaturaDetalheScreen
+import com.faturaapp.ui.faturasporcartao.FaturasPorCartaoScreen
 import com.faturaapp.ui.senhas.SenhasScreen
 import com.faturaapp.ui.upload.UploadScreen
 
@@ -22,6 +23,7 @@ private object Rotas {
     const val CONFIGURACOES = "configuracoes"
     const val SENHAS = "senhas"
     const val CATEGORIAS_PERSONALIZADAS = "categorias-personalizadas"
+    const val FATURAS_POR_CARTAO = "faturas-por-cartao"
     const val FATURA_DETALHE = "fatura/{faturaId}"
 }
 
@@ -33,6 +35,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 onEnviarFatura = { navController.navigate(Rotas.UPLOAD) },
                 onComparar = { navController.navigate(Rotas.COMPARACAO) },
                 onConfiguracoes = { navController.navigate(Rotas.CONFIGURACOES) },
+                onVerPorCartao = { navController.navigate(Rotas.FATURAS_POR_CARTAO) },
+            )
+        }
+        composable(Rotas.FATURAS_POR_CARTAO) {
+            FaturasPorCartaoScreen(
                 onAbrirFatura = { faturaId -> navController.navigate("fatura/$faturaId") },
             )
         }
