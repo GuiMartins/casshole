@@ -268,13 +268,26 @@ android/app/src/main/java/com/moneyhole/
   quando o resto da Row tem um elemento de tamanho fixo (ícone de remover,
   valor em R$).
 
-## Fluxo de trabalho (git)
+## Fluxo de trabalho (git) — GitFlow
 
-Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
-(autorização padrão já dada pelo usuário: "vai fazendo e mergeando"):
+Adotado em 2026-07-27 (pedido explícito do usuário: "implementa gotflow no
+repo"), substituindo o fluxo anterior de feature branch direto a partir de
+`main`. Duas branches de longa duração:
+
+- **`develop`** — branch de integração, **default branch do repo no
+  GitHub**. Todo trabalho do dia a dia (`feature/*`, `fix/*`) nasce daqui e
+  volta pra cá via PR. Reflete "tudo que já foi implementado e testado",
+  não necessariamente o que está instalado no celular do usuário.
+- **`main`** — reflete o que foi de fato buildado/instalado
+  (`app-debug.apk` copiado pro Desktop). Só recebe merge via `release/*`
+  (arredondando o que já está em `develop`) ou `hotfix/*` (correção urgente
+  em cima do que já está em produção, sem esperar o resto de `develop`).
+
+Passos, sem pedir confirmação a cada um (autorização padrão já dada pelo
+usuário: "vai fazendo e mergeando"):
 
 1. `git checkout -b feature/nome-descritivo` (ou `fix/...`) a partir de
-   `main` atualizado.
+   **`develop`** atualizado — não mais `main`.
 2. Implementar, buildar (`./dev.sh build`), testar ao vivo no emulador.
    **A suíte automatizada (`./gradlew testDebugUnitTest
    connectedDebugAndroidTest`) não é rodada localmente em nenhum ponto
@@ -284,23 +297,48 @@ Todo PR segue o mesmo padrão, sem pedir confirmação a cada passo
 3. `git add` arquivos específicos (nunca `-A` sem checar o `git status`
    antes), commit com mensagem explicando o *porquê*.
 4. `git push -u origin <branch>`.
-5. `gh pr create` com corpo descrevendo mudança + evidência do teste
-   manual no emulador (passo 2).
-6. **O CI precisa terminar verde pra `gh pr merge` funcionar** — não é
-   mais um lembrete, é bloqueio real do GitHub (branch protection, ver "CI
-   (GitHub Actions)" abaixo). `gh pr checks <número> --watch` pra
-   acompanhar antes de tentar mergear.
+5. `gh pr create --base develop` com corpo descrevendo mudança + evidência
+   do teste manual no emulador (passo 2).
+6. **O CI precisa terminar verde pra `gh pr merge` funcionar** em
+   `develop` (branch protection, ver "CI (GitHub Actions)" abaixo). `gh pr
+   checks <número> --watch` pra acompanhar antes de tentar mergear.
 7. `gh pr merge --squash --delete-branch`.
-8. `git fetch origin --prune && git checkout main && git pull`.
-9. Rebuildar e copiar o APK atualizado pro Desktop quando o usuário pedir
-   (`cp android/app/build/outputs/apk/debug/app-debug.apk` pro
-   OneDrive/Desktop — a pasta Desktop real fica em `OneDrive/Desktop`,
-   não em `C:\Users\<user>\Desktop`).
+8. `git fetch origin --prune && git checkout develop && git pull`.
+
+Pra levar o que está em `develop` pro celular de verdade (equivalente a
+"cortar uma release"):
+
+9. `git checkout -b release/o-que-mudou develop` (ou pular a branch de
+   release pra mudanças pequenas e ir direto de PR `develop -> main`,
+   dado que é um projeto solo sem QA formal — usar `release/*` quando fizer
+   sentido isolar/testar mais antes de ir pro `main`).
+10. `gh pr create --base main --head release/o-que-mudou` (ou `--head
+    develop` se pulou o passo 9), merge depois do CI verde.
+11. `git checkout main && git pull` — rebuildar e copiar o APK atualizado
+    pro Desktop quando o usuário pedir (`cp
+    android/app/build/outputs/apk/debug/app-debug.apk` pro OneDrive/Desktop
+    — a pasta Desktop real fica em `OneDrive/Desktop`, não em
+    `C:\Users\<user>\Desktop`).
+12. Se `release/*` foi usada e não é um fast-forward puro de `develop`,
+    sincronizar de volta: `git checkout develop && git merge main`.
+
+**`hotfix/*`**: só quando algo já instalado (`main`) está quebrado e não dá
+pra esperar o resto de `develop`. Branch a partir de `main` (não
+`develop`), PR `hotfix/* -> main`, e depois de mergear, sincronizar de
+volta com `git checkout develop && git merge main` — sem isso, `develop`
+diverge silenciosamente do que está de fato rodando no celular.
+
+**Limitação conhecida do GitHub free**: não dá pra restringir tecnicamente
+"só aceitar PR em `main` vindo de `release/*` ou `hotfix/*`" (isso é
+`restrictions` por padrão de branch, feature paga). É convenção documentada
+aqui, não bloqueio automático — na dúvida, checar se a branch de origem do
+PR contra `main` realmente é `release/*`/`hotfix/*` antes de mergear.
 
 ## CI (GitHub Actions)
 
-`.github/workflows/ci.yml` roda em todo PR (e push em `main`), dois jobs
-independentes, ambos em `ubuntu-latest`:
+`.github/workflows/ci.yml` roda em todo PR (contra qualquer branch) e em
+push direto em `main` ou `develop`, dois jobs independentes, ambos em
+`ubuntu-latest`:
 
 - **`unit-tests`**: `./gradlew testDebugUnitTest` (Categorizer,
   SummaryAggregator) — sempre roda, sem dependência externa.
@@ -336,6 +374,30 @@ GitHub. `main` tem, via `gh api .../branches/main/protection`:
   sem deleção da branch.
 - `delete_branch_on_merge: true` no repo (branches de PR mergeado somem
   sozinhas).
+
+`develop` deveria ter a mesma proteção espelhada (PR obrigatório + os
+mesmos dois status checks + sem force-push) já que virou o destino padrão
+do dia a dia — **pendente de aplicar manualmente**: mudar configurações
+de repo do GitHub (default branch, branch protection) é bloqueado pro
+assistente automático (classificador de permissão trata como mudança de
+infraestrutura compartilhada). O usuário precisa rodar isso uma vez:
+
+```bash
+gh repo edit GuiMartins/money-hole --default-branch develop
+gh api repos/GuiMartins/money-hole/branches/develop/protection -X PUT --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["JVM unit tests", "Instrumented tests (Room, InvoiceRepository)"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": { "required_approving_review_count": 0 },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+EOF
+```
 
 ## Dev loop / testes
 
