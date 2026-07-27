@@ -444,12 +444,22 @@ PR contra `main` realmente é `release/*`/`hotfix/*` antes de mergear.
 ## CI (GitHub Actions)
 
 `.github/workflows/ci.yml` roda em todo PR (contra qualquer branch) e em
-push direto em `main` ou `develop`, dois jobs independentes, ambos em
-`ubuntu-latest`:
+push direto em `main` ou `develop`, três jobs em `ubuntu-latest`:
 
+- **`changes`**: `dorny/paths-filter` detecta se o diff toca
+  `android/**` ou o próprio `ci.yml` — usado só pra decidir se
+  `instrumented-tests` roda (ver abaixo). PR que só mexe em docs
+  (`CLAUDE.md`, `README.md`) ou noutro workflow (`release.yml`) pula o
+  emulador inteiro, que é o real gargalo de tempo do CI (~3min vs ~1min
+  do `unit-tests`).
 - **`unit-tests`**: `./gradlew testDebugUnitTest` (Categorizer,
-  SummaryAggregator) — sempre roda, sem dependência externa.
-- **`instrumented-tests`**: emulador Android via
+  SummaryAggregator) — sempre roda, sem dependência externa, custo baixo
+  o suficiente pra não valer a pena condicionar.
+- **`instrumented-tests`**: `if: needs.changes.outputs.android-code ==
+  'true'` — quando pulado, GitHub reporta o job como "skipped", que
+  conta como passou pra required status checks (comportamento oficial
+  do GitHub Actions pra jobs condicionais, não é gambiarra). Emulador
+  Android via
   `reactivecircus/android-emulator-runner` (API 30, AVD sempre criado do
   zero — **sem** cache de snapshot, ver nota no próprio `ci.yml`: a
   combinação de snapshot salvo + recarregado bateu num bug real de
