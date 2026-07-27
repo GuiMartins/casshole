@@ -106,6 +106,7 @@
     <string name="email_fetch_progress">Revisando correo %1$d de %2$d…</string>
     <string name="email_fetch_banner_starting">Buscando facturas por correo…</string>
     <string name="email_result">%1$d importadas, %2$d ya existían, %3$d fallaron</string>
+    <string name="email_result_password_hint">%1$d fallaron por contraseña incorrecta - registra la correcta en Configuración &gt; Contraseñas predeterminadas</string>
     <string name="email_validation_error">Ingresa el correo y la contraseña de app</string>
     <string name="email_edit_config">Editar</string>
     <string name="email_error_auth">Fallo de autenticación - revisa el correo y la contraseña de app</string>

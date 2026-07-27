@@ -6,6 +6,7 @@ import com.moneyhole.R
 import com.moneyhole.data.local.DuplicateFileException
 import com.moneyhole.data.local.DuplicatePeriodException
 import com.moneyhole.data.local.InvoiceRepository
+import com.moneyhole.parsing.IncorrectPasswordException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,7 +16,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class EmailImportResult(val imported: Int, val duplicates: Int, val failed: Int)
+/** [failedPasswords] is a subset of [failed] - attachments that specifically need a default
+ * password registered (Configurações > Senhas) to be imported, worth surfacing separately since
+ * it's an actionable fix, unlike an unrecognized-bank or other parsing failure. */
+data class EmailImportResult(val imported: Int, val duplicates: Int, val failed: Int, val failedPasswords: Int)
 
 sealed class EmailFetchState {
     data object Idle : EmailFetchState()
@@ -65,8 +69,9 @@ object EmailFetchCoordinator {
             _state.value = EmailFetchState.Fetching()
             try {
                 val lastProcessedUid = credentialsRepository.getLastProcessedUid()
+                val previouslyFailedUids = credentialsRepository.getFailedUids()
                 val result = withContext(Dispatchers.IO) {
-                    EmailFetcher.fetchPdfAttachments(credentials, lastProcessedUid) { processed, total ->
+                    EmailFetcher.fetchPdfAttachments(credentials, lastProcessedUid, previouslyFailedUids) { processed, total ->
                         _state.value = EmailFetchState.Fetching(processed, total)
                     }
                 }
@@ -74,6 +79,13 @@ object EmailFetchCoordinator {
                 var imported = 0
                 var duplicates = 0
                 var failed = 0
+                var failedPasswords = 0
+                // Only messages that still fail this time stay on the retry list - anything
+                // imported or already-duplicate this round is done and drops off it. This list
+                // is what gets retried next time (regardless of the main cursor), so a message
+                // that failed for a fixable reason (wrong/missing password, ...) keeps getting
+                // retried instead of being silently skipped forever once the cursor moves past it.
+                val stillFailedUids = mutableSetOf<Long>()
                 for (attachment in result.attachments) {
                     try {
                         invoiceRepository.processAndStore(attachment.bytes, enteredPassword = null)
@@ -85,10 +97,15 @@ object EmailFetchCoordinator {
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to import attachment '${attachment.fileName}'", e)
                         failed++
+                        if (e is IncorrectPasswordException) failedPasswords++
+                        stillFailedUids.add(attachment.messageUid)
                     }
                 }
-                credentialsRepository.setLastProcessedUid(result.lastUid)
-                _state.value = EmailFetchState.Done(EmailImportResult(imported, duplicates, failed))
+                if (result.highestUidSeen > lastProcessedUid) {
+                    credentialsRepository.setLastProcessedUid(result.highestUidSeen)
+                }
+                credentialsRepository.setFailedUids(stillFailedUids)
+                _state.value = EmailFetchState.Done(EmailImportResult(imported, duplicates, failed, failedPasswords))
             } catch (e: EmailAuthenticationException) {
                 _state.value = EmailFetchState.Error(context.getString(R.string.email_error_auth))
             } catch (e: EmailConnectionException) {

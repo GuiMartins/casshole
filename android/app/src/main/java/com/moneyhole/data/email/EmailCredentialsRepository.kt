@@ -28,6 +28,7 @@ class EmailCredentialsRepository(context: Context) {
         private const val KEY_IMAP_HOST = "imap_host"
         private const val KEY_IMAP_PORT = "imap_port"
         private const val KEY_LAST_PROCESSED_UID = "last_processed_uid"
+        private const val KEY_FAILED_UIDS = "failed_uids"
     }
 
     private val masterKey = MasterKey.Builder(context)
@@ -50,15 +51,28 @@ class EmailCredentialsRepository(context: Context) {
         return EmailCredentials(address, appPassword, host, port)
     }
 
-    /** Saving resets the last-processed UID - a config change means the sync window starts over. */
+    /**
+     * Only resets the last-processed UID and retry list when the account/host actually changed -
+     * "Save" and "Fetch now" are the same button (see EmailSettingsScreen), so this runs on every
+     * fetch click even when nothing was edited. Resetting unconditionally would throw away the
+     * incremental sync cursor and retry list on every single fetch, forcing a full mailbox
+     * re-scan every time instead of only when switching accounts.
+     */
     fun save(credentials: EmailCredentials) {
-        prefs.edit()
+        val previous = get()
+        val accountChanged = previous == null ||
+            previous.address != credentials.address ||
+            previous.imapHost != credentials.imapHost
+        val editor = prefs.edit()
             .putString(KEY_ADDRESS, credentials.address)
             .putString(KEY_APP_PASSWORD, credentials.appPassword)
             .putString(KEY_IMAP_HOST, credentials.imapHost)
             .putInt(KEY_IMAP_PORT, credentials.imapPort)
-            .putLong(KEY_LAST_PROCESSED_UID, 0L)
-            .apply()
+        if (accountChanged) {
+            editor.putLong(KEY_LAST_PROCESSED_UID, 0L)
+            editor.putString(KEY_FAILED_UIDS, "")
+        }
+        editor.apply()
     }
 
     fun clear() {
@@ -69,5 +83,17 @@ class EmailCredentialsRepository(context: Context) {
 
     fun setLastProcessedUid(uid: Long) {
         prefs.edit().putLong(KEY_LAST_PROCESSED_UID, uid).apply()
+    }
+
+    /** UIDs of messages whose PDF failed to import last time - retried on every fetch until
+     * they succeed (e.g. once the right default password is registered), instead of the main
+     * cursor getting stuck behind them or silently skipping them forever. */
+    fun getFailedUids(): Set<Long> {
+        val raw = prefs.getString(KEY_FAILED_UIDS, "") ?: ""
+        return raw.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
+    }
+
+    fun setFailedUids(uids: Set<Long>) {
+        prefs.edit().putString(KEY_FAILED_UIDS, uids.joinToString(",")).apply()
     }
 }

@@ -122,6 +122,7 @@
     <string name="email_fetch_progress">Verificando e-mail %1$d de %2$d…</string>
     <string name="email_fetch_banner_starting">Buscando faturas por e-mail…</string>
     <string name="email_result">%1$d importadas, %2$d já existiam, %3$d falharam</string>
+    <string name="email_result_password_hint">%1$d falharam por senha incorreta - cadastre a senha certa em Configurações &gt; Senhas padrão</string>
     <string name="email_validation_error">Informe o e-mail e a senha de app</string>
     <string name="email_edit_config">Editar</string>
     <string name="email_error_auth">Falha de autenticação - confira o e-mail e a senha de app</string>

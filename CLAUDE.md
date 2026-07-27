@@ -149,15 +149,41 @@ android/app/src/main/java/com/moneyhole/
     `(IMAPFolder).getMessagesByUID(lastProcessedUid + 1, UIDFolder.LASTUID)`
     pra pegar só mensagens novas, caindo pro filtro por
     `sinceDays` (60 dias) só na primeira busca (`lastProcessedUid == 0`).
-    `save()` em `EmailCredentialsRepository` reseta `lastProcessedUid` pra
-    0 — trocar a conta/senha refaz a janela de 60 dias do zero, evitando
-    UID de uma conta antiga vazar pra outra.
+  - **Mensagens com falha ficam numa lista de retry separada
+    (`EmailCredentialsRepository.getFailedUids()`/`setFailedUids()`, CSV em
+    string), não travam nem são puladas pelo cursor principal.** Primeira
+    versão avançava `lastProcessedUid` pra TODA mensagem vista, sucesso ou
+    falha — uma fatura real que falhasse por senha errada nunca mais seria
+    tentada de novo, mesmo depois do usuário cadastrar a senha certa (bug
+    real: 3 das 4 faturas reais do usuário sumiram silenciosamente assim).
+    Correção errada #1: fazer o cursor parar logo antes da primeira falha —
+    resolve o "nunca mais tenta" mas reprocessa TODAS as mensagens depois
+    dela a cada fetch (também observado ao vivo: 56 mensagens reprocessadas
+    por causa de 16 falhas). Versão final: `EmailFetcher.fetchPdfAttachments`
+    aceita `retryUids: Set<Long>` e busca essas mensagens específicas via
+    `getMessagesByUID(longArray)` **além** do range normal — o cursor
+    principal sempre avança (nunca trava), e só as mensagens que ainda
+    falham continuam na lista de retry (removidas assim que têm sucesso).
+    Cada `FetchedAttachment` carrega o `messageUid` de origem, necessário
+    pra saber qual mensagem gerou qual resultado.
+  - **`EmailCredentialsRepository.save()` só reseta `lastProcessedUid`/lista
+    de retry se a conta (`address`/`imapHost`) realmente mudou, não a cada
+    chamada.** Bug real: o botão único "Buscar faturas agora" (ver decisão
+    de UI única de save+fetch) chama `save()` toda vez que é clicado, então
+    resetar incondicionalmente destruía a sincronização incremental a cada
+    clique, forçando um re-scan completo de 40+ mensagens sempre — só
+    reseta agora quando `address`/`imapHost` mudam de verdade (trocar só a
+    senha de app, ex: senha expirada, não invalida os UIDs já processados).
   - Falhas de import (PDF que não é fatura reconhecida, senha errada,
     etc.) são logadas via `Log.w("EmailFetchCoordinator", ...)` com a
     exceção completa — antes só incrementava um contador `failed` sem
     registrar o motivo. Útil pra diferenciar “não reconheceu o banco”
     (anexo que não é fatura de verdade, ex: boleto de condomínio,
-    balancete) de um bug real no parser.
+    balancete) de um bug real no parser. Falhas especificamente por senha
+    incorreta (`IncorrectPasswordException`) são contadas à parte
+    (`EmailImportResult.failedPasswords`) e mostradas na UI com uma dica
+    acionável ("cadastre a senha certa em Configurações > Senhas padrão")
+    em vez de só aparecerem como um número genérico de "falharam".
 - **Nomes de campo em Room são camelCase idiomático** (`mesReferencia`, não
   `mes_referencia`) — decisão explícita do usuário, prioriza Kotlin
   idiomático sobre menor diff.
@@ -283,6 +309,53 @@ repo"), substituindo o fluxo anterior de feature branch direto a partir de
   (arredondando o que já está em `develop`) ou `hotfix/*` (correção urgente
   em cima do que já está em produção, sem esperar o resto de `develop`).
 
+### Mensagens de commit e PR: Gitmoji + Conventional Commits
+
+Adotado em 2026-07-27 (pedido explícito do usuário). As duas convenções
+juntas, **nessa ordem** — tipo primeiro, emoji logo depois:
+
+```
+<tipo>: <emoji> <descrição>
+```
+
+Ex: `feat: ✨ busca automática de fatura por e-mail`,
+`fix: 🐛 spinner que não resolvia no fetch de e-mail`.
+
+**Por que o tipo vem antes do emoji, não depois**: `mathieudutour/github-tag-action`
+(ver "Release automática" abaixo) calcula o bump de versão com regex
+ancorada no *início* da string (`^feat:`, `^fix:`, etc.) — um emoji na
+frente quebraria a detecção. Gitmoji "puro" (emoji sozinho, sem o texto
+`feat:`/`fix:`) não é usado aqui por esse motivo: a ferramenta de
+versionamento não entende código de emoji, só Conventional Commits.
+
+Tabela de emoji (subconjunto do [gitmoji.dev](https://gitmoji.dev) oficial,
+mapeado 1:1 pros tipos que já usamos):
+
+| Tipo        | Emoji | Quando usar                                       |
+|-------------|-------|----------------------------------------------------|
+| `feat:`     | ✨    | funcionalidade nova                                 |
+| `fix:`      | 🐛    | correção de bug                                     |
+| `docs:`     | 📝    | só documentação (CLAUDE.md, comentários, README)    |
+| `refactor:` | ♻️    | reestrutura código sem mudar comportamento          |
+| `test:`     | ✅    | adiciona/corrige teste                              |
+| `chore:`    | 🔧    | config, CI, tooling, dependências                   |
+| `style:`    | 💄    | mudança visual/UI sem lógica nova                   |
+| `perf:`     | ⚡️    | melhoria de performance                             |
+| `security:` | 🔒️    | correção de segurança                               |
+| `revert:`   | ⏪️    | reverte um commit/PR anterior                       |
+
+**Cuidado real já vivido**: a string literal `BREAKING CHANGE` em
+qualquer lugar do corpo do commit/PR — mesmo só sendo *mencionada* como
+documentação — é lida pela action como um bump major de verdade (ver
+"Erro real já cometido" mais abaixo). Nunca escrever esse texto à toa.
+
+**Changelog**: o corpo do GitHub Release já vem gerado automaticamente
+pela action a partir dessas mensagens de commit (ver "Release automática"
+abaixo) — isso é a base, não precisa reescrever do zero. Se algum ponto
+ficar raso ou confuso só pela mensagem do commit, editar o release depois
+(`gh release edit`) pra enriquecer *esse* ponto específico, sem duplicar
+o que os commits já deixam claro.
+
 Passos, sem pedir confirmação a cada um (autorização padrão já dada pelo
 usuário: "vai fazendo e mergeando"):
 
@@ -313,20 +386,54 @@ Pra levar o que está em `develop` pro celular de verdade (equivalente a
    dado que é um projeto solo sem QA formal — usar `release/*` quando fizer
    sentido isolar/testar mais antes de ir pro `main`).
 10. `gh pr create --base main --head release/o-que-mudou` (ou `--head
-    develop` se pulou o passo 9), merge depois do CI verde.
+    develop` se pulou o passo 9), **sempre `--squash`** (nunca merge commit
+    normal aqui — ver "Erro real já cometido" abaixo pro porquê). Merge
+    depois do CI verde.
 11. `git checkout main && git pull` — rebuildar e copiar o APK atualizado
     pro Desktop quando o usuário pedir (`cp
     android/app/build/outputs/apk/debug/app-debug.apk` pro OneDrive/Desktop
     — a pasta Desktop real fica em `OneDrive/Desktop`, não em
     `C:\Users\<user>\Desktop`).
-12. Se `release/*` foi usada e não é um fast-forward puro de `develop`,
-    sincronizar de volta: `git checkout develop && git merge main`.
 
-**`hotfix/*`**: só quando algo já instalado (`main`) está quebrado e não dá
-pra esperar o resto de `develop`. Branch a partir de `main` (não
-`develop`), PR `hotfix/* -> main`, e depois de mergear, sincronizar de
-volta com `git checkout develop && git merge main` — sem isso, `develop`
-diverge silenciosamente do que está de fato rodando no celular.
+**Nunca fazer `git merge main` dentro de `develop`** quando `release/*`
+veio de `develop` (o caso normal) — `develop` **já contém** tudo que foi
+squash-mergeado pra `main` (ele é a origem), então não existe divergência
+de conteúdo real pra "sincronizar". Só existe uma divergência **aparente**
+de grafo de commits (squash quebra ancestralidade), que faz o próximo PR
+`develop -> main` aparecer como "not mergeable" no GitHub — isso é
+esperado e cosmético, não significa que falta algo em `develop`.
+
+Se esse PR aparecer como não-mergeável: resolver num **branch descartável**
+a partir de `develop` (nunca no `develop` em si), mantendo sempre o
+conteúdo de `develop` nos arquivos em conflito, e dar squash-merge desse
+branch descartável pra `main` — nunca um merge commit normal, e nunca
+mergear `main` de volta pro `develop` permanente.
+
+**`hotfix/*`**: único caso onde `develop` *realmente* fica sem algo que
+`main` tem — branch a partir de `main` (não `develop`) pra corrigir algo
+já instalado sem esperar o resto de `develop`. PR `hotfix/* -> main`
+(squash), e depois de mergear, **agora sim** precisa levar a correção pra
+`develop`: `git checkout develop`, criar um branch novo a partir dele,
+reaplicar a mudança do hotfix nesse branch (`git cherry-pick <commit-do-hotfix>`
+ou reimplementar manualmente — não `git merge main`), e PR normal desse
+branch pra `develop`.
+
+**Erro real já cometido (2026-07-27), pra não repetir**: depois do
+primeiro `develop -> main` (PR #57, squash, virou tag `v1.0.0`), tentei
+"sincronizar" `main` de volta pro `develop` com `git merge main` achando
+que havia divergência real — não havia (ver acima). Isso criou um commit
+de merge em `develop` que trouxe de volta os commits *originais*
+pré-squash (que só existiam em `develop`, nunca tinham entrado em `main`).
+No PR `develop -> main` seguinte, usei merge commit normal (não squash)
+"pra preservar ancestralidade" — isso reintroduziu esses commits originais
+em `main` pela primeira vez, e a action de versionamento (ver "Release
+automática" abaixo) os rescaneou desde a última tag, pegando de novo o
+texto "BREAKING CHANGE" de um commit antigo (que já tinha sido processado
+uma vez) e forçando um bump major indevido (`v2.0.0` ao invés do `v1.0.1`
+esperado). Corrigido manualmente (`gh release delete v2.0.0 --cleanup-tag`
++ `gh release create v1.0.1` apontando pro `main` certo). Lição: squash
+pra `main` sempre, nunca merge commit; nunca `git merge main` dentro de
+`develop` sem ser hotfix de verdade.
 
 **Limitação conhecida do GitHub free**: não dá pra restringir tecnicamente
 "só aceitar PR em `main` vindo de `release/*` ou `hotfix/*`" (isso é
