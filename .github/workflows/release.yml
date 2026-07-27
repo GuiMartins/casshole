@@ -41,22 +41,38 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Debug-signed build, same as every other build in this project -
-      # there's no release keystore/signing config set up (see CLAUDE.md).
-      # Side-load only, not Play Store material.
-      - name: Build debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug
+      # Decode the release keystore from its GitHub Secret into a temp file
+      # for this run only - never written to the repo, never logged. See
+      # CLAUDE.md "Release assinada" for how this secret was generated and
+      # how to rotate it.
+      - name: Decode release keystore
+        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > release.jks
 
-      # Gradle's own output name (app-debug.apk) doesn't say what app or
+      # Signed + minified (R8) build - see app/build.gradle.kts (signingConfigs
+      # only activates when RELEASE_STORE_FILE is set) and
+      # app/proguard-rules.pro (keep rules for javax.mail/Tink, confirmed live
+      # that neither breaks under R8 - see CLAUDE.md).
+      - name: Build release APK
+        working-directory: android
+        env:
+          RELEASE_STORE_FILE: ${{ github.workspace }}/release.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Delete decoded keystore
+        if: always()
+        run: rm -f release.jks
+
+      # Gradle's own output name (app-release.apk) doesn't say what app or
       # version this is - rename before uploading so the release asset is
-      # self-describing. Keeping "-debug" in the name since it genuinely is
-      # a debug build (see above), not pretending otherwise.
+      # self-describing.
       - name: Rename APK for the release asset
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk \
-             "dist/money-hole-${{ steps.tag_version.outputs.new_tag }}-debug.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "dist/money-hole-${{ steps.tag_version.outputs.new_tag }}.apk"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -64,4 +80,4 @@ jobs:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           name: ${{ steps.tag_version.outputs.new_tag }}
           body: ${{ steps.tag_version.outputs.changelog }}
-          files: dist/money-hole-${{ steps.tag_version.outputs.new_tag }}-debug.apk
+          files: dist/money-hole-${{ steps.tag_version.outputs.new_tag }}.apk
