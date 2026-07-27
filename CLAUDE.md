@@ -313,20 +313,54 @@ Pra levar o que está em `develop` pro celular de verdade (equivalente a
    dado que é um projeto solo sem QA formal — usar `release/*` quando fizer
    sentido isolar/testar mais antes de ir pro `main`).
 10. `gh pr create --base main --head release/o-que-mudou` (ou `--head
-    develop` se pulou o passo 9), merge depois do CI verde.
+    develop` se pulou o passo 9), **sempre `--squash`** (nunca merge commit
+    normal aqui — ver "Erro real já cometido" abaixo pro porquê). Merge
+    depois do CI verde.
 11. `git checkout main && git pull` — rebuildar e copiar o APK atualizado
     pro Desktop quando o usuário pedir (`cp
     android/app/build/outputs/apk/debug/app-debug.apk` pro OneDrive/Desktop
     — a pasta Desktop real fica em `OneDrive/Desktop`, não em
     `C:\Users\<user>\Desktop`).
-12. Se `release/*` foi usada e não é um fast-forward puro de `develop`,
-    sincronizar de volta: `git checkout develop && git merge main`.
 
-**`hotfix/*`**: só quando algo já instalado (`main`) está quebrado e não dá
-pra esperar o resto de `develop`. Branch a partir de `main` (não
-`develop`), PR `hotfix/* -> main`, e depois de mergear, sincronizar de
-volta com `git checkout develop && git merge main` — sem isso, `develop`
-diverge silenciosamente do que está de fato rodando no celular.
+**Nunca fazer `git merge main` dentro de `develop`** quando `release/*`
+veio de `develop` (o caso normal) — `develop` **já contém** tudo que foi
+squash-mergeado pra `main` (ele é a origem), então não existe divergência
+de conteúdo real pra "sincronizar". Só existe uma divergência **aparente**
+de grafo de commits (squash quebra ancestralidade), que faz o próximo PR
+`develop -> main` aparecer como "not mergeable" no GitHub — isso é
+esperado e cosmético, não significa que falta algo em `develop`.
+
+Se esse PR aparecer como não-mergeável: resolver num **branch descartável**
+a partir de `develop` (nunca no `develop` em si), mantendo sempre o
+conteúdo de `develop` nos arquivos em conflito, e dar squash-merge desse
+branch descartável pra `main` — nunca um merge commit normal, e nunca
+mergear `main` de volta pro `develop` permanente.
+
+**`hotfix/*`**: único caso onde `develop` *realmente* fica sem algo que
+`main` tem — branch a partir de `main` (não `develop`) pra corrigir algo
+já instalado sem esperar o resto de `develop`. PR `hotfix/* -> main`
+(squash), e depois de mergear, **agora sim** precisa levar a correção pra
+`develop`: `git checkout develop`, criar um branch novo a partir dele,
+reaplicar a mudança do hotfix nesse branch (`git cherry-pick <commit-do-hotfix>`
+ou reimplementar manualmente — não `git merge main`), e PR normal desse
+branch pra `develop`.
+
+**Erro real já cometido (2026-07-27), pra não repetir**: depois do
+primeiro `develop -> main` (PR #57, squash, virou tag `v1.0.0`), tentei
+"sincronizar" `main` de volta pro `develop` com `git merge main` achando
+que havia divergência real — não havia (ver acima). Isso criou um commit
+de merge em `develop` que trouxe de volta os commits *originais*
+pré-squash (que só existiam em `develop`, nunca tinham entrado em `main`).
+No PR `develop -> main` seguinte, usei merge commit normal (não squash)
+"pra preservar ancestralidade" — isso reintroduziu esses commits originais
+em `main` pela primeira vez, e a action de versionamento (ver "Release
+automática" abaixo) os rescaneou desde a última tag, pegando de novo o
+texto "BREAKING CHANGE" de um commit antigo (que já tinha sido processado
+uma vez) e forçando um bump major indevido (`v2.0.0` ao invés do `v1.0.1`
+esperado). Corrigido manualmente (`gh release delete v2.0.0 --cleanup-tag`
++ `gh release create v1.0.1` apontando pro `main` certo). Lição: squash
+pra `main` sempre, nunca merge commit; nunca `git merge main` dentro de
+`develop` sem ser hotfix de verdade.
 
 **Limitação conhecida do GitHub free**: não dá pra restringir tecnicamente
 "só aceitar PR em `main` vindo de `release/*` ou `hotfix/*`" (isso é
