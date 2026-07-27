@@ -19,7 +19,11 @@ data class FetchedAttachment(val fileName: String, val bytes: ByteArray, val rec
 object EmailFetcher {
 
     /** Every PDF attachment found on messages received in the last [sinceDays] days. */
-    fun fetchPdfAttachments(credentials: EmailCredentials, sinceDays: Int = 60): List<FetchedAttachment> {
+    fun fetchPdfAttachments(
+        credentials: EmailCredentials,
+        sinceDays: Int = 60,
+        onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> },
+    ): List<FetchedAttachment> {
         val props = Properties().apply {
             put("mail.store.protocol", "imaps")
             put("mail.imaps.host", credentials.imapHost)
@@ -47,8 +51,10 @@ object EmailFetcher {
                 val messages = inbox.search(ReceivedDateTerm(ComparisonTerm.GE, since))
 
                 val results = mutableListOf<FetchedAttachment>()
-                for (message in messages) {
+                onProgress(0, messages.size)
+                for ((index, message) in messages.withIndex()) {
                     collectPdfAttachments(message, message.receivedDate ?: Date(), results)
+                    onProgress(index + 1, messages.size)
                 }
                 return results
             } finally {

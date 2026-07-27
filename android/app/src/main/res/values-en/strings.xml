@@ -103,6 +103,8 @@
     <string name="email_app_password_label">App password</string>
     <string name="email_imap_host_label">IMAP server</string>
     <string name="email_fetch_now">Fetch invoices now</string>
+    <string name="email_fetch_progress">Checking email %1$d of %2$d…</string>
+    <string name="email_saved_confirmation">Settings saved</string>
     <string name="email_result">%1$d imported, %2$d already existed, %3$d failed</string>
     <string name="email_not_configured">Set up your email first</string>
     <string name="email_error_auth">Authentication failed - check the email and app password</string>

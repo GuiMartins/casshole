@@ -48,6 +48,7 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
     val appPassword by viewModel.appPassword.collectAsState()
     val imapHost by viewModel.imapHost.collectAsState()
     val fetchState by viewModel.fetchState.collectAsState()
+    val justSaved by viewModel.justSaved.collectAsState()
 
     AdaptiveScreen {
         Column(
@@ -157,21 +158,40 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
                     ) {
                         Text(stringResource(R.string.action_save))
                     }
+                    if (justSaved) {
+                        Text(
+                            text = stringResource(R.string.email_saved_confirmation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
 
                     OutlinedButton(
                         onClick = viewModel::fetchNow,
-                        enabled = fetchState != EmailFetchState.Fetching,
+                        enabled = fetchState !is EmailFetchState.Fetching,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
                     ) {
-                        if (fetchState == EmailFetchState.Fetching) {
+                        if (fetchState is EmailFetchState.Fetching) {
                             CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp))
                         }
                         Text(stringResource(R.string.email_fetch_now))
                     }
 
                     when (val state = fetchState) {
+                        is EmailFetchState.Fetching -> if (state.total > 0) {
+                            Text(
+                                text = stringResource(
+                                    R.string.email_fetch_progress,
+                                    state.processed, state.total,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
                         is EmailFetchState.Done -> Text(
                             text = stringResource(
                                 R.string.email_result,

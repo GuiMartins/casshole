@@ -23,7 +23,7 @@ data class EmailImportResult(val imported: Int, val duplicates: Int, val failed:
 
 sealed class EmailFetchState {
     data object Idle : EmailFetchState()
-    data object Fetching : EmailFetchState()
+    data class Fetching(val processed: Int = 0, val total: Int = 0) : EmailFetchState()
     data class Done(val result: EmailImportResult) : EmailFetchState()
     data class Error(val message: String) : EmailFetchState()
 }
@@ -45,6 +45,9 @@ class EmailSettingsViewModel(application: Application) : AndroidViewModel(applic
     private val _fetchState = MutableStateFlow<EmailFetchState>(EmailFetchState.Idle)
     val fetchState: StateFlow<EmailFetchState> = _fetchState.asStateFlow()
 
+    private val _justSaved = MutableStateFlow(false)
+    val justSaved: StateFlow<Boolean> = _justSaved.asStateFlow()
+
     init {
         credentialsRepository.get()?.let { creds ->
             _address.value = creds.address
@@ -53,9 +56,9 @@ class EmailSettingsViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun onAddressChange(value: String) { _address.value = value }
-    fun onAppPasswordChange(value: String) { _appPassword.value = value }
-    fun onImapHostChange(value: String) { _imapHost.value = value }
+    fun onAddressChange(value: String) { _address.value = value; _justSaved.value = false }
+    fun onAppPasswordChange(value: String) { _appPassword.value = value; _justSaved.value = false }
+    fun onImapHostChange(value: String) { _imapHost.value = value; _justSaved.value = false }
 
     fun save() {
         credentialsRepository.save(
@@ -66,6 +69,7 @@ class EmailSettingsViewModel(application: Application) : AndroidViewModel(applic
                 imapPort = EmailCredentialsRepository.DEFAULT_IMAP_PORT,
             )
         )
+        _justSaved.value = true
     }
 
     fun fetchNow() {
@@ -77,10 +81,12 @@ class EmailSettingsViewModel(application: Application) : AndroidViewModel(applic
         }
 
         viewModelScope.launch {
-            _fetchState.value = EmailFetchState.Fetching
+            _fetchState.value = EmailFetchState.Fetching()
             try {
                 val attachments = withContext(Dispatchers.IO) {
-                    EmailFetcher.fetchPdfAttachments(credentials)
+                    EmailFetcher.fetchPdfAttachments(credentials) { processed, total ->
+                        _fetchState.value = EmailFetchState.Fetching(processed, total)
+                    }
                 }
 
                 var imported = 0
