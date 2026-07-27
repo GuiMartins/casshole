@@ -126,4 +126,8 @@
     <string name="email_error_generic">Erro ao buscar faturas por e-mail</string>
     <string name="settings_email_row_title">Buscar faturas por e-mail</string>
     <string name="settings_email_subtitle">Configurar IMAP pra importar faturas automaticamente</string>
+    <string name="email_help_link">Como conseguir uma senha de app?</string>
+    <string name="email_help_title">Não sabe o que é "senha de app"?</string>
+    <string name="email_help_steps">1. Ative a verificação em duas etapas na sua Conta Google (se ainda não tiver).\n2. Toque no botão abaixo pra abrir a página de senhas de app do Google.\n3. Crie uma senha com qualquer nome (ex: "Money Hole") e cole no campo "Senha de app" acima.\n\nUsa outro provedor de e-mail (não Gmail)? Procure "senha de app" nas configurações de segurança da sua conta.</string>
+    <string name="email_help_open_app_passwords">Abrir página de senhas de app do Google</string>
 </resources>

@@ -110,4 +110,8 @@
     <string name="email_error_generic">Error al buscar facturas por correo</string>
     <string name="settings_email_row_title">Buscar facturas por correo</string>
     <string name="settings_email_subtitle">Configurar IMAP para importar facturas automáticamente</string>
+    <string name="email_help_link">¿Cómo consigo una contraseña de app?</string>
+    <string name="email_help_title">¿No sabes qué es una "contraseña de app"?</string>
+    <string name="email_help_steps">1. Activa la verificación en dos pasos en tu Cuenta de Google (si todavía no la tienes).\n2. Toca el botón de abajo para abrir la página de contraseñas de app de Google.\n3. Crea una contraseña con cualquier nombre (ej: "Money Hole") y pégala en el campo "Contraseña de app" de arriba.\n\n¿Usas otro proveedor de correo (no Gmail)? Busca "contraseña de app" en la configuración de seguridad de tu cuenta.</string>
+    <string name="email_help_open_app_passwords">Abrir página de contraseñas de app de Google</string>
 </resources>

@@ -110,4 +110,8 @@
     <string name="email_error_generic">Error fetching invoices by email</string>
     <string name="settings_email_row_title">Fetch invoices by email</string>
     <string name="settings_email_subtitle">Set up IMAP to import invoices automatically</string>
+    <string name="email_help_link">How do I get an app password?</string>
+    <string name="email_help_title">Not sure what an \"app password\" is?</string>
+    <string name="email_help_steps">1. Turn on 2-Step Verification on your Google Account (if you haven\'t already).\n2. Tap the button below to open Google\'s app passwords page.\n3. Create a password with any name (e.g. \"Money Hole\") and paste it into the \"App password\" field above.\n\nUsing a different email provider (not Gmail)? Look for \"app password\" in your account\'s security settings.</string>
+    <string name="email_help_open_app_passwords">Open Google\'s app passwords page</string>
 </resources>
