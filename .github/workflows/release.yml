@@ -48,10 +48,20 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug
 
+      # Gradle's own output name (app-debug.apk) doesn't say what app or
+      # version this is - rename before uploading so the release asset is
+      # self-describing. Keeping "-debug" in the name since it genuinely is
+      # a debug build (see above), not pretending otherwise.
+      - name: Rename APK for the release asset
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk \
+             "dist/money-hole-${{ steps.tag_version.outputs.new_tag }}-debug.apk"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           name: ${{ steps.tag_version.outputs.new_tag }}
           body: ${{ steps.tag_version.outputs.changelog }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: dist/money-hole-${{ steps.tag_version.outputs.new_tag }}-debug.apk
