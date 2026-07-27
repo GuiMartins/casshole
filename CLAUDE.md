@@ -283,6 +283,53 @@ repo"), substituindo o fluxo anterior de feature branch direto a partir de
   (arredondando o que já está em `develop`) ou `hotfix/*` (correção urgente
   em cima do que já está em produção, sem esperar o resto de `develop`).
 
+### Mensagens de commit e PR: Gitmoji + Conventional Commits
+
+Adotado em 2026-07-27 (pedido explícito do usuário). As duas convenções
+juntas, **nessa ordem** — tipo primeiro, emoji logo depois:
+
+```
+<tipo>: <emoji> <descrição>
+```
+
+Ex: `feat: ✨ busca automática de fatura por e-mail`,
+`fix: 🐛 spinner que não resolvia no fetch de e-mail`.
+
+**Por que o tipo vem antes do emoji, não depois**: `mathieudutour/github-tag-action`
+(ver "Release automática" abaixo) calcula o bump de versão com regex
+ancorada no *início* da string (`^feat:`, `^fix:`, etc.) — um emoji na
+frente quebraria a detecção. Gitmoji "puro" (emoji sozinho, sem o texto
+`feat:`/`fix:`) não é usado aqui por esse motivo: a ferramenta de
+versionamento não entende código de emoji, só Conventional Commits.
+
+Tabela de emoji (subconjunto do [gitmoji.dev](https://gitmoji.dev) oficial,
+mapeado 1:1 pros tipos que já usamos):
+
+| Tipo        | Emoji | Quando usar                                       |
+|-------------|-------|----------------------------------------------------|
+| `feat:`     | ✨    | funcionalidade nova                                 |
+| `fix:`      | 🐛    | correção de bug                                     |
+| `docs:`     | 📝    | só documentação (CLAUDE.md, comentários, README)    |
+| `refactor:` | ♻️    | reestrutura código sem mudar comportamento          |
+| `test:`     | ✅    | adiciona/corrige teste                              |
+| `chore:`    | 🔧    | config, CI, tooling, dependências                   |
+| `style:`    | 💄    | mudança visual/UI sem lógica nova                   |
+| `perf:`     | ⚡️    | melhoria de performance                             |
+| `security:` | 🔒️    | correção de segurança                               |
+| `revert:`   | ⏪️    | reverte um commit/PR anterior                       |
+
+**Cuidado real já vivido**: a string literal `BREAKING CHANGE` em
+qualquer lugar do corpo do commit/PR — mesmo só sendo *mencionada* como
+documentação — é lida pela action como um bump major de verdade (ver
+"Erro real já cometido" mais abaixo). Nunca escrever esse texto à toa.
+
+**Changelog**: o corpo do GitHub Release já vem gerado automaticamente
+pela action a partir dessas mensagens de commit (ver "Release automática"
+abaixo) — isso é a base, não precisa reescrever do zero. Se algum ponto
+ficar raso ou confuso só pela mensagem do commit, editar o release depois
+(`gh release edit`) pra enriquecer *esse* ponto específico, sem duplicar
+o que os commits já deixam claro.
+
 Passos, sem pedir confirmação a cada um (autorização padrão já dada pelo
 usuário: "vai fazendo e mergeando"):
 
