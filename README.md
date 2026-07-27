@@ -63,4 +63,4 @@ convenções de código em [`CLAUDE.md`](CLAUDE.md).
 
 ## Licença
 
-Projeto pessoal, sem licença formal definida.
+[MIT](LICENSE).
