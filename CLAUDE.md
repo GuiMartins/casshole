@@ -392,9 +392,10 @@ manual:
    (`vX.Y.Z`) a partir de Conventional Commits nos commits novos:
    `feat:` → sobe minor, `fix:` → sobe patch, `BREAKING CHANGE` (em
    qualquer lugar do corpo) → sobe major. Sem prefixo reconhecido, cai no
-   `default_bump: patch`. Primeira tag começa em `v1.0.0` (`initial_version`)
-   — o app já tem funcionalidade completa (parsing, categorização, IMAP,
-   onboarding), não é um `v0.x` de protótipo.
+   `default_bump: patch`. Não existe input `initial_version` nessa versão
+   da action (`v6.2` — testado ao vivo, GitHub Actions avisa "Unexpected
+   input" e ignora silenciosamente); a primeira tag (`v1.0.0`) já existe no
+   repo desde 2026-07-27, então isso não é mais um problema de bootstrap.
    - **Importante**: como todo merge é squash, o título do PR
      `release/*`/`hotfix/* -> main` vira a mensagem do commit em `main` —
      é ali que o prefixo Conventional Commits importa. Ex:
@@ -402,6 +403,14 @@ manual:
      `fix: spinner que não resolvia no fetch de e-mail` (patch),
      `feat!: remove suporte a Bradesco` ou corpo com `BREAKING CHANGE:
      ...` (major).
+   - **Pegadinha real, já vivida**: a action detecta a string literal
+     `BREAKING CHANGE` em qualquer lugar do corpo do commit, mesmo que só
+     esteja sendo *mencionada* (ex: um PR descrevendo essa própria regra de
+     versionamento). O PR #57 ("feat: adopt GitFlow...") tinha essa string
+     no corpo só como documentação e isso forçou bump major sem intenção —
+     coincidentemente resultou em `v1.0.0`, o valor certo, mas por acidente.
+     Evitar escrever "BREAKING CHANGE" no título/corpo de PR contra `main`
+     a menos que seja pra valer.
 2. Builda o APK debug (`./gradlew assembleDebug`) — mesma assinatura debug
    de sempre, não tem keystore de release configurada neste projeto, então
    o artefato é pra side-load, não pra Play Store.

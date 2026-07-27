@@ -23,14 +23,14 @@ jobs:
       # commit(s) on main: `feat:` -> minor, `fix:` -> patch, `BREAKING
       # CHANGE` (anywhere in the body) -> major. No recognized prefix
       # falls back to default_bump (patch) - see CLAUDE.md for the PR
-      # title convention this depends on.
+      # title convention this depends on. No initial_version input on
+      # this action version - v1.0.0 already exists as the first tag.
       - name: Bump version and create tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: patch
-          initial_version: 1.0.0
           release_branches: main
           tag_prefix: v
 
