@@ -528,15 +528,76 @@ manual:
      coincidentemente resultou em `v1.0.0`, o valor certo, mas por acidente.
      Evitar escrever "BREAKING CHANGE" no título/corpo de PR contra `main`
      a menos que seja pra valer.
-2. Builda o APK debug (`./gradlew assembleDebug`) — mesma assinatura debug
-   de sempre, não tem keystore de release configurada neste projeto, então
-   o artefato é pra side-load, não pra Play Store.
+2. Builda o APK **release assinado e minificado** (`./gradlew
+   assembleRelease`, `isMinifyEnabled = true`) — ver "Release assinada
+   (keystore)" abaixo pra como a assinatura funciona. Continua sendo
+   side-load direto (sem Play Store), mas agora com R8 reduzindo o
+   tamanho (~30MB debug → ~9MB release) e sem `debuggable=true`.
 3. **`softprops/action-gh-release`** cria o GitHub Release na tag calculada,
-   anexando o APK e usando o changelog gerado pela action de tag como corpo.
+   anexando o APK renomeado (`money-hole-vX.Y.Z.apk`, não mais o nome
+   genérico do Gradle) e usando o changelog gerado pela action de tag
+   como corpo.
 
 Não depende do CI (`ci.yml`) pra rodar — como `main` já é protegido com
 required status checks, o commit que chega aqui já passou pela suíte antes
 de mergear; essa workflow só versiona e publica o que já está validado.
+
+## Release assinada (keystore)
+
+Adotado em 2026-07-27 (pedido explícito do usuário, depois de perguntar
+"pq debug? pq não release?"). Antes disso o app nunca teve
+`signingConfigs` pro build type `release` — por isso `assembleRelease`
+sempre foi inútil (gerava um APK sem assinatura, impossível de instalar)
+e todo build (local e CI) usava `assembleDebug`.
+
+- **A keystore (`money-hole-release.jks`, PKCS12, validade até 2053)
+  nunca vai pro repo** — está no `.gitignore` (`*.jks`/`*.keystore`) como
+  defesa extra, mas na prática nunca chega a existir dentro do diretório
+  do projeto. Ela só existe: (a) como backup do usuário fora do repo, e
+  (b) codificada em base64 no GitHub Secret `RELEASE_KEYSTORE_BASE64`,
+  decodificada num arquivo temporário só durante o job do
+  `release.yml` (deletado no fim do step, `if: always()`).
+- **Quatro GitHub Secrets** necessários, criados manualmente pelo usuário
+  (não dá pra criar secret via `gh` sem confirmação explícita — mesma
+  categoria de "mudança de infraestrutura compartilhada" das outras
+  configs de repo neste projeto):
+  `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`,
+  `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`.
+- **`app/build.gradle.kts`**: `signingConfigs { create("release") { ... } }`
+  só é criado se a env `RELEASE_STORE_FILE` existir — build local
+  (`./dev.sh`) nunca define essa env, então nunca tenta assinar release
+  nem quebra por falta de keystore; só o `release.yml` (via os 4 secrets)
+  configura isso.
+- **`app/proguard-rules.pro`** — populado pela primeira vez (estava
+  vazio). Duas classes de regra descobertas rodando `assembleRelease`
+  localmente com a keystore antes de subir pro CI:
+  1. `-keep class com.sun.mail.** / javax.mail.** / *.activation.**` —
+     Jakarta Mail carrega providers IMAP via reflection
+     (`META-INF/javamail.providers`); sem isso o R8 stripa silenciosamente
+     e o IMAP quebra em runtime, não em build time. **Testado ao vivo**:
+     build release instalado, tentativa de fetch com credenciais falsas
+     resultou em "Authentication failed" (erro normal de auth, não crash
+     nem `ClassNotFoundException`) — confirma que a reflection sobreviveu.
+  2. `-dontwarn com.google.errorprone.annotations.** / javax.annotation.**`
+     — o R8 (`minifyReleaseWithR8`) falhou na primeira tentativa com
+     "Missing classes" apontando pro Google Tink (motor de criptografia
+     por trás do `EncryptedSharedPreferences` de
+     `androidx.security:security-crypto`), referenciando anotações que só
+     existem em tempo de compilação (errorprone, `javax.annotation`). São
+     seguras de silenciar — não afetam comportamento em runtime.
+- **Instruções pro usuário rodar uma vez** (`gh secret set` — o
+  assistente não pode criar secrets sozinho):
+  ```bash
+  gh secret set RELEASE_KEYSTORE_BASE64 --repo GuiMartins/money-hole < keystore_base64.txt
+  gh secret set RELEASE_STORE_PASSWORD --repo GuiMartins/money-hole --body "..."
+  gh secret set RELEASE_KEY_ALIAS --repo GuiMartins/money-hole --body "money-hole-release"
+  gh secret set RELEASE_KEY_PASSWORD --repo GuiMartins/money-hole --body "..."
+  ```
+  A keystore (`.jks`) e as senhas foram entregues ao usuário fora do git
+  (arquivo + texto na conversa) — guardar em gerenciador de senhas.
+  **Perder a keystore = nunca mais dá pra publicar update assinado com a
+  mesma identidade** (só reinstalando do zero, desinstalando a versão
+  atual do celular).
 
 ## Dev loop / testes
 

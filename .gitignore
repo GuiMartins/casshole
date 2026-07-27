@@ -7,3 +7,8 @@ android/.idea/
 
 # Faturas reais usadas so localmente em testes instrumentados - nunca comitar
 android/app/src/androidTest/assets/
+
+# Release signing keystore - nunca comitar. Vive só como GitHub Secret
+# (RELEASE_KEYSTORE_BASE64) e localmente fora do repo, ver CLAUDE.md.
+*.jks
+*.keystore
