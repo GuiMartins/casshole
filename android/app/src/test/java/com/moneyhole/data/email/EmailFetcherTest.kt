@@ -42,11 +42,12 @@ class EmailFetcherTest {
         val message = mimeMessage("invoice.pdf" to ("application/pdf" to pdfBytes))
 
         val results = mutableListOf<FetchedAttachment>()
-        EmailFetcher.collectPdfAttachments(message, Date(), results)
+        EmailFetcher.collectPdfAttachments(message, Date(), 42L, results)
 
         assertEquals(1, results.size)
         assertEquals("invoice.pdf", results[0].fileName)
         assertTrue(pdfBytes.contentEquals(results[0].bytes))
+        assertEquals(42L, results[0].messageUid)
     }
 
     @Test
@@ -54,7 +55,7 @@ class EmailFetcherTest {
         val message = mimeMessage("notes.txt" to ("text/plain" to "hello".toByteArray()))
 
         val results = mutableListOf<FetchedAttachment>()
-        EmailFetcher.collectPdfAttachments(message, Date(), results)
+        EmailFetcher.collectPdfAttachments(message, Date(), 1L, results)
 
         assertEquals(0, results.size)
     }
@@ -69,7 +70,7 @@ class EmailFetcherTest {
         )
 
         val results = mutableListOf<FetchedAttachment>()
-        EmailFetcher.collectPdfAttachments(message, Date(), results)
+        EmailFetcher.collectPdfAttachments(message, Date(), 1L, results)
 
         assertEquals(1, results.size)
         assertEquals("invoice.pdf", results[0].fileName)

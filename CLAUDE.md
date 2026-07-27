@@ -149,15 +149,41 @@ android/app/src/main/java/com/moneyhole/
     `(IMAPFolder).getMessagesByUID(lastProcessedUid + 1, UIDFolder.LASTUID)`
     pra pegar só mensagens novas, caindo pro filtro por
     `sinceDays` (60 dias) só na primeira busca (`lastProcessedUid == 0`).
-    `save()` em `EmailCredentialsRepository` reseta `lastProcessedUid` pra
-    0 — trocar a conta/senha refaz a janela de 60 dias do zero, evitando
-    UID de uma conta antiga vazar pra outra.
+  - **Mensagens com falha ficam numa lista de retry separada
+    (`EmailCredentialsRepository.getFailedUids()`/`setFailedUids()`, CSV em
+    string), não travam nem são puladas pelo cursor principal.** Primeira
+    versão avançava `lastProcessedUid` pra TODA mensagem vista, sucesso ou
+    falha — uma fatura real que falhasse por senha errada nunca mais seria
+    tentada de novo, mesmo depois do usuário cadastrar a senha certa (bug
+    real: 3 das 4 faturas reais do usuário sumiram silenciosamente assim).
+    Correção errada #1: fazer o cursor parar logo antes da primeira falha —
+    resolve o "nunca mais tenta" mas reprocessa TODAS as mensagens depois
+    dela a cada fetch (também observado ao vivo: 56 mensagens reprocessadas
+    por causa de 16 falhas). Versão final: `EmailFetcher.fetchPdfAttachments`
+    aceita `retryUids: Set<Long>` e busca essas mensagens específicas via
+    `getMessagesByUID(longArray)` **além** do range normal — o cursor
+    principal sempre avança (nunca trava), e só as mensagens que ainda
+    falham continuam na lista de retry (removidas assim que têm sucesso).
+    Cada `FetchedAttachment` carrega o `messageUid` de origem, necessário
+    pra saber qual mensagem gerou qual resultado.
+  - **`EmailCredentialsRepository.save()` só reseta `lastProcessedUid`/lista
+    de retry se a conta (`address`/`imapHost`) realmente mudou, não a cada
+    chamada.** Bug real: o botão único "Buscar faturas agora" (ver decisão
+    de UI única de save+fetch) chama `save()` toda vez que é clicado, então
+    resetar incondicionalmente destruía a sincronização incremental a cada
+    clique, forçando um re-scan completo de 40+ mensagens sempre — só
+    reseta agora quando `address`/`imapHost` mudam de verdade (trocar só a
+    senha de app, ex: senha expirada, não invalida os UIDs já processados).
   - Falhas de import (PDF que não é fatura reconhecida, senha errada,
     etc.) são logadas via `Log.w("EmailFetchCoordinator", ...)` com a
     exceção completa — antes só incrementava um contador `failed` sem
     registrar o motivo. Útil pra diferenciar “não reconheceu o banco”
     (anexo que não é fatura de verdade, ex: boleto de condomínio,
-    balancete) de um bug real no parser.
+    balancete) de um bug real no parser. Falhas especificamente por senha
+    incorreta (`IncorrectPasswordException`) são contadas à parte
+    (`EmailImportResult.failedPasswords`) e mostradas na UI com uma dica
+    acionável ("cadastre a senha certa em Configurações > Senhas padrão")
+    em vez de só aparecerem como um número genérico de "falharam".
 - **Nomes de campo em Room são camelCase idiomático** (`mesReferencia`, não
   `mes_referencia`) — decisão explícita do usuário, prioriza Kotlin
   idiomático sobre menor diff.

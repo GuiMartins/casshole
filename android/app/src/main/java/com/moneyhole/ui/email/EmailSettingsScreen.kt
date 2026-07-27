@@ -206,15 +206,28 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
                                 modifier = Modifier.padding(top = 8.dp),
                             )
                         }
-                        is EmailFetchState.Done -> Text(
-                            text = stringResource(
-                                R.string.email_result,
-                                state.result.imported, state.result.duplicates, state.result.failed,
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
+                        is EmailFetchState.Done -> Column {
+                            Text(
+                                text = stringResource(
+                                    R.string.email_result,
+                                    state.result.imported, state.result.duplicates, state.result.failed,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                            if (state.result.failedPasswords > 0) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.email_result_password_hint,
+                                        state.result.failedPasswords,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
                         is EmailFetchState.Error -> Text(
                             text = state.message,
                             style = MaterialTheme.typography.bodySmall,

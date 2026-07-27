@@ -16,21 +16,28 @@ import javax.mail.search.ReceivedDateTerm
 class EmailAuthenticationException(message: String, cause: Throwable) : Exception(message, cause)
 class EmailConnectionException(message: String, cause: Throwable) : Exception(message, cause)
 
-data class FetchedAttachment(val fileName: String, val bytes: ByteArray, val receivedAt: Date)
+/** [messageUid] is the IMAP UID of the message this attachment came from - lets the caller
+ * figure out which messages actually got processed (vs. failed) for the next fetch's cursor. */
+data class FetchedAttachment(val fileName: String, val bytes: ByteArray, val receivedAt: Date, val messageUid: Long)
 
-/** Attachments found plus the highest IMAP UID seen, so the next fetch can resume from there. */
-data class EmailFetchResult(val attachments: List<FetchedAttachment>, val lastUid: Long)
+/** Attachments found plus the highest IMAP UID among ALL messages examined (with or without a
+ * PDF) - the caller decides how much of that to actually commit to as the next fetch's cursor,
+ * since a message with a PDF that failed to import shouldn't be skipped next time. */
+data class EmailFetchResult(val attachments: List<FetchedAttachment>, val highestUidSeen: Long)
 
 object EmailFetcher {
 
     /**
-     * PDF attachments from messages newer than [lastProcessedUid] (an IMAP UID, exclusive).
-     * When [lastProcessedUid] is 0 (never fetched before, or config just changed), falls back
-     * to a bounded [sinceDays]-day window instead of scanning the whole mailbox history.
+     * PDF attachments from messages newer than [lastProcessedUid] (an IMAP UID, exclusive),
+     * plus [retryUids] - specific older messages (already behind the cursor) whose PDF failed to
+     * import last time and are worth trying again. When [lastProcessedUid] is 0 (never fetched
+     * before, or config just changed), falls back to a bounded [sinceDays]-day window instead of
+     * scanning the whole mailbox history.
      */
     fun fetchPdfAttachments(
         credentials: EmailCredentials,
         lastProcessedUid: Long = 0,
+        retryUids: Set<Long> = emptySet(),
         sinceDays: Int = 60,
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> },
     ): EmailFetchResult {
@@ -57,21 +64,37 @@ object EmailFetcher {
             val inbox = store.getFolder("INBOX") as IMAPFolder
             inbox.open(Folder.READ_ONLY)
             try {
-                val messages = if (lastProcessedUid > 0) {
+                val newMessages = if (lastProcessedUid > 0) {
                     inbox.getMessagesByUID(lastProcessedUid + 1, UIDFolder.LASTUID)
                 } else {
                     val since = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -sinceDays) }.time
                     inbox.search(ReceivedDateTerm(ComparisonTerm.GE, since))
                 }
+                // Retry messages are already behind the cursor - fetched separately by exact UID
+                // and kept out of the highestUidSeen calculation below, since they don't move the
+                // cursor forward on their own.
+                val retryMessages = if (retryUids.isNotEmpty()) {
+                    inbox.getMessagesByUID(retryUids.toLongArray()).filterNotNull()
+                } else {
+                    emptyList()
+                }
 
                 val results = mutableListOf<FetchedAttachment>()
                 var maxUid = lastProcessedUid
-                onProgress(0, messages.size)
-                for ((index, message) in messages.withIndex()) {
-                    collectPdfAttachments(message, message.receivedDate ?: Date(), results)
+                val total = retryMessages.size + newMessages.size
+                var processed = 0
+                onProgress(0, total)
+
+                for (message in retryMessages) {
                     val uid = inbox.getUID(message)
+                    collectPdfAttachments(message, message.receivedDate ?: Date(), uid, results)
+                    onProgress(++processed, total)
+                }
+                for (message in newMessages) {
+                    val uid = inbox.getUID(message)
+                    collectPdfAttachments(message, message.receivedDate ?: Date(), uid, results)
                     if (uid > maxUid) maxUid = uid
-                    onProgress(index + 1, messages.size)
+                    onProgress(++processed, total)
                 }
                 return EmailFetchResult(results, maxUid)
             } finally {
@@ -83,11 +106,16 @@ object EmailFetcher {
     }
 
     /** Walks a message's MIME tree (recursing into nested multiparts) collecting PDF attachments. */
-    internal fun collectPdfAttachments(part: Part, receivedAt: Date, results: MutableList<FetchedAttachment>) {
+    internal fun collectPdfAttachments(
+        part: Part,
+        receivedAt: Date,
+        messageUid: Long,
+        results: MutableList<FetchedAttachment>,
+    ) {
         if (part.isMimeType("multipart/*")) {
             val multipart = part.content as Multipart
             for (i in 0 until multipart.count) {
-                collectPdfAttachments(multipart.getBodyPart(i), receivedAt, results)
+                collectPdfAttachments(multipart.getBodyPart(i), receivedAt, messageUid, results)
             }
             return
         }
@@ -96,7 +124,7 @@ object EmailFetcher {
         val looksLikeAttachment = Part.ATTACHMENT.equals(part.disposition, ignoreCase = true) || fileName != null
         if (looksLikeAttachment && fileName != null && fileName.endsWith(".pdf", ignoreCase = true)) {
             val bytes = part.inputStream.use { it.readBytes() }
-            results.add(FetchedAttachment(fileName, bytes, receivedAt))
+            results.add(FetchedAttachment(fileName, bytes, receivedAt, messageUid))
         }
     }
 }
