@@ -120,6 +120,7 @@
     <string name="email_imap_host_label">Servidor IMAP</string>
     <string name="email_fetch_now">Buscar faturas agora</string>
     <string name="email_fetch_progress">Verificando e-mail %1$d de %2$d…</string>
+    <string name="email_fetch_banner_starting">Buscando faturas por e-mail…</string>
     <string name="email_result">%1$d importadas, %2$d já existiam, %3$d falharam</string>
     <string name="email_validation_error">Informe o e-mail e a senha de app</string>
     <string name="email_edit_config">Editar</string>

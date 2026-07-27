@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +54,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moneyhole.R
 import com.moneyhole.categorizer.AVAILABLE_CATEGORIES
 import com.moneyhole.data.PreferencesRepository
+import com.moneyhole.data.email.EmailFetchCoordinator
+import com.moneyhole.data.email.EmailFetchState
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.data.local.SummaryAggregator
 import com.moneyhole.data.local.entity.TransactionEntity
@@ -70,6 +74,7 @@ fun DashboardScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
+    val emailFetchState by EmailFetchCoordinator.state.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val onResumeAction by rememberUpdatedState(viewModel::loadInvoices)
@@ -79,6 +84,12 @@ fun DashboardScreen(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Auto-fetch runs in the background from app start - refresh as soon as it lands
+    // new invoices, instead of waiting for the user to background/foreground the app.
+    LaunchedEffect(emailFetchState) {
+        if (emailFetchState is EmailFetchState.Done) viewModel.loadInvoices()
     }
 
     Scaffold(
@@ -98,11 +109,15 @@ fun DashboardScreen(
             )
         },
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
         ) {
+            if (emailFetchState is EmailFetchState.Fetching) {
+                EmailFetchBanner(state = emailFetchState as EmailFetchState.Fetching)
+            }
+            Box(modifier = Modifier.fillMaxSize()) {
             when (val currentState = state) {
                 is DashboardState.Loading -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
@@ -128,7 +143,30 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
+    }
+}
+
+@Composable
+private fun EmailFetchBanner(state: EmailFetchState.Fetching) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+        Text(
+            text = if (state.total > 0) {
+                stringResource(R.string.email_fetch_progress, state.processed, state.total)
+            } else {
+                stringResource(R.string.email_fetch_banner_starting)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 

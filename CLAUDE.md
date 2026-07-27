@@ -76,8 +76,9 @@ android/app/src/main/java/com/moneyhole/
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
     email/
-      EmailCredentialsRepository.kt  EncryptedSharedPreferences (senha de app real)
+      EmailCredentialsRepository.kt  EncryptedSharedPreferences (senha de app real + lastProcessedUid)
       EmailFetcher.kt            IMAP puro (javax.mail), sem Context - testável
+      EmailFetchCoordinator.kt   singleton: dispara/compartilha o fetch (auto no start + botão manual)
   parsing/
     BankParser.kt                interface comum (matches/parse)
     NubankParser.kt, ItauParser.kt, MercadoPagoParser.kt
@@ -121,16 +122,42 @@ android/app/src/main/java/com/moneyhole/
     filosofia do `InvoiceDispatcher` (parsing puro, testável sem
     Android/Room, sem precisar de emulador pra testar a lógica de extrair
     anexo PDF do MIME).
-  - Gatilho é um botão manual ("Buscar faturas agora" em Configurações >
-    E-mail), **não** um job em background/`WorkManager` com polling
-    periódico — mais simples, sem gasto de bateria/complexidade de
-    scheduling: ponto de partida deliberado, pode evoluir pra automático
-    depois se fizer falta.
   - `com.sun.mail:android-mail` + `com.sun.mail:android-activation` geram
     conflito de `META-INF/NOTICE.md`/`LICENSE.md` duplicado entre os dois
     jars — resolvido com bloco `packaging { resources { excludes += ... } }`
     no `build.gradle.kts` (conflito conhecido/documentado dessas libs, não
     peculiaridade deste projeto).
+- **Busca de e-mail roda automaticamente uma vez por cold start, e também
+  manualmente** (2026-07-27, revisão da decisão original de "só botão
+  manual" — pedido explícito do usuário). `EmailFetchCoordinator`
+  (`data/email/`) é um singleton com `CoroutineScope` próprio (não escopado
+  a nenhuma tela): `MoneyHoleApp.onCreate()` chama
+  `EmailFetchCoordinator.fetchOnAppStart()`, que só dispara se já existe
+  e-mail configurado e só roda uma vez por processo (flag em memória, não
+  `WorkManager` — continua sem polling periódico em background, só no
+  momento em que o app abre). O botão "Buscar faturas agora" chama
+  `fetchNow()` no mesmo coordinator, então os dois caminhos compartilham o
+  mesmo `StateFlow<EmailFetchState>` — a Dashboard também observa esse
+  state e mostra uma barra de progresso ("Buscando faturas por
+  e-mail...") enquanto uma busca (automática ou manual) está rolando,
+  além de recarregar a lista de faturas assim que ela termina.
+  - **Sincronização incremental via IMAP UID**, não por data. Refazer a
+    busca por `ReceivedDateTerm` a cada vez rebaixava os mesmos e-mails do
+    servidor toda vez (~45 mensagens, ~1/segundo) mesmo já tendo
+    processado todos antes. `EmailCredentialsRepository` guarda
+    `lastProcessedUid`; `EmailFetcher.fetchPdfAttachments` usa
+    `(IMAPFolder).getMessagesByUID(lastProcessedUid + 1, UIDFolder.LASTUID)`
+    pra pegar só mensagens novas, caindo pro filtro por
+    `sinceDays` (60 dias) só na primeira busca (`lastProcessedUid == 0`).
+    `save()` em `EmailCredentialsRepository` reseta `lastProcessedUid` pra
+    0 — trocar a conta/senha refaz a janela de 60 dias do zero, evitando
+    UID de uma conta antiga vazar pra outra.
+  - Falhas de import (PDF que não é fatura reconhecida, senha errada,
+    etc.) são logadas via `Log.w("EmailFetchCoordinator", ...)` com a
+    exceção completa — antes só incrementava um contador `failed` sem
+    registrar o motivo. Útil pra diferenciar “não reconheceu o banco”
+    (anexo que não é fatura de verdade, ex: boleto de condomínio,
+    balancete) de um bug real no parser.
 - **Nomes de campo em Room são camelCase idiomático** (`mesReferencia`, não
   `mes_referencia`) — decisão explícita do usuário, prioriza Kotlin
   idiomático sobre menor diff.

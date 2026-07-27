@@ -104,6 +104,7 @@
     <string name="email_imap_host_label">Servidor IMAP</string>
     <string name="email_fetch_now">Buscar facturas ahora</string>
     <string name="email_fetch_progress">Revisando correo %1$d de %2$d…</string>
+    <string name="email_fetch_banner_starting">Buscando facturas por correo…</string>
     <string name="email_result">%1$d importadas, %2$d ya existían, %3$d fallaron</string>
     <string name="email_validation_error">Ingresa el correo y la contraseña de app</string>
     <string name="email_edit_config">Editar</string>

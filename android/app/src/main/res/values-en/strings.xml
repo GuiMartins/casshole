@@ -104,6 +104,7 @@
     <string name="email_imap_host_label">IMAP server</string>
     <string name="email_fetch_now">Fetch invoices now</string>
     <string name="email_fetch_progress">Checking email %1$d of %2$d…</string>
+    <string name="email_fetch_banner_starting">Fetching invoices by email…</string>
     <string name="email_result">%1$d imported, %2$d already existed, %3$d failed</string>
     <string name="email_validation_error">Enter the email and app password</string>
     <string name="email_edit_config">Edit</string>

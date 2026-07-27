@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moneyhole.R
+import com.moneyhole.data.email.EmailFetchState
 import com.moneyhole.ui.components.AdaptiveScreen
 import com.moneyhole.ui.components.PasswordFieldWithReveal
 
@@ -47,6 +48,7 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
     val appPassword by viewModel.appPassword.collectAsState()
     val imapHost by viewModel.imapHost.collectAsState()
     val fetchState by viewModel.fetchState.collectAsState()
+    val validationError by viewModel.validationError.collectAsState()
     var isEditing by remember { mutableStateOf(address.isBlank() || appPassword.isBlank()) }
 
     AdaptiveScreen {
@@ -181,6 +183,15 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
                             CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp))
                         }
                         Text(stringResource(R.string.email_fetch_now))
+                    }
+
+                    validationError?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
                     }
 
                     when (val state = fetchState) {

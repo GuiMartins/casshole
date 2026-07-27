@@ -1,5 +1,6 @@
 package com.moneyhole.data.email
 
+import com.sun.mail.imap.IMAPFolder
 import java.util.Calendar
 import java.util.Date
 import java.util.Properties
@@ -8,6 +9,7 @@ import javax.mail.Message
 import javax.mail.Multipart
 import javax.mail.Part
 import javax.mail.Session
+import javax.mail.UIDFolder
 import javax.mail.search.ComparisonTerm
 import javax.mail.search.ReceivedDateTerm
 
@@ -16,14 +18,22 @@ class EmailConnectionException(message: String, cause: Throwable) : Exception(me
 
 data class FetchedAttachment(val fileName: String, val bytes: ByteArray, val receivedAt: Date)
 
+/** Attachments found plus the highest IMAP UID seen, so the next fetch can resume from there. */
+data class EmailFetchResult(val attachments: List<FetchedAttachment>, val lastUid: Long)
+
 object EmailFetcher {
 
-    /** Every PDF attachment found on messages received in the last [sinceDays] days. */
+    /**
+     * PDF attachments from messages newer than [lastProcessedUid] (an IMAP UID, exclusive).
+     * When [lastProcessedUid] is 0 (never fetched before, or config just changed), falls back
+     * to a bounded [sinceDays]-day window instead of scanning the whole mailbox history.
+     */
     fun fetchPdfAttachments(
         credentials: EmailCredentials,
+        lastProcessedUid: Long = 0,
         sinceDays: Int = 60,
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> },
-    ): List<FetchedAttachment> {
+    ): EmailFetchResult {
         val props = Properties().apply {
             put("mail.store.protocol", "imaps")
             put("mail.imaps.host", credentials.imapHost)
@@ -44,19 +54,26 @@ object EmailFetcher {
         }
 
         try {
-            val inbox = store.getFolder("INBOX")
+            val inbox = store.getFolder("INBOX") as IMAPFolder
             inbox.open(Folder.READ_ONLY)
             try {
-                val since = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -sinceDays) }.time
-                val messages = inbox.search(ReceivedDateTerm(ComparisonTerm.GE, since))
+                val messages = if (lastProcessedUid > 0) {
+                    inbox.getMessagesByUID(lastProcessedUid + 1, UIDFolder.LASTUID)
+                } else {
+                    val since = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -sinceDays) }.time
+                    inbox.search(ReceivedDateTerm(ComparisonTerm.GE, since))
+                }
 
                 val results = mutableListOf<FetchedAttachment>()
+                var maxUid = lastProcessedUid
                 onProgress(0, messages.size)
                 for ((index, message) in messages.withIndex()) {
                     collectPdfAttachments(message, message.receivedDate ?: Date(), results)
+                    val uid = inbox.getUID(message)
+                    if (uid > maxUid) maxUid = uid
                     onProgress(index + 1, messages.size)
                 }
-                return results
+                return EmailFetchResult(results, maxUid)
             } finally {
                 inbox.close(false)
             }
