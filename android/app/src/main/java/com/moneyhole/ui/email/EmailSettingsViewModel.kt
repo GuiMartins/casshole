@@ -45,9 +45,6 @@ class EmailSettingsViewModel(application: Application) : AndroidViewModel(applic
     private val _fetchState = MutableStateFlow<EmailFetchState>(EmailFetchState.Idle)
     val fetchState: StateFlow<EmailFetchState> = _fetchState.asStateFlow()
 
-    private val _justSaved = MutableStateFlow(false)
-    val justSaved: StateFlow<Boolean> = _justSaved.asStateFlow()
-
     init {
         credentialsRepository.get()?.let { creds ->
             _address.value = creds.address
@@ -56,29 +53,25 @@ class EmailSettingsViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun onAddressChange(value: String) { _address.value = value; _justSaved.value = false }
-    fun onAppPasswordChange(value: String) { _appPassword.value = value; _justSaved.value = false }
-    fun onImapHostChange(value: String) { _imapHost.value = value; _justSaved.value = false }
+    fun onAddressChange(value: String) { _address.value = value }
+    fun onAppPasswordChange(value: String) { _appPassword.value = value }
+    fun onImapHostChange(value: String) { _imapHost.value = value }
 
-    fun save() {
-        credentialsRepository.save(
-            EmailCredentials(
-                address = _address.value.trim(),
-                appPassword = _appPassword.value.trim(),
-                imapHost = _imapHost.value.trim().ifBlank { EmailCredentialsRepository.DEFAULT_IMAP_HOST },
-                imapPort = EmailCredentialsRepository.DEFAULT_IMAP_PORT,
-            )
+    /** Validates, persists, and immediately fetches - one action instead of separate Save/Fetch steps. */
+    fun saveAndFetch() {
+        val credentials = EmailCredentials(
+            address = _address.value.trim(),
+            appPassword = _appPassword.value.trim(),
+            imapHost = _imapHost.value.trim().ifBlank { EmailCredentialsRepository.DEFAULT_IMAP_HOST },
+            imapPort = EmailCredentialsRepository.DEFAULT_IMAP_PORT,
         )
-        _justSaved.value = true
-    }
-
-    fun fetchNow() {
-        val credentials = credentialsRepository.get() ?: run {
+        if (credentials.address.isBlank() || credentials.appPassword.isBlank()) {
             _fetchState.value = EmailFetchState.Error(
-                getApplication<Application>().getString(R.string.email_not_configured)
+                getApplication<Application>().getString(R.string.email_validation_error)
             )
             return
         }
+        credentialsRepository.save(credentials)
 
         viewModelScope.launch {
             _fetchState.value = EmailFetchState.Fetching()

@@ -21,7 +21,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,7 +47,7 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
     val appPassword by viewModel.appPassword.collectAsState()
     val imapHost by viewModel.imapHost.collectAsState()
     val fetchState by viewModel.fetchState.collectAsState()
-    val justSaved by viewModel.justSaved.collectAsState()
+    var isEditing by remember { mutableStateOf(address.isBlank() || appPassword.isBlank()) }
 
     AdaptiveScreen {
         Column(
@@ -125,54 +124,58 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = viewModel::onAddressChange,
-                        label = { Text(stringResource(R.string.email_address_label)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    PasswordFieldWithReveal(
-                        value = appPassword,
-                        onValueChange = viewModel::onAppPasswordChange,
-                        label = stringResource(R.string.email_app_password_label),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                    )
-                    OutlinedTextField(
-                        value = imapHost,
-                        onValueChange = viewModel::onImapHostChange,
-                        label = { Text(stringResource(R.string.email_imap_host_label)) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                    )
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = address,
+                            onValueChange = viewModel::onAddressChange,
+                            label = { Text(stringResource(R.string.email_address_label)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        PasswordFieldWithReveal(
+                            value = appPassword,
+                            onValueChange = viewModel::onAppPasswordChange,
+                            label = stringResource(R.string.email_app_password_label),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                        )
+                        OutlinedTextField(
+                            value = imapHost,
+                            onValueChange = viewModel::onImapHostChange,
+                            label = { Text(stringResource(R.string.email_imap_host_label)) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = address, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = imapHost,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            TextButton(onClick = { isEditing = true }) {
+                                Text(stringResource(R.string.email_edit_config))
+                            }
+                        }
+                    }
 
                     Button(
-                        onClick = viewModel::save,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                    ) {
-                        Text(stringResource(R.string.action_save))
-                    }
-                    if (justSaved) {
-                        Text(
-                            text = stringResource(R.string.email_saved_confirmation),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-
-                    OutlinedButton(
-                        onClick = viewModel::fetchNow,
+                        onClick = {
+                            viewModel.saveAndFetch()
+                            if (address.isNotBlank() && appPassword.isNotBlank()) {
+                                isEditing = false
+                            }
+                        },
                         enabled = fetchState !is EmailFetchState.Fetching,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp),
+                            .padding(top = 12.dp),
                     ) {
                         if (fetchState is EmailFetchState.Fetching) {
                             CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp))
