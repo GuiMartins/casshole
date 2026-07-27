@@ -382,6 +382,36 @@ pelo usuário em 2026-07-27 (mudança de configuração de repo/infraestrutura
 compartilhada, bloqueada pro assistente automático via `gh repo edit
 --default-branch` e `gh api .../branches/develop/protection`).
 
+## Release automática (GitHub Actions)
+
+`.github/workflows/release.yml` roda em todo push em `main` (ou seja, todo
+merge de `release/*`/`hotfix/*`) — versiona e publica sozinho, sem passo
+manual:
+
+1. **`mathieudutour/github-tag-action`** calcula o próximo SemVer
+   (`vX.Y.Z`) a partir de Conventional Commits nos commits novos:
+   `feat:` → sobe minor, `fix:` → sobe patch, `BREAKING CHANGE` (em
+   qualquer lugar do corpo) → sobe major. Sem prefixo reconhecido, cai no
+   `default_bump: patch`. Primeira tag começa em `v1.0.0` (`initial_version`)
+   — o app já tem funcionalidade completa (parsing, categorização, IMAP,
+   onboarding), não é um `v0.x` de protótipo.
+   - **Importante**: como todo merge é squash, o título do PR
+     `release/*`/`hotfix/* -> main` vira a mensagem do commit em `main` —
+     é ali que o prefixo Conventional Commits importa. Ex:
+     `feat: busca automática de fatura por e-mail` (minor),
+     `fix: spinner que não resolvia no fetch de e-mail` (patch),
+     `feat!: remove suporte a Bradesco` ou corpo com `BREAKING CHANGE:
+     ...` (major).
+2. Builda o APK debug (`./gradlew assembleDebug`) — mesma assinatura debug
+   de sempre, não tem keystore de release configurada neste projeto, então
+   o artefato é pra side-load, não pra Play Store.
+3. **`softprops/action-gh-release`** cria o GitHub Release na tag calculada,
+   anexando o APK e usando o changelog gerado pela action de tag como corpo.
+
+Não depende do CI (`ci.yml`) pra rodar — como `main` já é protegido com
+required status checks, o commit que chega aqui já passou pela suíte antes
+de mergear; essa workflow só versiona e publica o que já está validado.
+
 ## Dev loop / testes
 
 - `android/dev.sh <comando>`: `emulator` (abre o AVD `money_hole_test`),
