@@ -375,29 +375,42 @@ GitHub. `main` tem, via `gh api .../branches/main/protection`:
 - `delete_branch_on_merge: true` no repo (branches de PR mergeado somem
   sozinhas).
 
-`develop` deveria ter a mesma proteção espelhada (PR obrigatório + os
-mesmos dois status checks + sem force-push) já que virou o destino padrão
-do dia a dia — **pendente de aplicar manualmente**: mudar configurações
-de repo do GitHub (default branch, branch protection) é bloqueado pro
-assistente automático (classificador de permissão trata como mudança de
-infraestrutura compartilhada). O usuário precisa rodar isso uma vez:
+`develop` tem a mesma proteção espelhada de `main` (PR obrigatório, os
+mesmos dois status checks, `enforce_admins: true`, sem force-push, sem
+deleção) e é o default branch do repo no GitHub — aplicado manualmente
+pelo usuário em 2026-07-27 (mudança de configuração de repo/infraestrutura
+compartilhada, bloqueada pro assistente automático via `gh repo edit
+--default-branch` e `gh api .../branches/develop/protection`).
 
-```bash
-gh repo edit GuiMartins/money-hole --default-branch develop
-gh api repos/GuiMartins/money-hole/branches/develop/protection -X PUT --input - <<'EOF'
-{
-  "required_status_checks": {
-    "strict": true,
-    "contexts": ["JVM unit tests", "Instrumented tests (Room, InvoiceRepository)"]
-  },
-  "enforce_admins": true,
-  "required_pull_request_reviews": { "required_approving_review_count": 0 },
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false
-}
-EOF
-```
+## Release automática (GitHub Actions)
+
+`.github/workflows/release.yml` roda em todo push em `main` (ou seja, todo
+merge de `release/*`/`hotfix/*`) — versiona e publica sozinho, sem passo
+manual:
+
+1. **`mathieudutour/github-tag-action`** calcula o próximo SemVer
+   (`vX.Y.Z`) a partir de Conventional Commits nos commits novos:
+   `feat:` → sobe minor, `fix:` → sobe patch, `BREAKING CHANGE` (em
+   qualquer lugar do corpo) → sobe major. Sem prefixo reconhecido, cai no
+   `default_bump: patch`. Primeira tag começa em `v1.0.0` (`initial_version`)
+   — o app já tem funcionalidade completa (parsing, categorização, IMAP,
+   onboarding), não é um `v0.x` de protótipo.
+   - **Importante**: como todo merge é squash, o título do PR
+     `release/*`/`hotfix/* -> main` vira a mensagem do commit em `main` —
+     é ali que o prefixo Conventional Commits importa. Ex:
+     `feat: busca automática de fatura por e-mail` (minor),
+     `fix: spinner que não resolvia no fetch de e-mail` (patch),
+     `feat!: remove suporte a Bradesco` ou corpo com `BREAKING CHANGE:
+     ...` (major).
+2. Builda o APK debug (`./gradlew assembleDebug`) — mesma assinatura debug
+   de sempre, não tem keystore de release configurada neste projeto, então
+   o artefato é pra side-load, não pra Play Store.
+3. **`softprops/action-gh-release`** cria o GitHub Release na tag calculada,
+   anexando o APK e usando o changelog gerado pela action de tag como corpo.
+
+Não depende do CI (`ci.yml`) pra rodar — como `main` já é protegido com
+required status checks, o commit que chega aqui já passou pela suíte antes
+de mergear; essa workflow só versiona e publica o que já está validado.
 
 ## Dev loop / testes
 
