@@ -1,6 +1,7 @@
 package com.moneyhole.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -20,6 +21,8 @@ class PreferencesRepository(private val context: Context) {
         private val SUMMARY_DISPLAY_KEY = stringPreferencesKey("summary_display_mode")
         const val SUMMARY_DISPLAY_NUMBERS = "numbers"
         const val SUMMARY_DISPLAY_PIE_CHART = "pie_chart"
+
+        private val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
     }
 
     val preferredTheme: Flow<String> =
@@ -34,5 +37,12 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setSummaryDisplayMode(value: String) {
         context.dataStore.edit { it[SUMMARY_DISPLAY_KEY] = value }
+    }
+
+    val onboardingCompleted: Flow<Boolean> =
+        context.dataStore.data.map { it[ONBOARDING_COMPLETED_KEY] ?: false }
+
+    suspend fun setOnboardingCompleted(value: Boolean) {
+        context.dataStore.edit { it[ONBOARDING_COMPLETED_KEY] = value }
     }
 }

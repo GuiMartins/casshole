@@ -133,4 +133,17 @@
     <string name="email_help_title">Não sabe o que é "senha de app"?</string>
     <string name="email_help_steps">1. Ative a verificação em duas etapas na sua Conta Google (se ainda não tiver).\n2. Toque no botão abaixo pra abrir a página de senhas de app do Google.\n3. Crie uma senha com qualquer nome (ex: "Money Hole") e cole no campo "Senha de app" acima.\n\nUsa outro provedor de e-mail (não Gmail)? Procure "senha de app" nas configurações de segurança da sua conta.</string>
     <string name="email_help_open_app_passwords">Abrir página de senhas de app do Google</string>
+
+    <!-- Onboarding (primeiro uso do app) -->
+    <string name="onboarding_welcome_title">Bem-vindo ao Money Hole</string>
+    <string name="onboarding_welcome_description">Analise suas faturas de cartão de crédito (Nubank, Itaú, Mercado Pago) direto no seu celular. Tudo fica só no seu aparelho, sem servidor nenhum.</string>
+    <string name="onboarding_upload_title">Envie suas faturas</string>
+    <string name="onboarding_upload_description">Selecione o PDF da fatura direto no app ou compartilhe de qualquer outro app pra ele. O Money Hole reconhece o banco e organiza tudo automaticamente.</string>
+    <string name="onboarding_email_title">Ou busque por e-mail</string>
+    <string name="onboarding_email_description">Configure seu e-mail em Configurações e o app busca as faturas novas direto na sua caixa de entrada por IMAP, sem precisar compartilhar cada uma.</string>
+    <string name="onboarding_insights_title">Acompanhe seus gastos</string>
+    <string name="onboarding_insights_description">Veja o resumo do mês, compare períodos e corrija categorias — o app aprende e aplica sua correção automaticamente nas próximas faturas.</string>
+    <string name="onboarding_skip">Pular</string>
+    <string name="onboarding_next">Próximo</string>
+    <string name="onboarding_get_started">Começar</string>
 </resources>

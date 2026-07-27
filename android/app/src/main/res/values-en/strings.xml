@@ -117,4 +117,16 @@
     <string name="email_help_title">Not sure what an \"app password\" is?</string>
     <string name="email_help_steps">1. Turn on 2-Step Verification on your Google Account (if you haven\'t already).\n2. Tap the button below to open Google\'s app passwords page.\n3. Create a password with any name (e.g. \"Money Hole\") and paste it into the \"App password\" field above.\n\nUsing a different email provider (not Gmail)? Look for \"app password\" in your account\'s security settings.</string>
     <string name="email_help_open_app_passwords">Open Google\'s app passwords page</string>
+
+    <string name="onboarding_welcome_title">Welcome to Money Hole</string>
+    <string name="onboarding_welcome_description">Analyze your credit card invoices (Nubank, Itaú, Mercado Pago) right on your phone. Everything stays on your device, no server involved.</string>
+    <string name="onboarding_upload_title">Send your invoices</string>
+    <string name="onboarding_upload_description">Pick the invoice PDF right in the app, or share it from any other app. Money Hole recognizes the bank and organizes everything automatically.</string>
+    <string name="onboarding_email_title">Or fetch it by email</string>
+    <string name="onboarding_email_description">Set up your email in Settings and the app fetches new invoices straight from your inbox via IMAP, without sharing each one manually.</string>
+    <string name="onboarding_insights_title">Track your spending</string>
+    <string name="onboarding_insights_description">See the month\'s summary, compare periods, and fix categories — the app learns and automatically applies your correction to future invoices.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
 </resources>

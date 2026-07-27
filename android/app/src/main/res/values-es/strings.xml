@@ -117,4 +117,16 @@
     <string name="email_help_title">¿No sabes qué es una "contraseña de app"?</string>
     <string name="email_help_steps">1. Activa la verificación en dos pasos en tu Cuenta de Google (si todavía no la tienes).\n2. Toca el botón de abajo para abrir la página de contraseñas de app de Google.\n3. Crea una contraseña con cualquier nombre (ej: "Money Hole") y pégala en el campo "Contraseña de app" de arriba.\n\n¿Usas otro proveedor de correo (no Gmail)? Busca "contraseña de app" en la configuración de seguridad de tu cuenta.</string>
     <string name="email_help_open_app_passwords">Abrir página de contraseñas de app de Google</string>
+
+    <string name="onboarding_welcome_title">Bienvenido a Money Hole</string>
+    <string name="onboarding_welcome_description">Analiza tus facturas de tarjeta de crédito (Nubank, Itaú, Mercado Pago) directo en tu celular. Todo se queda en tu dispositivo, sin ningún servidor.</string>
+    <string name="onboarding_upload_title">Envía tus facturas</string>
+    <string name="onboarding_upload_description">Selecciona el PDF de la factura directo en la app o compártelo desde cualquier otra app. Money Hole reconoce el banco y organiza todo automáticamente.</string>
+    <string name="onboarding_email_title">O búscalas por correo</string>
+    <string name="onboarding_email_description">Configura tu correo en Configuración y la app busca las facturas nuevas directo en tu bandeja de entrada por IMAP, sin tener que compartir cada una.</string>
+    <string name="onboarding_insights_title">Controla tus gastos</string>
+    <string name="onboarding_insights_description">Mira el resumen del mes, compara períodos y corrige categorías — la app aprende y aplica tu corrección automáticamente en las próximas facturas.</string>
+    <string name="onboarding_skip">Omitir</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_get_started">Comenzar</string>
 </resources>

@@ -12,12 +12,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.moneyhole.data.PreferencesRepository
 import com.moneyhole.data.SharedFileHolder
 import com.moneyhole.navigation.AppNavigation
 import com.moneyhole.ui.components.LocalWindowWidthSizeClass
+import com.moneyhole.ui.onboarding.OnboardingScreen
 import com.moneyhole.ui.theme.MoneyHoleTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -35,13 +38,27 @@ class MainActivity : AppCompatActivity() {
                 else -> null
             }
             val windowSizeClass = calculateWindowSizeClass(this)
+            val onboardingCompleted by preferencesRepository.onboardingCompleted.collectAsState(
+                initial = null,
+            )
+            val coroutineScope = rememberCoroutineScope()
 
             MoneyHoleTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(
                     LocalWindowWidthSizeClass provides windowSizeClass.widthSizeClass,
                 ) {
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        AppNavigation()
+                        when (onboardingCompleted) {
+                            null -> {} // DataStore still loading its first value
+                            false -> OnboardingScreen(
+                                onFinished = {
+                                    coroutineScope.launch {
+                                        preferencesRepository.setOnboardingCompleted(true)
+                                    }
+                                },
+                            )
+                            true -> AppNavigation()
+                        }
                     }
                 }
             }
