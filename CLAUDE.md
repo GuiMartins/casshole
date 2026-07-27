@@ -375,29 +375,12 @@ GitHub. `main` tem, via `gh api .../branches/main/protection`:
 - `delete_branch_on_merge: true` no repo (branches de PR mergeado somem
   sozinhas).
 
-`develop` deveria ter a mesma proteção espelhada (PR obrigatório + os
-mesmos dois status checks + sem force-push) já que virou o destino padrão
-do dia a dia — **pendente de aplicar manualmente**: mudar configurações
-de repo do GitHub (default branch, branch protection) é bloqueado pro
-assistente automático (classificador de permissão trata como mudança de
-infraestrutura compartilhada). O usuário precisa rodar isso uma vez:
-
-```bash
-gh repo edit GuiMartins/money-hole --default-branch develop
-gh api repos/GuiMartins/money-hole/branches/develop/protection -X PUT --input - <<'EOF'
-{
-  "required_status_checks": {
-    "strict": true,
-    "contexts": ["JVM unit tests", "Instrumented tests (Room, InvoiceRepository)"]
-  },
-  "enforce_admins": true,
-  "required_pull_request_reviews": { "required_approving_review_count": 0 },
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false
-}
-EOF
-```
+`develop` tem a mesma proteção espelhada de `main` (PR obrigatório, os
+mesmos dois status checks, `enforce_admins: true`, sem force-push, sem
+deleção) e é o default branch do repo no GitHub — aplicado manualmente
+pelo usuário em 2026-07-27 (mudança de configuração de repo/infraestrutura
+compartilhada, bloqueada pro assistente automático via `gh repo edit
+--default-branch` e `gh api .../branches/develop/protection`).
 
 ## Dev loop / testes
 
