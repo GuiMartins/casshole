@@ -139,8 +139,8 @@
     <string name="onboarding_welcome_description">Analise suas faturas de cartão de crédito (Nubank, Itaú, Mercado Pago) direto no seu celular. Tudo fica só no seu aparelho, sem servidor nenhum.</string>
     <string name="onboarding_upload_title">Envie suas faturas</string>
     <string name="onboarding_upload_description">Selecione o PDF da fatura direto no app ou compartilhe de qualquer outro app pra ele. O Money Hole reconhece o banco e organiza tudo automaticamente.</string>
-    <string name="onboarding_email_title">Ou busque por e-mail</string>
-    <string name="onboarding_email_description">Configure seu e-mail em Configurações e o app busca as faturas novas direto na sua caixa de entrada por IMAP, sem precisar compartilhar cada uma.</string>
+    <string name="onboarding_appearance_title">Deixe do seu jeito</string>
+    <string name="onboarding_appearance_description">Escolha o tema e como quer ver o resumo do mês. Pode mudar depois em Configurações.</string>
     <string name="onboarding_insights_title">Acompanhe seus gastos</string>
     <string name="onboarding_insights_description">Veja o resumo do mês, compare períodos e corrija categorias — o app aprende e aplica sua correção automaticamente nas próximas faturas.</string>
     <string name="onboarding_skip">Pular</string>

@@ -122,8 +122,8 @@
     <string name="onboarding_welcome_description">Analyze your credit card invoices (Nubank, Itaú, Mercado Pago) right on your phone. Everything stays on your device, no server involved.</string>
     <string name="onboarding_upload_title">Send your invoices</string>
     <string name="onboarding_upload_description">Pick the invoice PDF right in the app, or share it from any other app. Money Hole recognizes the bank and organizes everything automatically.</string>
-    <string name="onboarding_email_title">Or fetch it by email</string>
-    <string name="onboarding_email_description">Set up your email in Settings and the app fetches new invoices straight from your inbox via IMAP, without sharing each one manually.</string>
+    <string name="onboarding_appearance_title">Make it yours</string>
+    <string name="onboarding_appearance_description">Pick the theme and how you want to see the month\'s summary. You can change this later in Settings.</string>
     <string name="onboarding_insights_title">Track your spending</string>
     <string name="onboarding_insights_description">See the month\'s summary, compare periods, and fix categories — the app learns and automatically applies your correction to future invoices.</string>
     <string name="onboarding_skip">Skip</string>
