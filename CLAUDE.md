@@ -1,4 +1,4 @@
-# Money Hole
+# Casshole
 
 App pessoal Android (Kotlin/Jetpack Compose) pra analisar faturas de cartão de
 crédito em PDF (Nubank, Itaú, Mercado Pago). 100% on-device, sem backend
@@ -6,18 +6,38 @@ próprio — mas **tem rede** desde 2026-07-25 (busca de fatura por e-mail via
 IMAP, ver "Decisões de arquitetura"), reversão deliberada e explicitamente
 pedida pelo usuário da decisão anterior "sem rede".
 
-**Rebrand completo em 2026-07-25** (nome antigo: Fatura App). Renomeado de
-propósito até o fim, a pedido explícito do usuário — repo GitHub
-(`GuiMartins/money-hole`), pacote Kotlin (`com.moneyhole`, era
-`com.faturaapp`), `applicationId`, classe `Application` (`MoneyHoleApp`, era
-`FaturaApp`), tema (`Theme.MoneyHole`/`MoneyHoleTheme`, era
+**Primeiro rebrand em 2026-07-25** (nome antigo: Fatura App, virou Money
+Hole). Repo GitHub (`GuiMartins/money-hole`), pacote Kotlin (`com.moneyhole`,
+era `com.faturaapp`), `applicationId`, classe `Application` (`MoneyHoleApp`,
+era `FaturaApp`), tema (`Theme.MoneyHole`/`MoneyHoleTheme`, era
 `Theme.FaturaApp`/`FaturaAppTheme`) e o nome do banco Room local
-(`money_hole.db`, era `fatura_app.db`). **Consequência aceita conscientemente**:
-mudar o `applicationId` faz o Android tratar como um app novo — qualquer
-instalação real anterior perde os dados (não há como preservar isso, o app
-antigo e o novo coexistem como pacotes diferentes do ponto de vista do
-Android). Diferente do rename PT→EN anterior (esse sim preservou dados via
-`@ColumnInfo`/`tableName` do Room), aqui não tinha como evitar a perda.
+(`money_hole.db`, era `fatura_app.db`).
+
+**Segundo rebrand em 2026-07-28** (nome antigo: Money Hole, virou Casshole —
+trocadilho com cash/asshole/hole, pedido explícito do usuário; ícone novo
+ainda pendente, o usuário vai enviar depois). Repo GitHub renomeado
+(`GuiMartins/money-hole` → `GuiMartins/casshole`, GitHub redireciona a URL
+antiga automaticamente), pacote Kotlin (`com.casshole`, era `com.moneyhole`),
+`applicationId`, classe `Application` (`CassholeApp`, era `MoneyHoleApp`),
+tema (`Theme.Casshole`/`CassholeTheme`, era `Theme.MoneyHole`/
+`MoneyHoleTheme`) e o banco Room local (`casshole.db`, era `money_hole.db`).
+Mesmo trade-off do primeiro rebrand: mudar o `applicationId` faz o Android
+tratar como app novo, então a instalação real no celular do usuário perdeu
+os dados locais (faturas importadas, credenciais de e-mail) — aceito
+conscientemente pela segunda vez.
+
+Em ambos os casos, a keystore de release (`money-hole-release.jks`, alias
+`money-hole-release`) **não foi renomeada nem regerada** — é só um artefato
+de assinatura, o nome dela não precisa bater com o nome do app, e trocar
+exigiria reconfigurar os 4 GitHub Secrets à toa. O AVD de teste local
+(`money_hole_test`) também ficou com o nome antigo pelo mesmo motivo: é só
+o dispositivo do emulador, renomear exigiria recriar o AVD sem ganho real.
+**Consequência geral aceita conscientemente**: mudar o `applicationId` faz o
+Android tratar como um app novo — qualquer instalação real anterior perde os
+dados (não há como preservar isso, o app antigo e o novo coexistem como
+pacotes diferentes do ponto de vista do Android). Diferente do rename PT→EN
+anterior (esse sim preservou dados via `@ColumnInfo`/`tableName` do Room),
+aqui não tinha como evitar a perda.
 
 ## Princípios gerais
 
@@ -42,7 +62,7 @@ Android). Diferente do rename PT→EN anterior (esse sim preservou dados via
 - **Persistência**: Room (`AppDatabase`, versão incrementada com `Migration`
   explícita — nunca destrutiva, o app guarda dados reais do usuário).
 - **Parsing de PDF**: PdfBox-Android (`com.tom-roush:pdfbox-android`),
-  `PDFBoxResourceLoader.init()` roda em `MoneyHoleApp.onCreate()` (a
+  `PDFBoxResourceLoader.init()` roda em `CassholeApp.onCreate()` (a
   `Application`, não a `Activity` — cold start via share-intent pode chegar no
   parsing antes de qualquer `Activity.onCreate()`).
 - **Anotações**: KSP (não kapt) pro compilador do Room.
@@ -60,8 +80,8 @@ não existe parser nem stub pra ele; não adicionar sem pedido explícito.
 ## Estrutura de diretórios
 
 ```
-android/app/src/main/java/com/moneyhole/
-  MoneyHoleApp.kt                Application; init do PDFBox aqui
+android/app/src/main/java/com/casshole/
+  CassholeApp.kt                Application; init do PDFBox aqui
   MainActivity.kt                única Activity; calcula WindowSizeClass, tema
   categorizer/Categorizer.kt     regras regex de categorização (ordem importa)
   data/
@@ -131,7 +151,7 @@ android/app/src/main/java/com/moneyhole/
   manualmente** (2026-07-27, revisão da decisão original de "só botão
   manual" — pedido explícito do usuário). `EmailFetchCoordinator`
   (`data/email/`) é um singleton com `CoroutineScope` próprio (não escopado
-  a nenhuma tela): `MoneyHoleApp.onCreate()` chama
+  a nenhuma tela): `CassholeApp.onCreate()` chama
   `EmailFetchCoordinator.fetchOnAppStart()`, que só dispara se já existe
   e-mail configurado e só roda uma vez por processo (flag em memória, não
   `WorkManager` — continua sem polling periódico em background, só no
@@ -266,12 +286,12 @@ android/app/src/main/java/com/moneyhole/
   Compose/Material3, `AppCompatActivity` aqui não traz Views nem o
   visual "Material 2" do AppCompat: o único efeito é o tema da activity
   ter que herdar de `Theme.AppCompat.*` em vez de `android:Theme.*`
-  (`themes.xml`) — toda UI real continua vindo do `MoneyHoleTheme`
+  (`themes.xml`) — toda UI real continua vindo do `CassholeTheme`
   (Material3) via `setContent`. Não trocar de volta pra
   `ComponentActivity` sem entender a troca de idioma primeiro.
 - **Troca de idioma via `AppCompatDelegate.setApplicationLocales()`**
   (Settings > Idioma). Duas pegadinhas não óbvias descobertas na prática,
-  testando ao vivo (`adb shell cmd locale get-app-locales com.moneyhole`
+  testando ao vivo (`adb shell cmd locale get-app-locales com.casshole`
   ficava `[]` mesmo depois de selecionar um idioma):
   1. Sem `AndroidManifest.xml` declarar
      `<service android:name="androidx.appcompat.app.AppLocalesMetadataHolderService" android:enabled="false" android:exported="false"><meta-data android:name="autoStoreLocales" android:value="true" /></service>`,
@@ -574,7 +594,7 @@ manual:
    side-load direto (sem Play Store), mas agora com R8 reduzindo o
    tamanho (~30MB debug → ~9MB release) e sem `debuggable=true`.
 3. **`softprops/action-gh-release`** cria o GitHub Release na tag calculada,
-   anexando o APK renomeado (`money-hole-vX.Y.Z.apk`, não mais o nome
+   anexando o APK renomeado (`casshole-vX.Y.Z.apk`, não mais o nome
    genérico do Gradle) e usando o changelog gerado pela action de tag
    como corpo.
 
@@ -628,10 +648,10 @@ e todo build (local e CI) usava `assembleDebug`.
 - **Instruções pro usuário rodar uma vez** (`gh secret set` — o
   assistente não pode criar secrets sozinho):
   ```bash
-  gh secret set RELEASE_KEYSTORE_BASE64 --repo GuiMartins/money-hole < keystore_base64.txt
-  gh secret set RELEASE_STORE_PASSWORD --repo GuiMartins/money-hole --body "..."
-  gh secret set RELEASE_KEY_ALIAS --repo GuiMartins/money-hole --body "money-hole-release"
-  gh secret set RELEASE_KEY_PASSWORD --repo GuiMartins/money-hole --body "..."
+  gh secret set RELEASE_KEYSTORE_BASE64 --repo GuiMartins/casshole < keystore_base64.txt
+  gh secret set RELEASE_STORE_PASSWORD --repo GuiMartins/casshole --body "..."
+  gh secret set RELEASE_KEY_ALIAS --repo GuiMartins/casshole --body "money-hole-release"
+  gh secret set RELEASE_KEY_PASSWORD --repo GuiMartins/casshole --body "..."
   ```
   A keystore (`.jks`) e as senhas foram entregues ao usuário fora do git
   (arquivo + texto na conversa) — guardar em gerenciador de senhas.
@@ -676,7 +696,7 @@ e todo build (local e CI) usava `assembleDebug`.
   `InvoiceRepositoryTest` não dependem deles e rodam normalmente no CI.
 - Pra inspecionar o banco Room ao vivo: puxar `.db`, `.db-wal` e `.db-shm`
   juntos (Room usa WAL, dado recente pode não estar no `.db` principal)
-  via `adb exec-out run-as com.moneyhole cat databases/money_hole.db > arquivo`
+  via `adb exec-out run-as com.casshole cat databases/casshole.db > arquivo`
   (usar `exec-out`, não `shell ... >`, senão o Git Bash corrompe dados
   binários) e abrir com `sqlite3` local.
 - Paths do `adb push`/`pull` no Git Bash: usar barra dupla

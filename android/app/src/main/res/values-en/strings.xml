@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Money Hole</string>
+    <string name="app_name">Casshole</string>
 
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
@@ -120,13 +120,13 @@
     <string name="settings_email_subtitle">Set up IMAP to import invoices automatically</string>
     <string name="email_help_link">How do I get an app password?</string>
     <string name="email_help_title">Not sure what an \"app password\" is?</string>
-    <string name="email_help_steps">1. Turn on 2-Step Verification on your Google Account (if you haven\'t already).\n2. Tap the button below to open Google\'s app passwords page.\n3. Create a password with any name (e.g. \"Money Hole\") and paste it into the \"App password\" field above.\n\nUsing a different email provider (not Gmail)? Look for \"app password\" in your account\'s security settings.</string>
+    <string name="email_help_steps">1. Turn on 2-Step Verification on your Google Account (if you haven\'t already).\n2. Tap the button below to open Google\'s app passwords page.\n3. Create a password with any name (e.g. \"Casshole\") and paste it into the \"App password\" field above.\n\nUsing a different email provider (not Gmail)? Look for \"app password\" in your account\'s security settings.</string>
     <string name="email_help_open_app_passwords">Open Google\'s app passwords page</string>
 
-    <string name="onboarding_welcome_title">Welcome to Money Hole</string>
+    <string name="onboarding_welcome_title">Welcome to Casshole</string>
     <string name="onboarding_welcome_description">Analyze your credit card invoices (Nubank, Itaú, Mercado Pago) right on your phone. Everything stays on your device, no server involved.</string>
     <string name="onboarding_upload_title">Send your invoices</string>
-    <string name="onboarding_upload_description">Pick the invoice PDF right in the app, or share it from any other app. Money Hole recognizes the bank and organizes everything automatically.</string>
+    <string name="onboarding_upload_description">Pick the invoice PDF right in the app, or share it from any other app. Casshole recognizes the bank and organizes everything automatically.</string>
     <string name="onboarding_appearance_title">Make it yours</string>
     <string name="onboarding_appearance_description">Pick the theme and how you want to see the month\'s summary. You can change this later in Settings.</string>
     <string name="onboarding_insights_title">Track your spending</string>

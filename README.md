@@ -1,4 +1,4 @@
-# Money Hole
+# Casshole
 
 App Android pessoal (Kotlin + Jetpack Compose) pra analisar faturas de
 cartão de crédito em PDF — Nubank, Itaú e Mercado Pago. 100% on-device: sem
@@ -55,7 +55,7 @@ Fluxo GitFlow: `feature/*`/`fix/*` a partir de `develop` (branch padrão),
 PR de volta pra `develop`. `main` só recebe `release/*`/`hotfix/*` e
 reflete o que foi de fato buildado — cada push em `main` gera
 automaticamente uma tag SemVer (Conventional Commits) e uma
-[release](https://github.com/GuiMartins/money-hole/releases) com o APK
+[release](https://github.com/GuiMartins/casshole/releases) com o APK
 anexado.
 
 Detalhes completos do fluxo de trabalho, decisões de arquitetura e

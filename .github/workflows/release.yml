@@ -72,7 +72,7 @@ jobs:
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "dist/money-hole-${{ steps.tag_version.outputs.new_tag }}.apk"
+             "dist/casshole-${{ steps.tag_version.outputs.new_tag }}.apk"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -80,4 +80,4 @@ jobs:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           name: ${{ steps.tag_version.outputs.new_tag }}
           body: ${{ steps.tag_version.outputs.changelog }}
-          files: dist/money-hole-${{ steps.tag_version.outputs.new_tag }}.apk
+          files: dist/casshole-${{ steps.tag_version.outputs.new_tag }}.apk

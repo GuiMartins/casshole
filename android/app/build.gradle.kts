@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.moneyhole"
+    namespace = "com.casshole"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.moneyhole"
+        applicationId = "com.casshole"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
