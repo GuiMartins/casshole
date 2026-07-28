@@ -14,8 +14,8 @@ era `FaturaApp`), tema (`Theme.MoneyHole`/`MoneyHoleTheme`, era
 (`money_hole.db`, era `fatura_app.db`).
 
 **Segundo rebrand em 2026-07-28** (nome antigo: Money Hole, virou Casshole —
-trocadilho com cash/asshole/hole, pedido explícito do usuário; ícone novo
-ainda pendente, o usuário vai enviar depois). Repo GitHub renomeado
+trocadilho com cash/asshole/hole, pedido explícito do usuário). Repo GitHub
+renomeado
 (`GuiMartins/money-hole` → `GuiMartins/casshole`, GitHub redireciona a URL
 antiga automaticamente), pacote Kotlin (`com.casshole`, era `com.moneyhole`),
 `applicationId`, classe `Application` (`CassholeApp`, era `MoneyHoleApp`),
@@ -25,6 +25,37 @@ Mesmo trade-off do primeiro rebrand: mudar o `applicationId` faz o Android
 tratar como app novo, então a instalação real no celular do usuário perdeu
 os dados locais (faturas importadas, credenciais de e-mail) — aceito
 conscientemente pela segunda vez.
+
+**Ícone novo + cor principal em 2026-07-28**, mesmo dia do rebrand pra
+Casshole: o usuário mandou a arte final (aranha preta sobre fundo verde
+lima, `#88FA3E`) já pronta como imagem única (não como camadas separadas de
+ícone adaptativo). Processo pra virar `ic_launcher_foreground`/
+`ic_launcher_background`:
+1. Chroma-key da aranha via Pillow (`ImageChops.difference` contra o verde
+   de fundo, convertido pra alfa) — cuidado real: usar a imagem toda pra
+   isso detecta falso-positivo no anel de anti-aliasing do canto
+   arredondado (pixels parcialmente transparentes ali têm cor "suja",
+   diferente do verde puro). Corrigido filtrando só pixels com alfa
+   original > 250 antes do chroma-key.
+2. Medir o alcance radial real do conteúdo (do centro até a ponta de perna
+   mais distante) pra escalar dentro da safe zone do ícone adaptativo (66dp
+   de diâmetro num canvas de 108dp, ou seja ≤61% do raio do canvas —
+   usamos 55% por margem). Medição direta sem tratamento dava valor maior
+   que o próprio raio do canvas (impossível) — causa: specks isolados de
+   1-2px de ruído de compressão no PNG de origem, longe da aranha de
+   verdade, inflando o bounding box. Corrigido com `ImageFilter.MinFilter`
+   (erosão) antes de medir, que mata ruído isolado mas preserva os traços
+   da aranha (bem mais grossos que o ruído).
+3. `drawable/ic_launcher_background.xml` vira `#88FA3E` (a cor exata do
+   verde da arte).
+4. Cor principal do tema (Material3) **não** usa o verde puro do ícone
+   direto — vira `GreenPrimary`/`GreenPrimaryDark` (`Color.kt`), duas
+   variações de luminosidade na mesma matiz (H≈96°) calculadas pra manter
+   contraste WCAG AA contra o texto: `#358103` (escuro, L=26%, 4.89:1
+   contra branco — usado no tema claro) e `#97FB56` (claro, L=66%, 12.39:1
+   contra o `onPrimary` escuro novo `#14260A` — usado no tema escuro). O
+   verde puro do ícone (`#88FA3E`, L=61%) teria contraste insuficiente
+   (~2:1) pra funcionar como `primary` com texto branco em cima.
 
 Em ambos os casos, a keystore de release (`money-hole-release.jks`, alias
 `money-hole-release`) **não foi renomeada nem regerada** — é só um artefato

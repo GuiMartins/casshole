@@ -2,10 +2,13 @@ package com.casshole.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// App brand palette: indigo as the primary color, with a teal as
-// secondary/semantic (ex: positive spending change).
-val IndigoPrimary = Color(0xFF4F46E5)
-val IndigoPrimaryDark = Color(0xFFBAB6FF)
+// App brand palette: green (same hue as the app icon, #88FA3E) as the
+// primary color, with a teal as secondary/semantic (ex: positive spending
+// change). Light-theme shade is darkened from the icon's hue to keep
+// WCAG AA contrast (4.89:1) against white text; dark-theme shade stays
+// close to the icon's actual bright green, which reads well on dark text.
+val GreenPrimary = Color(0xFF358103)
+val GreenPrimaryDark = Color(0xFF97FB56)
 val TealSecondary = Color(0xFF0F9D8C)
 val TealSecondaryDark = Color(0xFF6FDCC8)
 
