@@ -17,7 +17,11 @@ data class CategoryTotal(val category: String, val total: Double)
 
 sealed class InvoiceDetailState {
     data object Loading : InvoiceDetailState()
-    data class Loaded(val invoice: InvoiceWithTransactions, val byCategory: List<CategoryTotal>) : InvoiceDetailState()
+    data class Loaded(
+        val invoice: InvoiceWithTransactions,
+        val byCategory: List<CategoryTotal>,
+        val cardNickname: String?,
+    ) : InvoiceDetailState()
     data class Error(val message: String) : InvoiceDetailState()
 }
 
@@ -55,7 +59,9 @@ class InvoiceDetailViewModel(
                     .groupBy { it.category }
                     .map { (category, transactions) -> CategoryTotal(category, transactions.sumOf { it.amount }) }
                     .sortedByDescending { it.total }
-                _state.value = InvoiceDetailState.Loaded(invoice, byCategory)
+                val cardNickname = repository.listCardNicknames()
+                    .find { it.bank == invoice.bank && it.card == invoice.card }?.nickname
+                _state.value = InvoiceDetailState.Loaded(invoice, byCategory, cardNickname)
             } catch (e: Exception) {
                 _state.value = InvoiceDetailState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_invoice))
             }

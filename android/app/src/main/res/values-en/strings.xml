@@ -4,6 +4,9 @@
 
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
+    <string name="card_nickname_dialog_title">Card nickname</string>
+    <string name="card_nickname_label">Nickname (leave blank to remove)</string>
+    <string name="card_nickname_edit_cd">Edit card nickname</string>
     <string name="action_close">Close</string>
     <string name="action_compare">Compare</string>
     <string name="action_choose_file">Choose file</string>

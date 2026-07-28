@@ -11,10 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,7 +27,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -36,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moneyhole.R
 import com.moneyhole.data.local.InvoiceWithTransactions
 import com.moneyhole.ui.components.AdaptiveScreen
+import com.moneyhole.ui.components.EditCardNicknameDialog
 import com.moneyhole.ui.theme.BankBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,7 +93,12 @@ fun InvoicesByCardScreen(
                             modifier = Modifier.align(Alignment.Center),
                         )
                     } else {
-                        InvoiceListByCard(currentState.invoices, onOpenInvoice)
+                        InvoiceListByCard(
+                            invoices = currentState.invoices,
+                            nicknames = currentState.nicknames,
+                            onOpenInvoice = onOpenInvoice,
+                            onSetNickname = viewModel::setNickname,
+                        )
                     }
                 }
             }
@@ -94,11 +107,18 @@ fun InvoicesByCardScreen(
 }
 
 @Composable
-private fun InvoiceListByCard(invoices: List<InvoiceWithTransactions>, onOpenInvoice: (Long) -> Unit) {
+private fun InvoiceListByCard(
+    invoices: List<InvoiceWithTransactions>,
+    nicknames: Map<Pair<String, String>, String>,
+    onOpenInvoice: (Long) -> Unit,
+    onSetNickname: (String, String, String) -> Unit,
+) {
     val groups = invoices
         .groupBy { it.bank to it.card }
         .toList()
         .sortedBy { (key, _) -> "${key.first}${key.second}" }
+
+    var cardBeingRenamed by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     AdaptiveScreen {
         LazyColumn(
@@ -110,19 +130,12 @@ private fun InvoiceListByCard(invoices: List<InvoiceWithTransactions>, onOpenInv
             groups.forEach { (key, groupInvoices) ->
                 val (bank, card) = key
                 item(key = "header-$bank-$card") {
-                    val cardSuffix = if (card.isNotBlank()) " (••••$card)" else ""
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 20.dp, bottom = 8.dp),
-                    ) {
-                        BankBadge(bank = bank, size = 28.dp)
-                        Text(
-                            text = "${bank.replaceFirstChar { it.uppercase() }}$cardSuffix",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(start = 10.dp),
-                        )
-                    }
+                    CardGroupHeader(
+                        bank = bank,
+                        card = card,
+                        nickname = nicknames[key],
+                        onEditNickname = { cardBeingRenamed = key },
+                    )
                 }
                 items(
                     groupInvoices.sortedByDescending { it.referenceYear * 100 + it.referenceMonth },
@@ -131,6 +144,58 @@ private fun InvoiceListByCard(invoices: List<InvoiceWithTransactions>, onOpenInv
                     InvoiceMonthRow(invoice, onClick = { onOpenInvoice(invoice.id) })
                 }
             }
+        }
+    }
+
+    cardBeingRenamed?.let { (bank, card) ->
+        EditCardNicknameDialog(
+            currentNickname = nicknames[bank to card] ?: "",
+            onConfirm = { nickname ->
+                onSetNickname(bank, card, nickname)
+                cardBeingRenamed = null
+            },
+            onCancel = { cardBeingRenamed = null },
+        )
+    }
+}
+
+@Composable
+private fun CardGroupHeader(
+    bank: String,
+    card: String,
+    nickname: String?,
+    onEditNickname: () -> Unit,
+) {
+    val cardSuffix = if (card.isNotBlank()) " (••••$card)" else ""
+    val bankLine = "${bank.replaceFirstChar { it.uppercase() }}$cardSuffix"
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 20.dp, bottom = 8.dp),
+    ) {
+        BankBadge(bank = bank, size = 28.dp)
+        Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
+            Text(
+                text = nickname ?: bankLine,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            if (nickname != null) {
+                Text(
+                    text = bankLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        IconButton(onClick = onEditNickname) {
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = stringResource(R.string.card_nickname_edit_cd),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

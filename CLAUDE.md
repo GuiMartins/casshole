@@ -218,6 +218,17 @@ android/app/src/main/java/com/moneyhole/
   idiomático sobre menor diff.
 - **Migrations do Room nunca são destrutivas.** O app é usado com dados
   reais; sempre escrever uma `Migration` explícita ao mudar o schema.
+- **Apelidos de cartão** (`CardNicknameEntity`, tabela `apelidos_cartao`,
+  chave única `(banco, cartao)`) — entidade separada, não campo em
+  `InvoiceEntity`, porque o apelido é por cartão físico, não por fatura
+  individual (todas as faturas do mesmo banco+cartão compartilham o mesmo
+  apelido). Editável só em `InvoicesByCardScreen` (ícone de lápis no
+  cabeçalho do grupo), que é a tela que já agrupa por banco+cartão — exibido
+  também (só leitura) no cabeçalho de `InvoiceDetailScreen`. Salvar com
+  texto em branco remove o apelido (`InvoiceRepository.setCardNickname`),
+  sem ação de "remover" separada na UI. `CardNicknameDao.save()` usa
+  `OnConflictStrategy.REPLACE` pra fazer upsert via o índice único, não
+  precisa de query de "já existe?" antes.
 - **Categorização por regex ordenada**: em `Categorizer.kt`, regras mais
   específicas (`amazon prime`, `mercado livre`) vêm antes das genéricas
   (`amazon`, `mercado`) — colisão de substring é o motivo. Ao adicionar

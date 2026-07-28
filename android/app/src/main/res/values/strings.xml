@@ -6,6 +6,9 @@
     <!-- Ações reutilizadas em mais de uma tela -->
     <string name="action_save">Salvar</string>
     <string name="action_cancel">Cancelar</string>
+    <string name="card_nickname_dialog_title">Apelido do cartão</string>
+    <string name="card_nickname_label">Apelido (deixe em branco pra remover)</string>
+    <string name="card_nickname_edit_cd">Editar apelido do cartão</string>
     <string name="action_close">Fechar</string>
     <string name="action_compare">Comparar</string>
     <string name="action_choose_file">Escolher arquivo</string>

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.withTransaction
 import com.moneyhole.R
 import com.moneyhole.categorizer.categorize
+import com.moneyhole.data.local.entity.CardNicknameEntity
 import com.moneyhole.data.local.entity.CategoryOverrideEntity
 import com.moneyhole.data.local.entity.InvoiceEntity
 import com.moneyhole.data.local.entity.DefaultPasswordEntity
@@ -32,12 +33,25 @@ class InvoiceRepository(
     private val transactionDao = db.transactionDao()
     private val defaultPasswordDao = db.defaultPasswordDao()
     private val categoryOverrideDao = db.categoryOverrideDao()
+    private val cardNicknameDao = db.cardNicknameDao()
 
     suspend fun hasDefaultPasswordsRegistered(): Boolean = defaultPasswordDao.list().isNotEmpty()
 
     suspend fun listInvoices(): List<InvoiceWithTransactions> = invoiceDao.listWithTransactions()
 
     suspend fun getInvoice(id: Long): InvoiceWithTransactions? = invoiceDao.getWithTransactions(id)
+
+    suspend fun listCardNicknames(): List<CardNicknameEntity> = cardNicknameDao.list()
+
+    /** Setting a blank nickname removes it - there's no separate "clear" action in the UI. */
+    suspend fun setCardNickname(bank: String, card: String, nickname: String) {
+        val trimmed = nickname.trim()
+        if (trimmed.isBlank()) {
+            cardNicknameDao.remove(bank, card)
+        } else {
+            cardNicknameDao.save(CardNicknameEntity(bank = bank, card = card, nickname = trimmed))
+        }
+    }
 
     suspend fun listCategoryOverrides(): List<CategoryOverrideEntity> = categoryOverrideDao.list()
 

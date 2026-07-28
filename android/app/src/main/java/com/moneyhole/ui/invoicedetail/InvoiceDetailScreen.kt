@@ -122,9 +122,16 @@ private fun InvoiceDetailContent(
         ) {
             item {
                 Text(
-                    text = "${invoice.bank.replaceFirstChar { it.uppercase() }}$cardSuffix",
+                    text = state.cardNickname ?: "${invoice.bank.replaceFirstChar { it.uppercase() }}$cardSuffix",
                     style = MaterialTheme.typography.headlineSmall,
                 )
+                if (state.cardNickname != null) {
+                    Text(
+                        text = "${invoice.bank.replaceFirstChar { it.uppercase() }}$cardSuffix",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
                     text = stringResource(R.string.invoice_detail_total, invoice.referenceMonth, invoice.referenceYear, totalSpent),
                     style = MaterialTheme.typography.titleMedium,

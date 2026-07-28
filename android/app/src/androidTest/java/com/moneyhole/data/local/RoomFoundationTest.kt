@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.moneyhole.data.local.entity.CardNicknameEntity
 import com.moneyhole.data.local.entity.InvoiceEntity
 import com.moneyhole.data.local.entity.DefaultPasswordEntity
 import com.moneyhole.data.local.entity.TransactionEntity
@@ -112,5 +113,24 @@ class RoomFoundationTest {
         db.defaultPasswordDao().insert(DefaultPasswordEntity(value = "12345"))
         db.defaultPasswordDao().insert(DefaultPasswordEntity(value = "12345"))
         Unit
+    }
+
+    @Test
+    fun savingCardNickname_upsertsOnBankAndCard() = runBlocking {
+        db.cardNicknameDao().save(CardNicknameEntity(bank = "itau", card = "2222", nickname = "Cartão da Ana"))
+        // Same bank+card again, different text - should REPLACE, not duplicate.
+        db.cardNicknameDao().save(CardNicknameEntity(bank = "itau", card = "2222", nickname = "Cartão Renomeado"))
+
+        val all = db.cardNicknameDao().list()
+        assertEquals(1, all.size)
+        assertEquals("Cartão Renomeado", all.first().nickname)
+    }
+
+    @Test
+    fun removingCardNickname_deletesByBankAndCard() = runBlocking {
+        db.cardNicknameDao().save(CardNicknameEntity(bank = "nubank", card = "1234", nickname = "Cartão Principal"))
+        db.cardNicknameDao().remove(bank = "nubank", card = "1234")
+
+        assertTrue(db.cardNicknameDao().list().isEmpty())
     }
 }
