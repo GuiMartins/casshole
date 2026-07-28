@@ -137,6 +137,7 @@ fun DashboardScreen(
                     } else {
                         GeneralSummaryContent(
                             invoices = currentState.invoices,
+                            nicknames = currentState.nicknames,
                             summaryDisplayMode = summaryDisplayMode,
                             onUpdateCategory = viewModel::updateCategory,
                         )
@@ -179,6 +180,7 @@ private fun currentMonthLabel(): String {
 @Composable
 private fun GeneralSummaryContent(
     invoices: List<InvoiceWithTransactions>,
+    nicknames: Map<Pair<String, String>, String>,
     summaryDisplayMode: String,
     onUpdateCategory: (Long, String) -> Unit,
 ) {
@@ -222,6 +224,7 @@ private fun GeneralSummaryContent(
         CategoryTransactionsDialog(
             category = category,
             transactions = categoryTransactions,
+            nicknames = nicknames,
             onDismiss = { selectedCategory = null },
             onTransactionClick = { transactionBeingEdited = it },
         )
@@ -244,6 +247,7 @@ private fun GeneralSummaryContent(
 private fun CategoryTransactionsDialog(
     category: String,
     transactions: List<Pair<TransactionEntity, InvoiceWithTransactions>>,
+    nicknames: Map<Pair<String, String>, String>,
     onDismiss: () -> Unit,
     onTransactionClick: (TransactionEntity) -> Unit,
 ) {
@@ -270,6 +274,7 @@ private fun CategoryTransactionsDialog(
                         TransactionSummaryRow(
                             transaction = transaction,
                             invoice = invoice,
+                            nickname = nicknames[invoice.bank to invoice.card],
                             onClick = { onTransactionClick(transaction) },
                         )
                     }
@@ -283,8 +288,14 @@ private fun CategoryTransactionsDialog(
 }
 
 @Composable
-private fun TransactionSummaryRow(transaction: TransactionEntity, invoice: InvoiceWithTransactions, onClick: () -> Unit) {
+private fun TransactionSummaryRow(
+    transaction: TransactionEntity,
+    invoice: InvoiceWithTransactions,
+    nickname: String?,
+    onClick: () -> Unit,
+) {
     val cardSuffix = if (invoice.card.isNotBlank()) " ••••${invoice.card}" else ""
+    val bankLabel = nickname ?: "${invoice.bank.replaceFirstChar { it.uppercase() }}$cardSuffix"
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -308,7 +319,7 @@ private fun TransactionSummaryRow(transaction: TransactionEntity, invoice: Invoi
             )
         }
         Text(
-            text = "${transaction.date} • ${invoice.bank.replaceFirstChar { it.uppercase() }}$cardSuffix",
+            text = "${transaction.date} • $bankLabel",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

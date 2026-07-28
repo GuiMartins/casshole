@@ -16,7 +16,10 @@ import kotlinx.coroutines.launch
 
 sealed class DashboardState {
     data object Loading : DashboardState()
-    data class Loaded(val invoices: List<InvoiceWithTransactions>) : DashboardState()
+    data class Loaded(
+        val invoices: List<InvoiceWithTransactions>,
+        val nicknames: Map<Pair<String, String>, String>,
+    ) : DashboardState()
     data class Error(val message: String) : DashboardState()
 }
 
@@ -43,7 +46,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _state.value = DashboardState.Loading
             try {
                 val invoices = repository.listInvoices()
-                _state.value = DashboardState.Loaded(invoices)
+                val nicknames = repository.listCardNicknames().associate { (it.bank to it.card) to it.nickname }
+                _state.value = DashboardState.Loaded(invoices, nicknames)
             } catch (e: Exception) {
                 _state.value = DashboardState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_invoices))
             }
@@ -57,7 +61,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 // Update without going through Loading, so it doesn't close
                 // any open dialogs (the summary and category edit both live
                 // inside the Loaded branch).
-                _state.value = DashboardState.Loaded(repository.listInvoices())
+                val nicknames = repository.listCardNicknames().associate { (it.bank to it.card) to it.nickname }
+                _state.value = DashboardState.Loaded(repository.listInvoices(), nicknames)
             } catch (e: Exception) {
                 _state.value = DashboardState.Error(e.message ?: getApplication<Application>().getString(R.string.error_update_category))
             }
