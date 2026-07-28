@@ -227,6 +227,17 @@ fun EmailSettingsScreen(viewModel: EmailSettingsViewModel = viewModel()) {
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
+                            if (state.result.unsupportedBanks.isNotEmpty()) {
+                                val bankNames = state.result.unsupportedBanks.joinToString { bank ->
+                                    bank.split(" ").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+                                }
+                                Text(
+                                    text = stringResource(R.string.email_result_unsupported_bank_hint, bankNames),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
                         }
                         is EmailFetchState.Error -> Text(
                             text = state.message,

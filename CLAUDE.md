@@ -184,6 +184,35 @@ android/app/src/main/java/com/moneyhole/
     (`EmailImportResult.failedPasswords`) e mostradas na UI com uma dica
     acionável ("cadastre a senha certa em Configurações > Senhas padrão")
     em vez de só aparecerem como um número genérico de "falharam".
+  - **Classificação de 3 níveis pra anexo PDF que não bate com nenhum
+    parser** (`InvoiceDispatcher.processInvoice`), pra não tratar "recibo
+    qualquer no e-mail" e "fatura de banco que a gente não suporta" como o
+    mesmo tipo de erro:
+    1. `NotABankInvoiceException` — texto não bate com nenhuma palavra de
+       `INVOICE_KEYWORDS` ("fatura", "vencimento", "limite de crédito",
+       etc.). Não é erro: `EmailFetchCoordinator` ignora silenciosamente
+       (não conta em `failed`, não entra na lista de retry — reprocessar
+       não muda nada).
+    2. `UnsupportedBankException(bankName)` — bate com invoice keywords E
+       com um nome de banco em `KNOWN_UNSUPPORTED_BANKS` (Bradesco,
+       Santander, Banco do Brasil, etc. — lista não-exaustiva, só os
+       bancos brasileiros mais comuns). Também não é erro de verdade (não
+       tem nada que o usuário possa corrigir), mas é informativo: conta em
+       `EmailImportResult.unsupportedBanks` (fora do `failed`) e aparece na
+       UI ("Fatura(s) identificada(s) de banco ainda não suportado: X").
+       Não entra na lista de retry pelo mesmo motivo do caso 1.
+    3. `UnidentifiedBankException` (fallback) — bate com invoice keywords
+       mas não com nenhum banco conhecido (nem suportado nem da lista de
+       não-suportados). Esse sim é falha de verdade — pode ser um banco
+       novo/raro ou um bug real de detecção — conta em `failed` e entra na
+       lista de retry.
+    No fluxo de Upload manual (`UploadViewModel`), as 3 exceções caem no
+    mesmo `catch (e: Exception)` genérico e mostram `e.message` — faz
+    sentido lá, já que o usuário escolheu aquele arquivo de propósito e
+    sempre quer feedback, ao contrário do fetch automático de e-mail.
+    Testado com 2 PDFs sintéticos (gerados na hora, nunca comitados) via
+    `InvoiceDispatcherTest` — assets reais de fatura continuam sendo o
+    único tipo de PDF que fica fora do git.
 - **Nomes de campo em Room são camelCase idiomático** (`mesReferencia`, não
   `mes_referencia`) — decisão explícita do usuário, prioriza Kotlin
   idiomático sobre menor diff.

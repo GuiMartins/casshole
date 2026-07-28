@@ -107,6 +107,7 @@
     <string name="email_fetch_banner_starting">Fetching invoices by email…</string>
     <string name="email_result">%1$d imported, %2$d already existed, %3$d failed</string>
     <string name="email_result_password_hint">%1$d failed due to an incorrect password - register the right one in Settings &gt; Default passwords</string>
+    <string name="email_result_unsupported_bank_hint">Found invoice(s) from a bank we don\'t support yet: %1$s</string>
     <string name="email_validation_error">Enter the email and app password</string>
     <string name="email_edit_config">Edit</string>
     <string name="email_error_auth">Authentication failed - check the email and app password</string>
