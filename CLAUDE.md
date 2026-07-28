@@ -478,8 +478,12 @@ Pra levar o que está em `develop` pro celular de verdade (equivalente a
    sentido isolar/testar mais antes de ir pro `main`).
 10. `gh pr create --base main --head release/o-que-mudou` (ou `--head
     develop` se pulou o passo 9), **sempre `--squash`** (nunca merge commit
-    normal aqui — ver "Erro real já cometido" abaixo pro porquê). Merge
-    depois do CI verde.
+    normal aqui — ver "Erro real já cometido" abaixo pro porquê). **O
+    título do PR precisa começar com `feat:` ou `fix:`** (o tipo mais
+    significativo entre os commits levados) — squash colapsa tudo num
+    commit só em `main`, e a action de versionamento só lê o título desse
+    commit (= título do PR), não os commits originais (ver "Segundo erro
+    real já cometido" abaixo). Merge depois do CI verde.
 11. `git checkout main && git pull` — rebuildar e copiar o APK atualizado
     pro Desktop quando o usuário pedir (`cp
     android/app/build/outputs/apk/debug/app-debug.apk` pro OneDrive/Desktop
@@ -525,6 +529,25 @@ esperado). Corrigido manualmente (`gh release delete v2.0.0 --cleanup-tag`
 + `gh release create v1.0.1` apontando pro `main` certo). Lição: squash
 pra `main` sempre, nunca merge commit; nunca `git merge main` dentro de
 `develop` sem ser hotfix de verdade.
+
+**Segundo erro real já cometido (2026-07-28), pra não repetir**: PR
+`develop -> main` (#78) titulado "release: 🔖 v1.3.0 — rebrand Casshole,
+apelidos de cartão, ícone novo" e squash-mergeado normalmente (seguindo a
+regra acima). Resultado: virou `v1.2.1` (patch), não `v1.3.0` (minor)
+como esperado — os 7 commits de `develop` incluíam vários `feat:`, mas
+squash colapsa tudo num **único** commit em `main`, e a action de
+versionamento só lê o **título do commit** (que no GitHub squash-merge é o
+**título do PR**, não o corpo com a lista dos commits originais). Como o
+título começava com "release:" (não "feat:"/"fix:"), a action não
+reconheceu nenhum bump e caiu no `default_bump: patch`. Corrigido
+manualmente (`gh release delete v1.2.1 --cleanup-tag` + `gh release
+create v1.3.0` reaproveitando o mesmo APK, só renomeado). **Lição:**
+squash pra `main` continua sendo a regra (ver incidente anterior acima),
+mas isso significa que **o título do PR `develop -> main` É o commit que a
+action vê** — precisa começar com `feat:`/`fix:` (o tipo mais significativo
+entre os commits que estão sendo levados), nunca com `release:` ou outro
+prefixo genérico. Antes de mergear um PR `develop -> main`, conferir se o
+título seria um bump correto sozinho.
 
 **Limitação conhecida do GitHub free**: não dá pra restringir tecnicamente
 "só aceitar PR em `main` vindo de `release/*` ou `hotfix/*`" (isso é
