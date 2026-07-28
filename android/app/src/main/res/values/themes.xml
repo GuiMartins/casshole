@@ -2,6 +2,6 @@
 <resources>
     <!-- AppCompatActivity requires a Theme.AppCompat descendant - only affects
          window-level attributes before Compose's setContent takes over, all
-         actual UI/colors come from the MoneyHoleTheme composable (Material3). -->
-    <style name="Theme.MoneyHole" parent="Theme.AppCompat.DayNight.NoActionBar" />
+         actual UI/colors come from the CassholeTheme composable (Material3). -->
+    <style name="Theme.Casshole" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>

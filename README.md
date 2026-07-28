@@ -1,6 +1,6 @@
-# Money Hole
+# Casshole
 
-App Android pessoal (Kotlin + Jetpack Compose) pra analisar faturas de
+App Android (Kotlin + Jetpack Compose) pra analisar faturas de
 cartão de crédito em PDF — Nubank, Itaú e Mercado Pago. 100% on-device: sem
 backend próprio, sem servidor pra manter. A única exceção de rede é a busca
 automática de fatura por e-mail via IMAP, com a senha de app ficando só no
@@ -15,11 +15,17 @@ seu aparelho.
   ao abrir o app e sob demanda, com sincronização incremental (não
   reprocessa e-mails já vistos) e nova tentativa automática de mensagens
   que falharam por senha incorreta assim que a senha certa é cadastrada.
+  Anexos que não são fatura de banco são ignorados silenciosamente; faturas
+  de banco ainda não suportado geram um aviso específico em vez de contar
+  como erro genérico.
 - **Senhas padrão de PDF**: cadastre senhas comuns (ex: dígitos do CPF)
   pro app tentar abrir faturas protegidas sem digitar toda vez.
 - **Categorização automática** por regras, com aprendizado: corrigir a
   categoria de uma transação ensina o app a aplicar a mesma correção
   automaticamente em faturas futuras do mesmo estabelecimento.
+- **Apelidos de cartão**: dê um nome a cada cartão (ex: "Cartão da Ana")
+  pra identificar mais fácil nas telas de faturas e no resumo — sem perder
+  a referência ao banco/final do cartão.
 - **Resumo do mês** (números ou gráfico de pizza), **comparação entre
   períodos**, e visão por cartão/banco.
 - **Onboarding configurável**: primeira execução já deixa configurar tema,
@@ -55,12 +61,12 @@ Fluxo GitFlow: `feature/*`/`fix/*` a partir de `develop` (branch padrão),
 PR de volta pra `develop`. `main` só recebe `release/*`/`hotfix/*` e
 reflete o que foi de fato buildado — cada push em `main` gera
 automaticamente uma tag SemVer (Conventional Commits) e uma
-[release](https://github.com/GuiMartins/money-hole/releases) com o APK
-anexado.
+[release](https://github.com/GuiMartins/casshole/releases) com o APK
+assinado e minificado (R8) anexado.
 
 Detalhes completos do fluxo de trabalho, decisões de arquitetura e
 convenções de código em [`CLAUDE.md`](CLAUDE.md).
 
 ## Licença
 
-Projeto pessoal, sem licença formal definida.
+[MIT](LICENSE).

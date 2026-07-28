@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MoneyHole"
+rootProject.name = "Casshole"
 include(":app")

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Money Hole</string>
+    <string name="app_name">Casshole</string>
 
     <string name="action_save">Guardar</string>
     <string name="action_cancel">Cancelar</string>
+    <string name="card_nickname_dialog_title">Apodo de la tarjeta</string>
+    <string name="card_nickname_label">Apodo (déjalo en blanco para quitarlo)</string>
+    <string name="card_nickname_edit_cd">Editar apodo de la tarjeta</string>
     <string name="action_close">Cerrar</string>
     <string name="action_compare">Comparar</string>
     <string name="action_choose_file">Elegir archivo</string>
@@ -107,6 +110,7 @@
     <string name="email_fetch_banner_starting">Buscando facturas por correo…</string>
     <string name="email_result">%1$d importadas, %2$d ya existían, %3$d fallaron</string>
     <string name="email_result_password_hint">%1$d fallaron por contraseña incorrecta - registra la correcta en Configuración &gt; Contraseñas predeterminadas</string>
+    <string name="email_result_unsupported_bank_hint">Se encontraron facturas de un banco aún no soportado: %1$s</string>
     <string name="email_validation_error">Ingresa el correo y la contraseña de app</string>
     <string name="email_edit_config">Editar</string>
     <string name="email_error_auth">Fallo de autenticación - revisa el correo y la contraseña de app</string>
@@ -116,13 +120,13 @@
     <string name="settings_email_subtitle">Configurar IMAP para importar facturas automáticamente</string>
     <string name="email_help_link">¿Cómo consigo una contraseña de app?</string>
     <string name="email_help_title">¿No sabes qué es una "contraseña de app"?</string>
-    <string name="email_help_steps">1. Activa la verificación en dos pasos en tu Cuenta de Google (si todavía no la tienes).\n2. Toca el botón de abajo para abrir la página de contraseñas de app de Google.\n3. Crea una contraseña con cualquier nombre (ej: "Money Hole") y pégala en el campo "Contraseña de app" de arriba.\n\n¿Usas otro proveedor de correo (no Gmail)? Busca "contraseña de app" en la configuración de seguridad de tu cuenta.</string>
+    <string name="email_help_steps">1. Activa la verificación en dos pasos en tu Cuenta de Google (si todavía no la tienes).\n2. Toca el botón de abajo para abrir la página de contraseñas de app de Google.\n3. Crea una contraseña con cualquier nombre (ej: "Casshole") y pégala en el campo "Contraseña de app" de arriba.\n\n¿Usas otro proveedor de correo (no Gmail)? Busca "contraseña de app" en la configuración de seguridad de tu cuenta.</string>
     <string name="email_help_open_app_passwords">Abrir página de contraseñas de app de Google</string>
 
-    <string name="onboarding_welcome_title">Bienvenido a Money Hole</string>
+    <string name="onboarding_welcome_title">Bienvenido a Casshole</string>
     <string name="onboarding_welcome_description">Analiza tus facturas de tarjeta de crédito (Nubank, Itaú, Mercado Pago) directo en tu celular. Todo se queda en tu dispositivo, sin ningún servidor.</string>
     <string name="onboarding_upload_title">Envía tus facturas</string>
-    <string name="onboarding_upload_description">Selecciona el PDF de la factura directo en la app o compártelo desde cualquier otra app. Money Hole reconoce el banco y organiza todo automáticamente.</string>
+    <string name="onboarding_upload_description">Selecciona el PDF de la factura directo en la app o compártelo desde cualquier otra app. Casshole reconoce el banco y organiza todo automáticamente.</string>
     <string name="onboarding_appearance_title">Hazlo a tu manera</string>
     <string name="onboarding_appearance_description">Elige el tema y cómo quieres ver el resumen del mes. Puedes cambiarlo después en Configuración.</string>
     <string name="onboarding_insights_title">Controla tus gastos</string>
