@@ -1,6 +1,6 @@
 # Casshole
 
-App pessoal Android (Kotlin/Jetpack Compose) pra analisar faturas de cartão de
+App Android (Kotlin/Jetpack Compose) pra analisar faturas de cartão de
 crédito em PDF (Nubank, Itaú, Mercado Pago). 100% on-device, sem backend
 próprio — mas **tem rede** desde 2026-07-25 (busca de fatura por e-mail via
 IMAP, ver "Decisões de arquitetura"), reversão deliberada e explicitamente
@@ -713,8 +713,9 @@ e todo build (local e CI) usava `assembleDebug`.
 
 - `SharedFileHolder` (objeto com `var` mutável) é a ponte entre o Intent
   de compartilhamento e a tela de Upload. Não sobrevive a morte de
-  processo (caso raro). Aceito pra um app pessoal; não vale a complexidade
-  de persistir isso pra esse caso de uso.
+  processo (caso raro). Aceito dado o caso de uso atual (usuário único, sem
+  sincronização entre dispositivos); não vale a complexidade de persistir
+  isso.
 - Sem layout multi-coluna em `Expanded` (tablets/dobráveis em paisagem) —
   `AdaptiveScreen` só limita e centraliza uma coluna. Um redesenho
   lista-detalhe de duas colunas seria o próximo nível, não implementado.
