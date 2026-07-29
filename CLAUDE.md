@@ -156,6 +156,16 @@ android/app/src/main/java/com/casshole/
 
 ## Decisões de arquitetura (não reverter sem motivo)
 
+- **Transição de navegação: slide + fade, não o cross-fade padrão do
+  Navigation Compose** (2026-07-29, feedback direto do usuário: "a
+  transição entre as páginas faz um fade horrível"). Configurado uma vez
+  em `AppNavigation.kt` via os parâmetros `enterTransition`/`exitTransition`/
+  `popEnterTransition`/`popExitTransition` do `NavHost` — se aplica a
+  **todas** as rotas automaticamente, não precisa repetir por `composable()`.
+  `slideInHorizontally`/`slideOutHorizontally` (deslocamento de 1/4 da
+  largura) + `fadeIn`/`fadeOut`, 220ms. As direções de push (`enter`/`exit`)
+  e pop/voltar (`popEnter`/`popExit`) são espelhadas corretamente: avançar
+  desliza da direita, voltar desliza da esquerda.
 - **Ocultar valores (ícone de olho, 2026-07-29)** — pedido explícito do
   usuário ("aquele olhinho que costuma ter apps de banco"). Preferência
   global única (`PreferencesRepository.amountsHidden`, persistida em

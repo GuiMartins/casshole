@@ -1,5 +1,10 @@
 package com.casshole.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -79,7 +84,30 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
+            // Slide + fade instead of Navigation Compose's default cross-fade (looked jarring
+            // between unrelated screens). Direction flips correctly for back navigation via the
+            // separate pop* transitions - forward pushes slide in from the right, back pops
+            // slide in from the left.
+            NavHost(
+                navController = navController,
+                startDestination = Routes.DASHBOARD,
+                enterTransition = {
+                    slideInHorizontally(initialOffsetX = { it / 4 }, animationSpec = tween(220)) +
+                        fadeIn(animationSpec = tween(220))
+                },
+                exitTransition = {
+                    slideOutHorizontally(targetOffsetX = { -it / 4 }, animationSpec = tween(220)) +
+                        fadeOut(animationSpec = tween(220))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(initialOffsetX = { -it / 4 }, animationSpec = tween(220)) +
+                        fadeIn(animationSpec = tween(220))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(targetOffsetX = { it / 4 }, animationSpec = tween(220)) +
+                        fadeOut(animationSpec = tween(220))
+                },
+            ) {
                 composable(Routes.DASHBOARD) {
                     DashboardScreen(
                         onSendInvoice = { navController.navigate(Routes.UPLOAD) },
