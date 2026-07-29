@@ -6,11 +6,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.casshole.R
 import com.casshole.categorizer.AVAILABLE_CATEGORIES
+import com.casshole.data.PreferencesRepository
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.InvoiceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CategoryTotal(val category: String, val total: Double)
@@ -31,11 +34,18 @@ class InvoiceDetailViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = InvoiceRepository(application)
+    private val preferencesRepository = PreferencesRepository(application)
 
     private val _state = MutableStateFlow<InvoiceDetailState>(InvoiceDetailState.Loading)
     val state: StateFlow<InvoiceDetailState> = _state.asStateFlow()
 
     val availableCategories: StateFlow<List<String>> = MutableStateFlow(AVAILABLE_CATEGORIES)
+
+    val amountsHidden: StateFlow<Boolean> = preferencesRepository.amountsHidden.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = false,
+    )
 
     private val _editError = MutableStateFlow<String?>(null)
     val editError: StateFlow<String?> = _editError.asStateFlow()

@@ -44,6 +44,7 @@ import com.casshole.R
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.ui.components.AdaptiveScreen
 import com.casshole.ui.components.EditCardNicknameDialog
+import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.BankBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +54,7 @@ fun InvoicesByCardScreen(
     viewModel: InvoicesByCardViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val amountsHidden by viewModel.amountsHidden.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val onResumeAction by rememberUpdatedState(viewModel::loadInvoices)
@@ -96,6 +98,7 @@ fun InvoicesByCardScreen(
                         InvoiceListByCard(
                             invoices = currentState.invoices,
                             nicknames = currentState.nicknames,
+                            amountsHidden = amountsHidden,
                             onOpenInvoice = onOpenInvoice,
                             onSetNickname = viewModel::setNickname,
                         )
@@ -110,6 +113,7 @@ fun InvoicesByCardScreen(
 private fun InvoiceListByCard(
     invoices: List<InvoiceWithTransactions>,
     nicknames: Map<Pair<String, String>, String>,
+    amountsHidden: Boolean,
     onOpenInvoice: (Long) -> Unit,
     onSetNickname: (String, String, String) -> Unit,
 ) {
@@ -141,7 +145,7 @@ private fun InvoiceListByCard(
                     groupInvoices.sortedByDescending { it.referenceYear * 100 + it.referenceMonth },
                     key = { it.id },
                 ) { invoice ->
-                    InvoiceMonthRow(invoice, onClick = { onOpenInvoice(invoice.id) })
+                    InvoiceMonthRow(invoice, amountsHidden = amountsHidden, onClick = { onOpenInvoice(invoice.id) })
                 }
             }
         }
@@ -201,7 +205,7 @@ private fun CardGroupHeader(
 }
 
 @Composable
-private fun InvoiceMonthRow(invoice: InvoiceWithTransactions, onClick: () -> Unit) {
+private fun InvoiceMonthRow(invoice: InvoiceWithTransactions, amountsHidden: Boolean, onClick: () -> Unit) {
     val totalSpent = invoice.transactions.sumOf { it.amount }
     Card(
         modifier = Modifier
@@ -224,7 +228,7 @@ private fun InvoiceMonthRow(invoice: InvoiceWithTransactions, onClick: () -> Uni
             )
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "R$ %.2f".format(totalSpent),
+                    text = formatCurrency(totalSpent, amountsHidden),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                 )

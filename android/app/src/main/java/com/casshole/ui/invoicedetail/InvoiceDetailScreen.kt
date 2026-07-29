@@ -44,6 +44,7 @@ import com.casshole.R
 import com.casshole.data.local.entity.TransactionEntity
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
 
@@ -51,6 +52,7 @@ import com.casshole.ui.theme.categoryVisual
 fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val categories by viewModel.availableCategories.collectAsState()
+    val amountsHidden by viewModel.amountsHidden.collectAsState()
 
     var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }
 
@@ -65,6 +67,7 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
         )
         is InvoiceDetailState.Loaded -> InvoiceDetailContent(
             state = currentState,
+            amountsHidden = amountsHidden,
             onTransactionClick = { transactionBeingEdited = it },
         )
     }
@@ -86,6 +89,7 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
 @Composable
 private fun InvoiceDetailContent(
     state: InvoiceDetailState.Loaded,
+    amountsHidden: Boolean,
     onTransactionClick: (TransactionEntity) -> Unit,
 ) {
     val invoice = state.invoice
@@ -133,7 +137,8 @@ private fun InvoiceDetailContent(
                     )
                 }
                 Text(
-                    text = stringResource(R.string.invoice_detail_total, invoice.referenceMonth, invoice.referenceYear, totalSpent),
+                    text = stringResource(R.string.invoice_detail_total_prefix, invoice.referenceMonth, invoice.referenceYear) +
+                        formatCurrency(totalSpent, amountsHidden),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
                 )
@@ -155,7 +160,7 @@ private fun InvoiceDetailContent(
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
-                        Text("R$ %.2f".format(item.total), style = MaterialTheme.typography.bodyMedium)
+                        Text(formatCurrency(item.total, amountsHidden), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
@@ -276,19 +281,20 @@ private fun InvoiceDetailContent(
                             cardholder = cardholder,
                             count = cardholderTransactions.size,
                             total = cardholderTransactions.sumOf { it.amount },
+                            amountsHidden = amountsHidden,
                             expanded = isExpanded,
                             onClick = { expanded[cardholder] = !isExpanded },
                         )
                     }
                     if (isExpanded) {
                         items(cardholderTransactions) { transaction ->
-                            TransactionRow(transaction, onClick = { onTransactionClick(transaction) })
+                            TransactionRow(transaction, amountsHidden = amountsHidden, onClick = { onTransactionClick(transaction) })
                         }
                     }
                 }
             } else {
                 items(filteredTransactions) { transaction ->
-                    TransactionRow(transaction, onClick = { onTransactionClick(transaction) })
+                    TransactionRow(transaction, amountsHidden = amountsHidden, onClick = { onTransactionClick(transaction) })
                 }
             }
         }
@@ -300,6 +306,7 @@ private fun CardholderHeader(
     cardholder: String,
     count: Int,
     total: Double,
+    amountsHidden: Boolean,
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
@@ -324,14 +331,14 @@ private fun CardholderHeader(
             )
         }
         Text(
-            text = "R$ %.2f".format(total),
+            text = formatCurrency(total, amountsHidden),
             style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
 
 @Composable
-private fun TransactionRow(transaction: TransactionEntity, onClick: () -> Unit) {
+private fun TransactionRow(transaction: TransactionEntity, amountsHidden: Boolean, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -360,7 +367,7 @@ private fun TransactionRow(transaction: TransactionEntity, onClick: () -> Unit) 
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = "R$ %.2f".format(transaction.amount),
+                        text = formatCurrency(transaction.amount, amountsHidden),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(start = 8.dp),

@@ -13,6 +13,8 @@
     <string name="action_add_password">Add password</string>
     <string name="action_clear_filters">Clear filters</string>
     <string name="action_send_invoice">Send invoice</string>
+    <string name="action_hide_amounts">Hide amounts</string>
+    <string name="action_show_amounts">Show amounts</string>
 
     <string name="empty_no_invoices">No invoices sent yet</string>
     <string name="error_load_invoices">Error loading invoices</string>
@@ -21,7 +23,7 @@
     <string name="dashboard_no_invoices_for_month">No invoice for %1$s yet</string>
     <string name="dashboard_summary_title">Overview</string>
     <string name="dashboard_current_month_label">Current month (%1$s)</string>
-    <string name="dashboard_transactions_and_total">%1$d transactions • R$ %2$.2f</string>
+    <string name="dashboard_transactions_and_total_prefix">"%1$d transactions • "</string>
 
     <string name="edit_category_title">Category for \"%1$s\"</string>
 
@@ -37,12 +39,12 @@
 
     <string name="comparison_title">Compare months</string>
     <string name="comparison_variation">Change from the first to the last selected month: %1$s%2$.1f%%</string>
-    <string name="comparison_month_total">%1$02d/%2$d — Total: R$ %3$.2f</string>
+    <string name="comparison_month_total_prefix">"%1$02d/%2$d — Total: "</string>
     <string name="error_load_periods">Error loading periods</string>
     <string name="error_select_month">Select at least one month</string>
     <string name="error_compare_months">Error comparing months</string>
 
-    <string name="invoice_detail_total">%1$d/%2$d — Total: R$ %3$.2f</string>
+    <string name="invoice_detail_total_prefix">"%1$d/%2$d — Total: "</string>
     <string name="invoice_detail_by_category">By category</string>
     <string name="invoice_detail_search_hint">Search by description or city</string>
     <string name="invoice_detail_transactions_count_filtered">Transactions (%1$d of %2$d)</string>

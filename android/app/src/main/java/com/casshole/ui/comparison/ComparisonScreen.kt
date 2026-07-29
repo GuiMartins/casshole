@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.R
 import com.casshole.data.local.MonthlySummary
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 
 @Composable
@@ -35,6 +36,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
     val periodsState by viewModel.periodsState.collectAsState()
     val selected by viewModel.selected.collectAsState()
     val comparisonState by viewModel.comparisonState.collectAsState()
+    val amountsHidden by viewModel.amountsHidden.collectAsState()
 
     AdaptiveScreen {
         LazyColumn(
@@ -103,6 +105,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
                             data = state.comparison.months.map {
                                 BarData("%02d/%d".format(it.referenceMonth, it.referenceYear), it.totalSpent)
                             },
+                            amountsHidden = amountsHidden,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         )
                         state.comparison.totalPercentageChange?.let { change ->
@@ -121,7 +124,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
                         }
                     }
                     items(state.comparison.months) { month ->
-                        MonthlySummaryCard(month)
+                        MonthlySummaryCard(month, amountsHidden = amountsHidden)
                     }
                 }
                 is ComparisonUiState.Idle -> {}
@@ -131,7 +134,7 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
 }
 
 @Composable
-private fun MonthlySummaryCard(summary: MonthlySummary) {
+private fun MonthlySummaryCard(summary: MonthlySummary, amountsHidden: Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,9 +144,9 @@ private fun MonthlySummaryCard(summary: MonthlySummary) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = stringResource(
-                    R.string.comparison_month_total,
-                    summary.referenceMonth, summary.referenceYear, summary.totalSpent,
-                ),
+                    R.string.comparison_month_total_prefix,
+                    summary.referenceMonth, summary.referenceYear,
+                ) + formatCurrency(summary.totalSpent, amountsHidden),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
             )
@@ -163,7 +166,7 @@ private fun MonthlySummaryCard(summary: MonthlySummary) {
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
-                    Text("R$ %.2f".format(category.total), style = MaterialTheme.typography.bodyMedium)
+                    Text(formatCurrency(category.total, amountsHidden), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

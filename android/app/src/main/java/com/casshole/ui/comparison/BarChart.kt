@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.sp
 data class BarData(val label: String, val value: Double)
 
 @Composable
-fun BarChart(data: List<BarData>, modifier: Modifier = Modifier) {
+fun BarChart(data: List<BarData>, amountsHidden: Boolean = false, modifier: Modifier = Modifier) {
     if (data.isEmpty()) return
 
     val maxValue = data.maxOf { it.value }.coerceAtLeast(0.01)
@@ -54,7 +54,7 @@ fun BarChart(data: List<BarData>, modifier: Modifier = Modifier) {
                     )
 
                     drawIntoCanvas {
-                        val text = "R$ %.0f".format(item.value)
+                        val text = if (amountsHidden) "R$ ••••" else "R$ %.0f".format(item.value)
                         val result = textMeasurer.measure(text)
                         it.nativeCanvas.drawText(
                             text,

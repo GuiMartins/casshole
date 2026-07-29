@@ -156,6 +156,34 @@ android/app/src/main/java/com/casshole/
 
 ## Decisões de arquitetura (não reverter sem motivo)
 
+- **Ocultar valores (ícone de olho, 2026-07-29)** — pedido explícito do
+  usuário ("aquele olhinho que costuma ter apps de banco"). Preferência
+  global única (`PreferencesRepository.amountsHidden`, persistida em
+  DataStore), com toggle só na `TopAppBar` do Dashboard — como é uma
+  preferência global e não por-tela, alternar em qualquer lugar reflete em
+  todas as telas que mostram dinheiro (Dashboard, Faturas por cartão,
+  Detalhe da fatura, Comparação). Helper único
+  `ui/components/CurrencyFormat.kt::formatCurrency(amount, hidden)` — troca
+  todo `"R$ %.2f".format(...)` espalhado pelo código; quando `hidden`,
+  mostra `"R$ ••••"` em vez do valor.
+  - **Não mascara tudo que é "valor"** — só quantias em R$. O gráfico de
+    pizza (Dashboard) e as barras do gráfico de comparação continuam
+    proporcionais aos valores reais mesmo com a opção ativada (só o
+    *label numérico* do gráfico de barras é mascarado) — vazamento de
+    magnitude relativa foi considerado aceitável, diferente do valor
+    exato em R$. O percentual de variação da Comparação também não é
+    mascarado (não é uma quantia em dinheiro).
+  - **Strings de recurso compostas** (ex: `"%1$d/%2$d — Total: R$ %3$.2f"`)
+    não dá pra mascarar parcialmente — quebradas em duas: um recurso só
+    com o prefixo não-monetário (`invoice_detail_total_prefix`,
+    `comparison_month_total_prefix`, `dashboard_transactions_and_total_prefix`)
+    concatenado em Kotlin com `formatCurrency(...)`. **Cuidado real**: o
+    prefixo termina em espaço antes do valor (`"...Total: "`) — sem aspas
+    duplas envolvendo a string no XML, o Android remove esse espaço à
+    direita (mesmo padrão de bug que `invoice_detail_installment` já
+    evitava com `" • Parcela %1$d/%2$d"` entre aspas). Descoberto ao vivo
+    no emulador (`"Total:R$ ••••"` sem espaço) e corrigido envolvendo as 3
+    strings novas em aspas duplas nos 3 idiomas.
 - **Sem backend próprio.** Tudo Room + PdfBox no próprio app. Rede existe
   só pra conexão IMAP direta do usuário com o provedor dele — não recriar
   Retrofit/API própria.

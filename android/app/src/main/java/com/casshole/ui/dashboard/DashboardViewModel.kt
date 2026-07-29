@@ -37,8 +37,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         initialValue = PreferencesRepository.SUMMARY_DISPLAY_NUMBERS,
     )
 
+    val amountsHidden: StateFlow<Boolean> = preferencesRepository.amountsHidden.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = false,
+    )
+
     init {
         loadInvoices()
+    }
+
+    fun toggleAmountsHidden() {
+        viewModelScope.launch {
+            preferencesRepository.setAmountsHidden(!amountsHidden.value)
+        }
     }
 
     fun loadInvoices() {

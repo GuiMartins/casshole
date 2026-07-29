@@ -32,6 +32,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +64,7 @@ import com.casshole.data.local.entity.TransactionEntity
 import androidx.compose.material3.HorizontalDivider
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
 import java.time.YearMonth
@@ -74,6 +77,7 @@ fun DashboardScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
+    val amountsHidden by viewModel.amountsHidden.collectAsState()
     val emailFetchState by EmailFetchCoordinator.state.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -102,6 +106,14 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = viewModel::toggleAmountsHidden) {
+                        Icon(
+                            imageVector = if (amountsHidden) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = stringResource(
+                                if (amountsHidden) R.string.action_show_amounts else R.string.action_hide_amounts
+                            ),
+                        )
+                    }
                     IconButton(onClick = onSendInvoice) {
                         Icon(imageVector = Icons.Filled.Add, contentDescription = stringResource(R.string.action_send_invoice))
                     }
@@ -139,6 +151,7 @@ fun DashboardScreen(
                             invoices = currentState.invoices,
                             nicknames = currentState.nicknames,
                             summaryDisplayMode = summaryDisplayMode,
+                            amountsHidden = amountsHidden,
                             onUpdateCategory = viewModel::updateCategory,
                         )
                     }
@@ -182,6 +195,7 @@ private fun GeneralSummaryContent(
     invoices: List<InvoiceWithTransactions>,
     nicknames: Map<Pair<String, String>, String>,
     summaryDisplayMode: String,
+    amountsHidden: Boolean,
     onUpdateCategory: (Long, String) -> Unit,
 ) {
     val now = remember { YearMonth.now() }
@@ -208,6 +222,7 @@ private fun GeneralSummaryContent(
                 GeneralSummaryCard(
                     currentMonthInvoices = currentMonthInvoices,
                     summaryDisplayMode = summaryDisplayMode,
+                    amountsHidden = amountsHidden,
                     onCategoryClick = { selectedCategory = it },
                 )
             }
@@ -225,6 +240,7 @@ private fun GeneralSummaryContent(
             category = category,
             transactions = categoryTransactions,
             nicknames = nicknames,
+            amountsHidden = amountsHidden,
             onDismiss = { selectedCategory = null },
             onTransactionClick = { transactionBeingEdited = it },
         )
@@ -248,6 +264,7 @@ private fun CategoryTransactionsDialog(
     category: String,
     transactions: List<Pair<TransactionEntity, InvoiceWithTransactions>>,
     nicknames: Map<Pair<String, String>, String>,
+    amountsHidden: Boolean,
     onDismiss: () -> Unit,
     onTransactionClick: (TransactionEntity) -> Unit,
 ) {
@@ -264,7 +281,8 @@ private fun CategoryTransactionsDialog(
         text = {
             Column {
                 Text(
-                    text = stringResource(R.string.dashboard_transactions_and_total, transactions.size, total),
+                    text = stringResource(R.string.dashboard_transactions_and_total_prefix, transactions.size) +
+                        formatCurrency(total, amountsHidden),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp),
@@ -275,6 +293,7 @@ private fun CategoryTransactionsDialog(
                             transaction = transaction,
                             invoice = invoice,
                             nickname = nicknames[invoice.bank to invoice.card],
+                            amountsHidden = amountsHidden,
                             onClick = { onTransactionClick(transaction) },
                         )
                     }
@@ -292,6 +311,7 @@ private fun TransactionSummaryRow(
     transaction: TransactionEntity,
     invoice: InvoiceWithTransactions,
     nickname: String?,
+    amountsHidden: Boolean,
     onClick: () -> Unit,
 ) {
     val cardSuffix = if (invoice.card.isNotBlank()) " ••••${invoice.card}" else ""
@@ -313,7 +333,7 @@ private fun TransactionSummaryRow(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "R$ %.2f".format(transaction.amount),
+                text = formatCurrency(transaction.amount, amountsHidden),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(start = 8.dp),
             )
@@ -331,6 +351,7 @@ private fun TransactionSummaryRow(
 private fun GeneralSummaryCard(
     currentMonthInvoices: List<InvoiceWithTransactions>,
     summaryDisplayMode: String,
+    amountsHidden: Boolean,
     onCategoryClick: (String) -> Unit,
 ) {
     val transactions = currentMonthInvoices.flatMap { it.transactions }
@@ -358,7 +379,7 @@ private fun GeneralSummaryCard(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             Text(
-                text = "R$ %.2f".format(totalAmount),
+                text = formatCurrency(totalAmount, amountsHidden),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -379,6 +400,7 @@ private fun GeneralSummaryCard(
                     CategorySummaryRow(
                         category = category,
                         total = total,
+                        amountsHidden = amountsHidden,
                         onClick = { onCategoryClick(category) },
                     )
                 }
@@ -388,7 +410,7 @@ private fun GeneralSummaryCard(
 }
 
 @Composable
-private fun CategorySummaryRow(category: String, total: Double, onClick: () -> Unit) {
+private fun CategorySummaryRow(category: String, total: Double, amountsHidden: Boolean, onClick: () -> Unit) {
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -420,7 +442,7 @@ private fun CategorySummaryRow(category: String, total: Double, onClick: () -> U
                 )
             }
             Text(
-                text = "R$ %.2f".format(total),
+                text = formatCurrency(total, amountsHidden),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
             )

@@ -15,6 +15,8 @@
     <string name="action_add_password">Adicionar senha</string>
     <string name="action_clear_filters">Limpar filtros</string>
     <string name="action_send_invoice">Enviar fatura</string>
+    <string name="action_hide_amounts">Ocultar valores</string>
+    <string name="action_show_amounts">Mostrar valores</string>
 
     <!-- Estados vazios / erros reutilizados -->
     <string name="empty_no_invoices">Nenhuma fatura enviada ainda</string>
@@ -25,7 +27,7 @@
     <string name="dashboard_no_invoices_for_month">Nenhuma fatura de %1$s enviada ainda</string>
     <string name="dashboard_summary_title">Resumo geral</string>
     <string name="dashboard_current_month_label">Mês atual (%1$s)</string>
-    <string name="dashboard_transactions_and_total">%1$d transações • R$ %2$.2f</string>
+    <string name="dashboard_transactions_and_total_prefix">"%1$d transações • "</string>
 
     <!-- EditCategoryDialog -->
     <string name="edit_category_title">Categoria de \"%1$s\"</string>
@@ -45,13 +47,13 @@
     <!-- Comparação -->
     <string name="comparison_title">Comparar meses</string>
     <string name="comparison_variation">Variação do primeiro ao último mês selecionado: %1$s%2$.1f%%</string>
-    <string name="comparison_month_total">%1$02d/%2$d — Total: R$ %3$.2f</string>
+    <string name="comparison_month_total_prefix">"%1$02d/%2$d — Total: "</string>
     <string name="error_load_periods">Erro ao carregar períodos</string>
     <string name="error_select_month">Selecione ao menos um mês</string>
     <string name="error_compare_months">Erro ao comparar meses</string>
 
     <!-- Detalhe da fatura -->
-    <string name="invoice_detail_total">%1$d/%2$d — Total: R$ %3$.2f</string>
+    <string name="invoice_detail_total_prefix">"%1$d/%2$d — Total: "</string>
     <string name="invoice_detail_by_category">Por categoria</string>
     <string name="invoice_detail_search_hint">Buscar por descrição ou cidade</string>
     <string name="invoice_detail_transactions_count_filtered">Transações (%1$d de %2$d)</string>
