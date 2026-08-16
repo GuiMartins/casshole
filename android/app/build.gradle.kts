@@ -4,6 +4,20 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// The published version is decided by the tag the release workflow computes,
+// which passes it back in as -PversionName (see .github/workflows/release.yml)
+// - that keeps the number Settings > Sobre shows in sync with the GitHub
+// release the APK came from. A local build has no tag and says so ("-dev"),
+// instead of pretending to be some released version.
+fun versionCodeFrom(versionName: String): Int {
+    val parts = versionName.substringBefore("-").split(".").mapNotNull { it.toIntOrNull() }
+    if (parts.size < 3) return 1
+    // Android rejects 0 - the dev fallback ("0.0.0-dev") would land there.
+    return (parts[0] * 10_000 + parts[1] * 100 + parts[2]).coerceAtLeast(1)
+}
+
+val appVersionName = (findProperty("versionName") as String?)?.removePrefix("v") ?: "0.0.0-dev"
+
 android {
     namespace = "com.casshole"
     compileSdk = 34
@@ -12,8 +26,8 @@ android {
         applicationId = "com.casshole"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = versionCodeFrom(appVersionName)
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -54,6 +68,9 @@ android {
 
     buildFeatures {
         compose = true
+        // Off by default since AGP 8 - needed for BuildConfig.VERSION_NAME,
+        // shown in Settings > Sobre.
+        buildConfig = true
     }
 
     composeOptions {

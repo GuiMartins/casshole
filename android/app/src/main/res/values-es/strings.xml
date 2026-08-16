@@ -7,12 +7,14 @@
     <string name="card_nickname_dialog_title">Apodo de la tarjeta</string>
     <string name="card_nickname_label">Apodo (déjalo en blanco para quitarlo)</string>
     <string name="card_nickname_edit_cd">Editar apodo de la tarjeta</string>
-    <string name="action_close">Cerrar</string>
     <string name="action_compare">Comparar</string>
+    <string name="action_close">Cerrar</string>
     <string name="action_choose_file">Elegir archivo</string>
     <string name="action_add_password">Agregar contraseña</string>
     <string name="action_clear_filters">Borrar filtros</string>
     <string name="action_send_invoice">Enviar factura</string>
+    <string name="action_hide_amounts">Ocultar valores</string>
+    <string name="action_show_amounts">Mostrar valores</string>
 
     <string name="empty_no_invoices">Todavía no se envió ninguna factura</string>
     <string name="error_load_invoices">Error al cargar las facturas</string>
@@ -21,9 +23,11 @@
     <string name="dashboard_no_invoices_for_month">Todavía no hay factura de %1$s</string>
     <string name="dashboard_summary_title">Resumen general</string>
     <string name="dashboard_current_month_label">Mes actual (%1$s)</string>
-    <string name="dashboard_transactions_and_total">%1$d transacciones • R$ %2$.2f</string>
+    <string name="dashboard_transactions_and_total_prefix">"%1$d transacciones • "</string>
 
     <string name="edit_category_title">Categoría de \"%1$s\"</string>
+    <string name="edit_category_apply_to_past">Corregir también las facturas anteriores (%1$d transacciones)</string>
+    <string name="edit_category_future_note">La app aplica esta categoría automáticamente en las próximas facturas con la misma descripción.</string>
 
     <string name="nav_home_cd">Inicio</string>
     <string name="nav_invoices_by_card">Facturas por tarjeta</string>
@@ -33,26 +37,52 @@
     <string name="category_overrides_description">Cada vez que corriges la categoría de una transacción, la app guarda esta descripción y aplica automáticamente la misma categoría en las próximas facturas del mismo comercio.</string>
     <string name="category_overrides_empty">Todavía no hay correcciones manuales</string>
     <string name="category_overrides_remove_cd">Quitar categorización manual</string>
+    <string name="category_overrides_transactions_count">%1$d transacciones con esta descripción</string>
+    <string name="category_overrides_edit_note">Cambiar la categoría aquí corrige las %1$d transacciones ya importadas con esta descripción, además de las próximas facturas.</string>
     <string name="error_load_category_overrides">Error al cargar las categorizaciones</string>
 
     <string name="comparison_title">Comparar meses</string>
+    <string name="comparison_select_periods">Períodos</string>
+    <string name="comparison_select_all">Todos</string>
+    <string name="comparison_clear_selection">Limpiar</string>
+    <string name="comparison_select_hint">Elige los meses que quieres comparar.</string>
+    <string name="comparison_stat_total">Total del período</string>
+    <string name="comparison_stat_average">Promedio por mes</string>
+    <string name="comparison_stat_highest">Mes más alto</string>
+    <string name="comparison_stat_lowest">Mes más bajo</string>
+    <string name="comparison_by_category_title">Comparación por categoría</string>
+    <string name="comparison_by_category_description">Cada categoría de %1$s a %2$s</string>
+    <string name="comparison_category_percentage">%1$s%2$.1f%%</string>
+    <string name="comparison_category_new">nuevo</string>
+    <string name="comparison_category_stopped">sin gasto</string>
+    <string name="comparison_category_stable">estable</string>
+    <string name="comparison_chart_legend_actual">Facturas leídas</string>
+    <string name="comparison_chart_legend_projected">Proyectado</string>
+    <string name="comparison_projection_title">Proyección de cuotas futuras</string>
+    <string name="comparison_projection_disclaimer">Estimación calculada a partir de las cuotas aún pendientes en las facturas ya importadas. No es una factura leída — el valor real puede cambiar (compras nuevas, tipo de cambio, intereses).</string>
+    <string name="comparison_projection_total_prefix">"Ya comprometido: "</string>
+    <string name="comparison_projection_month">"%1$02d/%2$d (proyectado) • %3$d cuotas"</string>
     <string name="comparison_variation">Variación del primer al último mes seleccionado: %1$s%2$.1f%%</string>
-    <string name="comparison_month_total">%1$02d/%2$d — Total: R$ %3$.2f</string>
+    <string name="comparison_month_total_prefix">"%1$02d/%2$d — Total: "</string>
     <string name="error_load_periods">Error al cargar los períodos</string>
-    <string name="error_select_month">Selecciona al menos un mes</string>
     <string name="error_compare_months">Error al comparar los meses</string>
 
-    <string name="invoice_detail_total">%1$d/%2$d — Total: R$ %3$.2f</string>
+    <string name="invoice_detail_total_prefix">"%1$d/%2$d — Total: "</string>
     <string name="invoice_detail_by_category">Por categoría</string>
     <string name="invoice_detail_search_hint">Buscar por descripción o ciudad</string>
     <string name="invoice_detail_transactions_count_filtered">Transacciones (%1$d de %2$d)</string>
     <string name="invoice_detail_transactions_count">Transacciones (%1$d)</string>
-    <string name="invoice_detail_installment">" • Cuota %1$d/%2$d"</string>
     <string name="error_invalid_invoice_id">ID de factura inválido</string>
     <string name="error_invoice_not_found">Factura no encontrada</string>
     <string name="error_load_invoice">Error al cargar la factura</string>
 
     <string name="invoices_by_card_transactions_count">%1$d transacciones</string>
+    <string name="invoices_by_card_invoices_count">%1$d facturas</string>
+    <string name="invoices_by_card_latest_prefix">"Última factura (%1$02d/%2$d): "</string>
+    <string name="invoices_by_card_expand_cd">Ver las facturas de la tarjeta</string>
+    <string name="invoices_by_card_collapse_cd">Ocultar las facturas de la tarjeta</string>
+    <string name="installment_badge_cd">Cuota %1$d de %2$d</string>
+    <string name="installment_badge_total_only_cd">Compra en %1$d cuotas</string>
 
     <string name="passwords_title">Contraseñas predeterminadas</string>
     <string name="passwords_description">Registra contraseñas (ej: dígitos de tu documento) para que la app intente abrir facturas protegidas automáticamente, sin tener que escribirla cada vez.</string>
@@ -80,6 +110,9 @@
     <string name="settings_passwords_subtitle">Intentar abrir facturas protegidas automáticamente</string>
     <string name="settings_categorization">Categorización</string>
     <string name="settings_category_overrides_subtitle">Correcciones que la app ya aplica automáticamente</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_version_title">Versión de la app</string>
+    <string name="settings_version_value">%1$s (build %2$d)</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Automático (idioma del sistema)</string>
     <string name="language_pt" translatable="false">Português</string>

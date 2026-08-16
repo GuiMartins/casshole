@@ -101,6 +101,70 @@ class SummaryAggregatorTest {
     }
 
     @Test
+    fun `category comparison lines every category up across the compared periods`() {
+        val comparison = SummaryAggregator.compareMonths(
+            listOf(
+                Triple(6, 2026, listOf(transaction("Compras", 100.0), transaction("Alimentação", 80.0))),
+                Triple(7, 2026, listOf(transaction("Compras", 150.0))),
+            )
+        )
+
+        val compras = comparison.byCategory.first { it.category == "Compras" }
+        assertEquals(listOf(100.0, 150.0), compras.totalsByPeriod)
+        assertEquals(250.0, compras.total, 0.0)
+        assertEquals(125.0, compras.average, 0.0)
+        assertEquals(50.0, compras.change, 0.0)
+        assertEquals(50.0, compras.percentageChange!!, 0.0)
+
+        // Absent from the last period - a drop to zero, not a missing data point.
+        val alimentacao = comparison.byCategory.first { it.category == "Alimentação" }
+        assertEquals(listOf(80.0, 0.0), alimentacao.totalsByPeriod)
+        assertEquals(-100.0, alimentacao.percentageChange!!, 0.0)
+    }
+
+    @Test
+    fun `category comparison has no percentage when the category is new in the last period`() {
+        val comparison = SummaryAggregator.compareMonths(
+            listOf(
+                Triple(6, 2026, listOf(transaction("Compras", 100.0))),
+                Triple(7, 2026, listOf(transaction("Compras", 100.0), transaction("Pets", 60.0))),
+            )
+        )
+
+        val pets = comparison.byCategory.first { it.category == "Pets" }
+        assertNull(pets.percentageChange)
+        assertEquals(60.0, pets.change, 0.0)
+    }
+
+    @Test
+    fun `category comparison is sorted by weight in the whole range`() {
+        val comparison = SummaryAggregator.compareMonths(
+            listOf(
+                Triple(6, 2026, listOf(transaction("Compras", 10.0), transaction("Saúde", 200.0))),
+                Triple(7, 2026, listOf(transaction("Compras", 20.0), transaction("Saúde", 5.0))),
+            )
+        )
+
+        assertEquals(listOf("Saúde", "Compras"), comparison.byCategory.map { it.category })
+    }
+
+    @Test
+    fun `range stats cover total, average and the extreme months`() {
+        val comparison = SummaryAggregator.compareMonths(
+            listOf(
+                Triple(5, 2026, listOf(transaction("Compras", 100.0))),
+                Triple(6, 2026, listOf(transaction("Compras", 300.0))),
+                Triple(7, 2026, listOf(transaction("Compras", 200.0))),
+            )
+        )
+
+        assertEquals(600.0, comparison.total, 0.0)
+        assertEquals(200.0, comparison.average, 0.0)
+        assertEquals(6, comparison.highest!!.referenceMonth)
+        assertEquals(5, comparison.lowest!!.referenceMonth)
+    }
+
+    @Test
     fun `percentage change is null when the first period total is zero`() {
         val comparison = SummaryAggregator.compareMonths(
             listOf(

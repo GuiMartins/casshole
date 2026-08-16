@@ -6,11 +6,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.casshole.R
 import com.casshole.categorizer.AVAILABLE_CATEGORIES
+import com.casshole.data.PreferencesRepository
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.InvoiceRepository
+import com.casshole.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CategoryTotal(val category: String, val total: Double)
@@ -31,14 +35,24 @@ class InvoiceDetailViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = InvoiceRepository(application)
+    private val preferencesRepository = PreferencesRepository(application)
 
     private val _state = MutableStateFlow<InvoiceDetailState>(InvoiceDetailState.Loading)
     val state: StateFlow<InvoiceDetailState> = _state.asStateFlow()
 
     val availableCategories: StateFlow<List<String>> = MutableStateFlow(AVAILABLE_CATEGORIES)
 
+    val amountsHidden: StateFlow<Boolean> = preferencesRepository.amountsHidden.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = false,
+    )
+
     private val _editError = MutableStateFlow<String?>(null)
     val editError: StateFlow<String?> = _editError.asStateFlow()
+
+    private val _retroactiveCount = MutableStateFlow(1)
+    val retroactiveCount: StateFlow<Int> = _retroactiveCount.asStateFlow()
 
     init {
         load()
@@ -68,10 +82,21 @@ class InvoiceDetailViewModel(
         }
     }
 
-    fun updateCategory(transactionId: Long, newCategory: String) {
+    /**
+     * Counts how many stored transactions share this description before the
+     * edit dialog opens, so it can offer to fix all of them at once.
+     */
+    fun prepareCategoryEdit(transaction: TransactionEntity) {
+        _retroactiveCount.value = 1
+        viewModelScope.launch {
+            _retroactiveCount.value = repository.countTransactionsWithDescription(transaction.description)
+        }
+    }
+
+    fun updateCategory(transactionId: Long, newCategory: String, applyToPast: Boolean) {
         viewModelScope.launch {
             try {
-                repository.updateCategory(transactionId, newCategory)
+                repository.updateCategory(transactionId, newCategory, applyToPast)
                 _editError.value = null
                 load()
             } catch (e: Exception) {

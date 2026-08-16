@@ -4,12 +4,17 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.casshole.R
+import com.casshole.data.PreferencesRepository
+import com.casshole.data.local.InstallmentProjector
 import com.casshole.data.local.MonthlyComparison
 import com.casshole.data.local.InvoiceRepository
+import com.casshole.data.local.ProjectedMonth
 import com.casshole.data.local.SummaryAggregator
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class MonthYear(val month: Int, val year: Int) : Comparable<MonthYear> {
@@ -35,6 +40,13 @@ sealed class ComparisonUiState {
 class ComparisonViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = InvoiceRepository(application)
+    private val preferencesRepository = PreferencesRepository(application)
+
+    val amountsHidden: StateFlow<Boolean> = preferencesRepository.amountsHidden.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = false,
+    )
 
     private val _periodsState = MutableStateFlow<PeriodsState>(PeriodsState.Loading)
     val periodsState: StateFlow<PeriodsState> = _periodsState.asStateFlow()
@@ -44,6 +56,10 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
 
     private val _comparisonState = MutableStateFlow<ComparisonUiState>(ComparisonUiState.Idle)
     val comparisonState: StateFlow<ComparisonUiState> = _comparisonState.asStateFlow()
+
+    /** Future installments already committed by the imported invoices - an estimate, never a parsed invoice. */
+    private val _projection = MutableStateFlow<List<ProjectedMonth>>(emptyList())
+    val projection: StateFlow<List<ProjectedMonth>> = _projection.asStateFlow()
 
     init {
         loadAvailablePeriods()
@@ -59,7 +75,9 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
                     .distinct()
                     .sorted()
                 _periodsState.value = PeriodsState.Available(periods)
+                _projection.value = InstallmentProjector.project(invoices)
                 _selected.value = periods.takeLast(3).toSet()
+                compare()
             } catch (e: Exception) {
                 _periodsState.value = PeriodsState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_periods))
             }
@@ -72,12 +90,28 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
         } else {
             _selected.value + period
         }
+        compare()
     }
 
+    fun selectAll() {
+        _selected.value = (_periodsState.value as? PeriodsState.Available)?.periods?.toSet() ?: emptySet()
+        compare()
+    }
+
+    fun clearSelection() {
+        _selected.value = emptySet()
+        compare()
+    }
+
+    /**
+     * Runs on every selection change instead of behind a "Compare" button:
+     * the data is already local, so waiting for an extra tap only made the
+     * screen feel like a form to fill in.
+     */
     fun compare() {
         val periods = _selected.value.sorted()
         if (periods.isEmpty()) {
-            _comparisonState.value = ComparisonUiState.Error(getApplication<Application>().getString(R.string.error_select_month))
+            _comparisonState.value = ComparisonUiState.Idle
             return
         }
 

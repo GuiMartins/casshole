@@ -11,9 +11,29 @@ data class MonthlySummary(
     val byCategory: List<CategorySummary>,
 )
 
+/**
+ * One category tracked across every compared period. [totalsByPeriod] is
+ * aligned index-by-index with [MonthlyComparison.months] and carries 0.0 for
+ * periods where the category didn't show up at all, so the UI can render a
+ * row per category without re-scanning the summaries.
+ */
+data class CategoryComparison(
+    val category: String,
+    val totalsByPeriod: List<Double>,
+    val total: Double,
+    val average: Double,
+    val change: Double,
+    val percentageChange: Double?,
+)
+
 data class MonthlyComparison(
     val months: List<MonthlySummary>,
     val totalPercentageChange: Double?,
+    val byCategory: List<CategoryComparison> = emptyList(),
+    val total: Double = 0.0,
+    val average: Double = 0.0,
+    val highest: MonthlySummary? = null,
+    val lowest: MonthlySummary? = null,
 )
 
 object SummaryAggregator {
@@ -55,7 +75,44 @@ object SummaryAggregator {
             null
         }
 
-        return MonthlyComparison(months = summaries, totalPercentageChange = change)
+        return MonthlyComparison(
+            months = summaries,
+            totalPercentageChange = change,
+            byCategory = compareCategories(summaries),
+            total = round(summaries.sumOf { it.totalSpent }),
+            average = if (summaries.isEmpty()) 0.0 else round(summaries.sumOf { it.totalSpent } / summaries.size),
+            highest = summaries.maxByOrNull { it.totalSpent },
+            lowest = summaries.minByOrNull { it.totalSpent },
+        )
+    }
+
+    /**
+     * Cross-period view of the same data: one row per category, ordered by how
+     * much it weighs on the whole comparison. A category missing from a period
+     * counts as 0.0 there - that's a real drop, not a gap.
+     */
+    fun compareCategories(summaries: List<MonthlySummary>): List<CategoryComparison> {
+        if (summaries.isEmpty()) return emptyList()
+
+        val categories = summaries.flatMap { it.byCategory.map { category -> category.category } }.distinct()
+
+        return categories.map { category ->
+            val totalsByPeriod = summaries.map { summary ->
+                summary.byCategory.find { it.category == category }?.total ?: 0.0
+            }
+            val first = totalsByPeriod.first()
+            val last = totalsByPeriod.last()
+            CategoryComparison(
+                category = category,
+                totalsByPeriod = totalsByPeriod,
+                total = round(totalsByPeriod.sum()),
+                average = round(totalsByPeriod.sum() / totalsByPeriod.size),
+                change = round(last - first),
+                // Undefined when the category simply didn't exist in the first
+                // period: "+infinity%" says less than the absolute change does.
+                percentageChange = if (summaries.size >= 2 && first > 0) round((last - first) / first * 100) else null,
+            )
+        }.sortedByDescending { it.total }
     }
 
     private fun round(value: Double): Double = Math.round(value * 100) / 100.0

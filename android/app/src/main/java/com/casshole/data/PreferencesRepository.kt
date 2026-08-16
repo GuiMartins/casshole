@@ -23,6 +23,7 @@ class PreferencesRepository(private val context: Context) {
         const val SUMMARY_DISPLAY_PIE_CHART = "pie_chart"
 
         private val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
+        private val AMOUNTS_HIDDEN_KEY = booleanPreferencesKey("amounts_hidden")
     }
 
     val preferredTheme: Flow<String> =
@@ -44,5 +45,14 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setOnboardingCompleted(value: Boolean) {
         context.dataStore.edit { it[ONBOARDING_COMPLETED_KEY] = value }
+    }
+
+    /** Global "hide amounts" toggle (the eye icon, like banking apps) - one preference shared
+     * across every screen that shows money, toggled from the Dashboard's top bar. */
+    val amountsHidden: Flow<Boolean> =
+        context.dataStore.data.map { it[AMOUNTS_HIDDEN_KEY] ?: false }
+
+    suspend fun setAmountsHidden(value: Boolean) {
+        context.dataStore.edit { it[AMOUNTS_HIDDEN_KEY] = value }
     }
 }

@@ -4,11 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.casshole.R
+import com.casshole.data.PreferencesRepository
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.InvoiceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed class InvoicesByCardState {
@@ -23,9 +26,16 @@ sealed class InvoicesByCardState {
 class InvoicesByCardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = InvoiceRepository(application)
+    private val preferencesRepository = PreferencesRepository(application)
 
     private val _state = MutableStateFlow<InvoicesByCardState>(InvoicesByCardState.Loading)
     val state: StateFlow<InvoicesByCardState> = _state.asStateFlow()
+
+    val amountsHidden: StateFlow<Boolean> = preferencesRepository.amountsHidden.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = false,
+    )
 
     init {
         loadInvoices()

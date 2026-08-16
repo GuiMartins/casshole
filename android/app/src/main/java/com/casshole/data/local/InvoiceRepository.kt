@@ -60,17 +60,60 @@ class InvoiceRepository(
     }
 
     /**
+     * How many stored transactions share a description - i.e. how many rows a
+     * retroactive correction would touch. Matching happens in Kotlin, not
+     * SQL: SQLite's UPPER() only folds ASCII, so "Açaí" would never match the
+     * normalized "AÇAÍ" we store in the overrides table.
+     */
+    suspend fun countTransactionsWithDescription(description: String): Int =
+        countTransactionsByDescription()[normalizeDescription(description)] ?: 0
+
+    /** Same counting, for every normalized description at once - one pass for the whole overrides list. */
+    suspend fun countTransactionsByDescription(): Map<String, Int> =
+        transactionDao.listAll().groupingBy { normalizeDescription(it.description) }.eachCount()
+
+    /**
      * Updates a transaction's category and "remembers" that correction: next
      * time a transaction with the same description shows up in a new
      * invoice, it already comes categorized the same way automatically.
+     *
+     * With [applyToPast], the correction is also retroactive - every
+     * transaction already stored with the same description (past invoices
+     * included) is recategorized too, instead of only the edited one.
      */
-    suspend fun updateCategory(transactionId: Long, category: String) {
-        transactionDao.updateCategory(transactionId, category)
+    suspend fun updateCategory(transactionId: Long, category: String, applyToPast: Boolean = false) {
         val transaction = transactionDao.findById(transactionId) ?: return
-        categoryOverrideDao.save(
-            CategoryOverrideEntity(description = normalizeDescription(transaction.description), category = category)
-        )
+        if (applyToPast) {
+            applyCategoryToDescription(transaction.description, category)
+        } else {
+            transactionDao.updateCategory(transactionId, category)
+            categoryOverrideDao.save(
+                CategoryOverrideEntity(description = normalizeDescription(transaction.description), category = category)
+            )
+        }
     }
+
+    /**
+     * Recategorizes every stored transaction with this description and stores
+     * the override, so future invoices follow it too. Returns how many
+     * transactions were updated.
+     */
+    suspend fun applyCategoryToDescription(description: String, category: String): Int {
+        val normalized = normalizeDescription(description)
+        val ids = transactionIdsWithDescription(normalized)
+        db.withTransaction {
+            // Chunked because SQLite caps the number of bound variables in a
+            // single statement (999 on older Android versions).
+            ids.chunked(500).forEach { chunk -> transactionDao.updateCategoryForIds(chunk, category) }
+            categoryOverrideDao.save(CategoryOverrideEntity(description = normalized, category = category))
+        }
+        return ids.size
+    }
+
+    private suspend fun transactionIdsWithDescription(normalizedDescription: String): List<Long> =
+        transactionDao.listAll()
+            .filter { normalizeDescription(it.description) == normalizedDescription }
+            .map { it.id }
 
     suspend fun listDefaultPasswords(): List<DefaultPasswordEntity> = defaultPasswordDao.list()
 

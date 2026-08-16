@@ -59,7 +59,9 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        # -PversionName stamps the tag just computed into the APK, so the
+        # version shown in Settings > Sobre matches the GitHub release.
+        run: ./gradlew assembleRelease -PversionName=${{ steps.tag_version.outputs.new_version }}
 
       - name: Delete decoded keystore
         if: always()

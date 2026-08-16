@@ -38,12 +38,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.R
 import com.casshole.data.local.entity.TransactionEntity
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.InstallmentBadge
+import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
 
@@ -51,6 +54,8 @@ import com.casshole.ui.theme.categoryVisual
 fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val categories by viewModel.availableCategories.collectAsState()
+    val amountsHidden by viewModel.amountsHidden.collectAsState()
+    val retroactiveCount by viewModel.retroactiveCount.collectAsState()
 
     var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }
 
@@ -65,7 +70,11 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
         )
         is InvoiceDetailState.Loaded -> InvoiceDetailContent(
             state = currentState,
-            onTransactionClick = { transactionBeingEdited = it },
+            amountsHidden = amountsHidden,
+            onTransactionClick = {
+                viewModel.prepareCategoryEdit(it)
+                transactionBeingEdited = it
+            },
         )
     }
 
@@ -73,8 +82,9 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
         EditCategoryDialog(
             transaction = transaction,
             categories = categories,
-            onConfirm = { newCategory ->
-                viewModel.updateCategory(transaction.id, newCategory)
+            retroactiveCount = retroactiveCount,
+            onConfirm = { newCategory, applyToPast ->
+                viewModel.updateCategory(transaction.id, newCategory, applyToPast)
                 transactionBeingEdited = null
             },
             onCancel = { transactionBeingEdited = null },
@@ -86,6 +96,7 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
 @Composable
 private fun InvoiceDetailContent(
     state: InvoiceDetailState.Loaded,
+    amountsHidden: Boolean,
     onTransactionClick: (TransactionEntity) -> Unit,
 ) {
     val invoice = state.invoice
@@ -133,7 +144,8 @@ private fun InvoiceDetailContent(
                     )
                 }
                 Text(
-                    text = stringResource(R.string.invoice_detail_total, invoice.referenceMonth, invoice.referenceYear, totalSpent),
+                    text = stringResource(R.string.invoice_detail_total_prefix, invoice.referenceMonth, invoice.referenceYear) +
+                        formatCurrency(totalSpent, amountsHidden),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
                 )
@@ -155,7 +167,7 @@ private fun InvoiceDetailContent(
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
-                        Text("R$ %.2f".format(item.total), style = MaterialTheme.typography.bodyMedium)
+                        Text(formatCurrency(item.total, amountsHidden), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
@@ -276,19 +288,20 @@ private fun InvoiceDetailContent(
                             cardholder = cardholder,
                             count = cardholderTransactions.size,
                             total = cardholderTransactions.sumOf { it.amount },
+                            amountsHidden = amountsHidden,
                             expanded = isExpanded,
                             onClick = { expanded[cardholder] = !isExpanded },
                         )
                     }
                     if (isExpanded) {
                         items(cardholderTransactions) { transaction ->
-                            TransactionRow(transaction, onClick = { onTransactionClick(transaction) })
+                            TransactionRow(transaction, amountsHidden = amountsHidden, onClick = { onTransactionClick(transaction) })
                         }
                     }
                 }
             } else {
                 items(filteredTransactions) { transaction ->
-                    TransactionRow(transaction, onClick = { onTransactionClick(transaction) })
+                    TransactionRow(transaction, amountsHidden = amountsHidden, onClick = { onTransactionClick(transaction) })
                 }
             }
         }
@@ -300,6 +313,7 @@ private fun CardholderHeader(
     cardholder: String,
     count: Int,
     total: Double,
+    amountsHidden: Boolean,
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
@@ -324,14 +338,14 @@ private fun CardholderHeader(
             )
         }
         Text(
-            text = "R$ %.2f".format(total),
+            text = formatCurrency(total, amountsHidden),
             style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
 
 @Composable
-private fun TransactionRow(transaction: TransactionEntity, onClick: () -> Unit) {
+private fun TransactionRow(transaction: TransactionEntity, amountsHidden: Boolean, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -360,21 +374,33 @@ private fun TransactionRow(transaction: TransactionEntity, onClick: () -> Unit) 
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = "R$ %.2f".format(transaction.amount),
+                        text = formatCurrency(transaction.amount, amountsHidden),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
-                val installmentText = if (transaction.currentInstallment != null && transaction.totalInstallments != null) {
-                    stringResource(R.string.invoice_detail_installment, transaction.currentInstallment, transaction.totalInstallments)
-                } else ""
                 val cityText = if (transaction.city.isNotBlank()) " • ${transaction.city}" else ""
-                Text(
-                    text = "${transaction.date} • ${transaction.category}$installmentText$cityText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    InstallmentBadge(
+                        currentInstallment = transaction.currentInstallment,
+                        totalInstallments = transaction.totalInstallments,
+                        modifier = Modifier.padding(end = 6.dp),
+                    )
+                    Text(
+                        text = "${transaction.date} • ${transaction.category}$cityText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

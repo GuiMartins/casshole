@@ -122,7 +122,8 @@ android/app/src/main/java/com/casshole/
       AppDatabase.kt, DatabaseProvider.kt   Room + singleton + Migrations
       InvoiceRepository.kt       fachada única sobre os DAOs; regra de negócio
       InvoiceWithTransactions.kt @Relation Invoice + List<Transaction>
-      SummaryAggregator.kt       agregação pra Dashboard/Comparação
+      SummaryAggregator.kt       agregação pra Dashboard/Comparação (inclui por categoria)
+      InstallmentProjector.kt    projeção das parcelas em aberto (não é fatura lida)
       entity/                    InvoiceEntity, TransactionEntity, DefaultPasswordEntity,
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
@@ -141,6 +142,7 @@ android/app/src/main/java/com/casshole/
       AdaptiveScreen.kt           container responsivo (ver decisões abaixo)
       FloatingNavigationBar.kt    nav bar flutuante persistente
       EditCategoryDialog.kt       diálogo de categoria (usado em 2 telas)
+      InstallmentBadge.kt         selo "3/10" de compra parcelada
       PasswordFieldWithReveal.kt  campo de senha com revelar (senhas PDF + e-mail)
     dashboard/                    tela inicial: card "Resumo geral"
     invoicesbycard/               quebra por banco/cartão/mês
@@ -156,6 +158,105 @@ android/app/src/main/java/com/casshole/
 
 ## Decisões de arquitetura (não reverter sem motivo)
 
+- **Transição de navegação: slide + fade, não o cross-fade padrão do
+  Navigation Compose** (2026-07-29, feedback direto do usuário: "a
+  transição entre as páginas faz um fade horrível"). Configurado uma vez
+  em `AppNavigation.kt` via os parâmetros `enterTransition`/`exitTransition`/
+  `popEnterTransition`/`popExitTransition` do `NavHost` — se aplica a
+  **todas** as rotas automaticamente, não precisa repetir por `composable()`.
+  `slideInHorizontally`/`slideOutHorizontally` (deslocamento de 1/4 da
+  largura) + `fadeIn`/`fadeOut`, 220ms. As direções de push (`enter`/`exit`)
+  e pop/voltar (`popEnter`/`popExit`) são espelhadas corretamente: avançar
+  desliza da direita, voltar desliza da esquerda.
+- **Ocultar valores (ícone de olho, 2026-07-29)** — pedido explícito do
+  usuário ("aquele olhinho que costuma ter apps de banco"). Preferência
+  global única (`PreferencesRepository.amountsHidden`, persistida em
+  DataStore), com toggle só na `TopAppBar` do Dashboard — como é uma
+  preferência global e não por-tela, alternar em qualquer lugar reflete em
+  todas as telas que mostram dinheiro (Dashboard, Faturas por cartão,
+  Detalhe da fatura, Comparação). Helper único
+  `ui/components/CurrencyFormat.kt::formatCurrency(amount, hidden)` — troca
+  todo `"R$ %.2f".format(...)` espalhado pelo código; quando `hidden`,
+  mostra `"R$ ••••"` em vez do valor.
+  - **Não mascara tudo que é "valor"** — só quantias em R$. O gráfico de
+    pizza (Dashboard) e as barras do gráfico de comparação continuam
+    proporcionais aos valores reais mesmo com a opção ativada (só o
+    *label numérico* do gráfico de barras é mascarado) — vazamento de
+    magnitude relativa foi considerado aceitável, diferente do valor
+    exato em R$. O percentual de variação da Comparação também não é
+    mascarado (não é uma quantia em dinheiro).
+  - **Strings de recurso compostas** (ex: `"%1$d/%2$d — Total: R$ %3$.2f"`)
+    não dá pra mascarar parcialmente — quebradas em duas: um recurso só
+    com o prefixo não-monetário (`invoice_detail_total_prefix`,
+    `comparison_month_total_prefix`, `dashboard_transactions_and_total_prefix`)
+    concatenado em Kotlin com `formatCurrency(...)`. **Cuidado real**: o
+    prefixo termina em espaço antes do valor (`"...Total: "`) — sem aspas
+    duplas envolvendo a string no XML, o Android remove esse espaço à
+    direita (vale pra todo prefixo desse tipo — os novos
+    `comparison_projection_total_prefix` e
+    `invoices_by_card_latest_prefix` seguem a mesma regra). Descoberto ao vivo
+    no emulador (`"Total:R$ ••••"` sem espaço) e corrigido envolvendo as 3
+    strings novas em aspas duplas nos 3 idiomas.
+- **Correção de categoria é retroativa (2026-08-16, pedido explícito do
+  usuário)** — antes, corrigir a categoria de uma transação só arrumava
+  aquela linha e as faturas *futuras* (via override); as faturas passadas
+  com o mesmo estabelecimento continuavam erradas pra sempre. Agora
+  `InvoiceRepository.updateCategory(id, categoria, applyToPast)` também
+  recategoriza tudo que já está no banco com a mesma descrição
+  normalizada, e a tela "Categorização manual" virou editável (trocar a
+  categoria de uma regra aplica em todas as transações já importadas,
+  via `applyCategoryToDescription`). No `EditCategoryDialog` a opção vem
+  marcada por padrão e só aparece quando existe mais de uma transação com
+  aquela descrição.
+  - **O casamento de descrições é feito em Kotlin, não em SQL.** O
+    `UPPER()` do SQLite só dobra ASCII: "Açaí" nunca bateria com o
+    "AÇAÍ" que o `normalizeDescription` grava em `categoria_overrides`.
+    `transactionDao.listAll()` + filtro em Kotlin é o caminho correto
+    aqui (o volume é de um app pessoal, não de um backend).
+  - O `UPDATE ... WHERE id IN (:ids)` é fatiado em blocos de 500 —
+    SQLite limita a quantidade de variáveis de um statement (999 em
+    versões mais antigas do Android).
+- **Projeção de parcelas futuras (`InstallmentProjector`, 2026-08-16)** —
+  estimativa do que as faturas futuras já devem, a partir das parcelas em
+  aberto ("Parcela 3/10" ⇒ faltam 7 cobranças iguais). Duas regras que
+  evitam contagem dupla: só a fatura **mais nova de cada banco+cartão**
+  alimenta a projeção (as antigas trazem a mesma compra numa parcela
+  anterior), e meses que já têm fatura importada são pulados (ali o valor
+  real é conhecido, não estimado). Aparece na tela de Comparação sempre
+  rotulada como projeção — card com aviso explícito ("não é uma fatura
+  lida") e barras vazadas/tracejadas no gráfico, com legenda separando
+  "Faturas lidas" de "Projetado". Nunca apresentar esses valores como
+  fatura.
+- **Parcelas ficam visíveis como selo** (`ui/components/InstallmentBadge`),
+  não só como texto na linha cinza de detalhes — usado no detalhe da
+  fatura, no diálogo de categoria da Dashboard e nos itens da projeção.
+  Substituiu a string `invoice_detail_installment` (removida).
+- **Comparação: seleção por chips com recálculo automático.** Não existe
+  mais botão "Comparar" na tela (a `action_compare` sobrevive só como
+  rótulo da aba na `FloatingNavigationBar`): os dados são locais e
+  baratos de agregar, então cada toque num período já recalcula. Além do
+  gráfico, a tela mostra estatísticas do intervalo (total, média/mês,
+  maior e menor mês) e uma **comparação por categoria**
+  (`SummaryAggregator.compareCategories`), com o valor do primeiro e do
+  último período e a variação. Categoria ausente num período conta 0,0
+  (queda real, não buraco de dado); quando o primeiro período é 0, não
+  existe percentual — a UI mostra "novo"/"zerou" em vez de dividir por
+  zero.
+- **`versionName` vem da tag da release, não fica hardcoded** — o
+  `release.yml` passa `-PversionName=<tag calculada>` pro
+  `assembleRelease`, e o `build.gradle.kts` deriva o `versionCode` do
+  semver (`major*10000 + minor*100 + patch`, mínimo 1). Build local não
+  tem tag e assume `0.0.0-dev` de propósito: é honesto sobre não ser
+  release nenhuma. A versão aparece em Configurações > Sobre via
+  `BuildConfig.VERSION_NAME` — o que exigiu `buildFeatures { buildConfig
+  = true }` (desligado por padrão desde o AGP 8).
+- **"Faturas por cartão" é uma carteira: cartão fechado por padrão**
+  (2026-08-16, pedido explícito do usuário) — cada banco+cartão é um
+  tile com gradiente na cor do banco, apelido, final do cartão e a
+  última fatura; as faturas do cartão só aparecem ao tocar nele
+  (acordeão: abrir um fecha o outro). A lista plana anterior (cabeçalho +
+  todas as faturas de todos os cartões) enterrava os cartões depois de
+  alguns meses importados.
 - **Sem backend próprio.** Tudo Room + PdfBox no próprio app. Rede existe
   só pra conexão IMAP direta do usuário com o provedor dele — não recriar
   Retrofit/API própria.
@@ -478,8 +579,12 @@ Pra levar o que está em `develop` pro celular de verdade (equivalente a
    sentido isolar/testar mais antes de ir pro `main`).
 10. `gh pr create --base main --head release/o-que-mudou` (ou `--head
     develop` se pulou o passo 9), **sempre `--squash`** (nunca merge commit
-    normal aqui — ver "Erro real já cometido" abaixo pro porquê). Merge
-    depois do CI verde.
+    normal aqui — ver "Erro real já cometido" abaixo pro porquê). **O
+    título do PR precisa começar com `feat:` ou `fix:`** (o tipo mais
+    significativo entre os commits levados) — squash colapsa tudo num
+    commit só em `main`, e a action de versionamento só lê o título desse
+    commit (= título do PR), não os commits originais (ver "Segundo erro
+    real já cometido" abaixo). Merge depois do CI verde.
 11. `git checkout main && git pull` — rebuildar e copiar o APK atualizado
     pro Desktop quando o usuário pedir (`cp
     android/app/build/outputs/apk/debug/app-debug.apk` pro OneDrive/Desktop
@@ -525,6 +630,25 @@ esperado). Corrigido manualmente (`gh release delete v2.0.0 --cleanup-tag`
 + `gh release create v1.0.1` apontando pro `main` certo). Lição: squash
 pra `main` sempre, nunca merge commit; nunca `git merge main` dentro de
 `develop` sem ser hotfix de verdade.
+
+**Segundo erro real já cometido (2026-07-28), pra não repetir**: PR
+`develop -> main` (#78) titulado "release: 🔖 v1.3.0 — rebrand Casshole,
+apelidos de cartão, ícone novo" e squash-mergeado normalmente (seguindo a
+regra acima). Resultado: virou `v1.2.1` (patch), não `v1.3.0` (minor)
+como esperado — os 7 commits de `develop` incluíam vários `feat:`, mas
+squash colapsa tudo num **único** commit em `main`, e a action de
+versionamento só lê o **título do commit** (que no GitHub squash-merge é o
+**título do PR**, não o corpo com a lista dos commits originais). Como o
+título começava com "release:" (não "feat:"/"fix:"), a action não
+reconheceu nenhum bump e caiu no `default_bump: patch`. Corrigido
+manualmente (`gh release delete v1.2.1 --cleanup-tag` + `gh release
+create v1.3.0` reaproveitando o mesmo APK, só renomeado). **Lição:**
+squash pra `main` continua sendo a regra (ver incidente anterior acima),
+mas isso significa que **o título do PR `develop -> main` É o commit que a
+action vê** — precisa começar com `feat:`/`fix:` (o tipo mais significativo
+entre os commits que estão sendo levados), nunca com `release:` ou outro
+prefixo genérico. Antes de mergear um PR `develop -> main`, conferir se o
+título seria um bump correto sozinho.
 
 **Limitação conhecida do GitHub free**: não dá pra restringir tecnicamente
 "só aceitar PR em `main` vindo de `release/*` ou `hotfix/*`" (isso é
@@ -707,13 +831,16 @@ e todo build (local e CI) usava `assembleDebug`.
   `unit-tests` do CI via `./gradlew testDebugUnitTest`:
   - `CategorizerTest` — regras de categorização por regex.
   - `SummaryAggregatorTest` — agregação/comparação mensal (arredondamento,
-    variação %, casos vazios).
+    variação %, casos vazios) e comparação por categoria.
+  - `InstallmentProjectorTest` — projeção de parcelas (virada de ano,
+    uma fatura por cartão, janela máxima).
 - Testes instrumentados (`src/androidTest/`), precisam de emulador/device
   — rodados pelo job `instrumented-tests` do CI via `./gradlew
   connectedDebugAndroidTest`:
   - `RoomFoundationTest` — schema Room (cascade delete, unique constraints).
   - `InvoiceRepositoryTest` — regras de negócio do `InvoiceRepository`
-    (rejeição de reenvio duplicado, aprendizado/remoção de categoria) contra
+    (rejeição de reenvio duplicado, aprendizado/remoção de categoria,
+    correção retroativa por descrição) contra
     um banco Room em memória; usa o parâmetro `database` do construtor de
     `InvoiceRepository` pra injetar esse banco de teste em vez do singleton
     real (`DatabaseProvider`).
