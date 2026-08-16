@@ -9,8 +9,8 @@
     <string name="card_nickname_dialog_title">Apelido do cartão</string>
     <string name="card_nickname_label">Apelido (deixe em branco pra remover)</string>
     <string name="card_nickname_edit_cd">Editar apelido do cartão</string>
-    <string name="action_close">Fechar</string>
     <string name="action_compare">Comparar</string>
+    <string name="action_close">Fechar</string>
     <string name="action_choose_file">Escolher arquivo</string>
     <string name="action_add_password">Adicionar senha</string>
     <string name="action_clear_filters">Limpar filtros</string>
@@ -31,6 +31,8 @@
 
     <!-- EditCategoryDialog -->
     <string name="edit_category_title">Categoria de \"%1$s\"</string>
+    <string name="edit_category_apply_to_past">Corrigir também as faturas anteriores (%1$d transações)</string>
+    <string name="edit_category_future_note">O app aplica essa categoria automaticamente nas próximas faturas com a mesma descrição.</string>
 
     <!-- Navegação (FloatingNavigationBar) -->
     <string name="nav_home_cd">Início</string>
@@ -42,14 +44,37 @@
     <string name="category_overrides_description">Toda vez que você corrige a categoria de uma transação, o app guarda essa descrição aqui e já aplica a mesma categoria automaticamente nas próximas faturas com o mesmo estabelecimento.</string>
     <string name="category_overrides_empty">Nenhuma correção manual ainda</string>
     <string name="category_overrides_remove_cd">Remover categorização manual</string>
+    <string name="category_overrides_transactions_count">%1$d transações com essa descrição</string>
+    <string name="category_overrides_edit_note">Trocar a categoria aqui corrige as %1$d transações já importadas com essa descrição, além das próximas faturas.</string>
     <string name="error_load_category_overrides">Erro ao carregar categorizações</string>
 
     <!-- Comparação -->
     <string name="comparison_title">Comparar meses</string>
+    <string name="comparison_select_periods">Períodos</string>
+    <string name="comparison_select_all">Todos</string>
+    <string name="comparison_clear_selection">Limpar</string>
+    <string name="comparison_select_hint">Selecione os meses que você quer comparar.</string>
+    <string name="comparison_stat_total">Total no período</string>
+    <string name="comparison_stat_average">Média por mês</string>
+    <string name="comparison_stat_highest">Maior mês</string>
+    <string name="comparison_stat_lowest">Menor mês</string>
+    <string name="comparison_by_category_title">Comparação por categoria</string>
+    <string name="comparison_by_category_description">Cada categoria de %1$s até %2$s</string>
+    <string name="comparison_category_percentage">%1$s%2$.1f%%</string>
+    <string name="comparison_category_new">novo</string>
+    <string name="comparison_category_stopped">zerou</string>
+    <string name="comparison_category_stable">estável</string>
+    <!-- Asterisco marca o mês projetado (não é fatura lida) - ver a legenda do gráfico. -->
+    <string name="comparison_chart_projected_label" translatable="false">%1$02d/%2$d*</string>
+    <string name="comparison_chart_legend_actual">Faturas lidas</string>
+    <string name="comparison_chart_legend_projected">Projetado</string>
+    <string name="comparison_projection_title">Projeção de parcelas futuras</string>
+    <string name="comparison_projection_disclaimer">Estimativa calculada a partir das parcelas ainda em aberto nas faturas já importadas. Não é uma fatura lida — o valor real pode mudar (compras novas, câmbio, juros).</string>
+    <string name="comparison_projection_total_prefix">"Total já comprometido: "</string>
+    <string name="comparison_projection_month">"%1$02d/%2$d (projetado) • %3$d parcelas"</string>
     <string name="comparison_variation">Variação do primeiro ao último mês selecionado: %1$s%2$.1f%%</string>
     <string name="comparison_month_total_prefix">"%1$02d/%2$d — Total: "</string>
     <string name="error_load_periods">Erro ao carregar períodos</string>
-    <string name="error_select_month">Selecione ao menos um mês</string>
     <string name="error_compare_months">Erro ao comparar meses</string>
 
     <!-- Detalhe da fatura -->
@@ -58,13 +83,21 @@
     <string name="invoice_detail_search_hint">Buscar por descrição ou cidade</string>
     <string name="invoice_detail_transactions_count_filtered">Transações (%1$d de %2$d)</string>
     <string name="invoice_detail_transactions_count">Transações (%1$d)</string>
-    <string name="invoice_detail_installment">" • Parcela %1$d/%2$d"</string>
     <string name="error_invalid_invoice_id">ID da fatura inválido</string>
     <string name="error_invoice_not_found">Fatura não encontrada</string>
     <string name="error_load_invoice">Erro ao carregar fatura</string>
 
     <!-- Faturas por cartão -->
     <string name="invoices_by_card_transactions_count">%1$d transações</string>
+    <string name="invoices_by_card_invoices_count">%1$d faturas</string>
+    <string name="invoices_by_card_latest_prefix">"Última fatura (%1$02d/%2$d): "</string>
+    <string name="invoices_by_card_expand_cd">Ver faturas do cartão</string>
+    <string name="invoices_by_card_collapse_cd">Ocultar faturas do cartão</string>
+    <!-- Parcelas: o texto curto do selo é igual em qualquer idioma, só a descrição pra leitor de tela muda. -->
+    <string name="installment_badge" translatable="false">%1$d/%2$d</string>
+    <string name="installment_badge_total_only" translatable="false">%1$dx</string>
+    <string name="installment_badge_cd">Parcela %1$d de %2$d</string>
+    <string name="installment_badge_total_only_cd">Compra em %1$d parcelas</string>
 
     <!-- Senhas -->
     <string name="passwords_title">Senhas padrão</string>
@@ -94,6 +127,9 @@
     <string name="settings_passwords_subtitle">Tentar abrir faturas protegidas automaticamente</string>
     <string name="settings_categorization">Categorização</string>
     <string name="settings_category_overrides_subtitle">Correções que o app já aplica automaticamente</string>
+    <string name="settings_about">Sobre</string>
+    <string name="settings_version_title">Versão do app</string>
+    <string name="settings_version_value">%1$s (build %2$d)</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Automático (idioma do sistema)</string>
     <!-- Nomes de idioma não são traduzidos - aparecem iguais em qualquer idioma da UI. -->

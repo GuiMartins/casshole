@@ -122,7 +122,8 @@ android/app/src/main/java/com/casshole/
       AppDatabase.kt, DatabaseProvider.kt   Room + singleton + Migrations
       InvoiceRepository.kt       fachada única sobre os DAOs; regra de negócio
       InvoiceWithTransactions.kt @Relation Invoice + List<Transaction>
-      SummaryAggregator.kt       agregação pra Dashboard/Comparação
+      SummaryAggregator.kt       agregação pra Dashboard/Comparação (inclui por categoria)
+      InstallmentProjector.kt    projeção das parcelas em aberto (não é fatura lida)
       entity/                    InvoiceEntity, TransactionEntity, DefaultPasswordEntity,
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
@@ -141,6 +142,7 @@ android/app/src/main/java/com/casshole/
       AdaptiveScreen.kt           container responsivo (ver decisões abaixo)
       FloatingNavigationBar.kt    nav bar flutuante persistente
       EditCategoryDialog.kt       diálogo de categoria (usado em 2 telas)
+      InstallmentBadge.kt         selo "3/10" de compra parcelada
       PasswordFieldWithReveal.kt  campo de senha com revelar (senhas PDF + e-mail)
     dashboard/                    tela inicial: card "Resumo geral"
     invoicesbycard/               quebra por banco/cartão/mês
@@ -190,10 +192,71 @@ android/app/src/main/java/com/casshole/
     concatenado em Kotlin com `formatCurrency(...)`. **Cuidado real**: o
     prefixo termina em espaço antes do valor (`"...Total: "`) — sem aspas
     duplas envolvendo a string no XML, o Android remove esse espaço à
-    direita (mesmo padrão de bug que `invoice_detail_installment` já
-    evitava com `" • Parcela %1$d/%2$d"` entre aspas). Descoberto ao vivo
+    direita (vale pra todo prefixo desse tipo — os novos
+    `comparison_projection_total_prefix` e
+    `invoices_by_card_latest_prefix` seguem a mesma regra). Descoberto ao vivo
     no emulador (`"Total:R$ ••••"` sem espaço) e corrigido envolvendo as 3
     strings novas em aspas duplas nos 3 idiomas.
+- **Correção de categoria é retroativa (2026-08-16, pedido explícito do
+  usuário)** — antes, corrigir a categoria de uma transação só arrumava
+  aquela linha e as faturas *futuras* (via override); as faturas passadas
+  com o mesmo estabelecimento continuavam erradas pra sempre. Agora
+  `InvoiceRepository.updateCategory(id, categoria, applyToPast)` também
+  recategoriza tudo que já está no banco com a mesma descrição
+  normalizada, e a tela "Categorização manual" virou editável (trocar a
+  categoria de uma regra aplica em todas as transações já importadas,
+  via `applyCategoryToDescription`). No `EditCategoryDialog` a opção vem
+  marcada por padrão e só aparece quando existe mais de uma transação com
+  aquela descrição.
+  - **O casamento de descrições é feito em Kotlin, não em SQL.** O
+    `UPPER()` do SQLite só dobra ASCII: "Açaí" nunca bateria com o
+    "AÇAÍ" que o `normalizeDescription` grava em `categoria_overrides`.
+    `transactionDao.listAll()` + filtro em Kotlin é o caminho correto
+    aqui (o volume é de um app pessoal, não de um backend).
+  - O `UPDATE ... WHERE id IN (:ids)` é fatiado em blocos de 500 —
+    SQLite limita a quantidade de variáveis de um statement (999 em
+    versões mais antigas do Android).
+- **Projeção de parcelas futuras (`InstallmentProjector`, 2026-08-16)** —
+  estimativa do que as faturas futuras já devem, a partir das parcelas em
+  aberto ("Parcela 3/10" ⇒ faltam 7 cobranças iguais). Duas regras que
+  evitam contagem dupla: só a fatura **mais nova de cada banco+cartão**
+  alimenta a projeção (as antigas trazem a mesma compra numa parcela
+  anterior), e meses que já têm fatura importada são pulados (ali o valor
+  real é conhecido, não estimado). Aparece na tela de Comparação sempre
+  rotulada como projeção — card com aviso explícito ("não é uma fatura
+  lida") e barras vazadas/tracejadas no gráfico, com legenda separando
+  "Faturas lidas" de "Projetado". Nunca apresentar esses valores como
+  fatura.
+- **Parcelas ficam visíveis como selo** (`ui/components/InstallmentBadge`),
+  não só como texto na linha cinza de detalhes — usado no detalhe da
+  fatura, no diálogo de categoria da Dashboard e nos itens da projeção.
+  Substituiu a string `invoice_detail_installment` (removida).
+- **Comparação: seleção por chips com recálculo automático.** Não existe
+  mais botão "Comparar" na tela (a `action_compare` sobrevive só como
+  rótulo da aba na `FloatingNavigationBar`): os dados são locais e
+  baratos de agregar, então cada toque num período já recalcula. Além do
+  gráfico, a tela mostra estatísticas do intervalo (total, média/mês,
+  maior e menor mês) e uma **comparação por categoria**
+  (`SummaryAggregator.compareCategories`), com o valor do primeiro e do
+  último período e a variação. Categoria ausente num período conta 0,0
+  (queda real, não buraco de dado); quando o primeiro período é 0, não
+  existe percentual — a UI mostra "novo"/"zerou" em vez de dividir por
+  zero.
+- **`versionName` vem da tag da release, não fica hardcoded** — o
+  `release.yml` passa `-PversionName=<tag calculada>` pro
+  `assembleRelease`, e o `build.gradle.kts` deriva o `versionCode` do
+  semver (`major*10000 + minor*100 + patch`, mínimo 1). Build local não
+  tem tag e assume `0.0.0-dev` de propósito: é honesto sobre não ser
+  release nenhuma. A versão aparece em Configurações > Sobre via
+  `BuildConfig.VERSION_NAME` — o que exigiu `buildFeatures { buildConfig
+  = true }` (desligado por padrão desde o AGP 8).
+- **"Faturas por cartão" é uma carteira: cartão fechado por padrão**
+  (2026-08-16, pedido explícito do usuário) — cada banco+cartão é um
+  tile com gradiente na cor do banco, apelido, final do cartão e a
+  última fatura; as faturas do cartão só aparecem ao tocar nele
+  (acordeão: abrir um fecha o outro). A lista plana anterior (cabeçalho +
+  todas as faturas de todos os cartões) enterrava os cartões depois de
+  alguns meses importados.
 - **Sem backend próprio.** Tudo Room + PdfBox no próprio app. Rede existe
   só pra conexão IMAP direta do usuário com o provedor dele — não recriar
   Retrofit/API própria.
@@ -768,13 +831,16 @@ e todo build (local e CI) usava `assembleDebug`.
   `unit-tests` do CI via `./gradlew testDebugUnitTest`:
   - `CategorizerTest` — regras de categorização por regex.
   - `SummaryAggregatorTest` — agregação/comparação mensal (arredondamento,
-    variação %, casos vazios).
+    variação %, casos vazios) e comparação por categoria.
+  - `InstallmentProjectorTest` — projeção de parcelas (virada de ano,
+    uma fatura por cartão, janela máxima).
 - Testes instrumentados (`src/androidTest/`), precisam de emulador/device
   — rodados pelo job `instrumented-tests` do CI via `./gradlew
   connectedDebugAndroidTest`:
   - `RoomFoundationTest` — schema Room (cascade delete, unique constraints).
   - `InvoiceRepositoryTest` — regras de negócio do `InvoiceRepository`
-    (rejeição de reenvio duplicado, aprendizado/remoção de categoria) contra
+    (rejeição de reenvio duplicado, aprendizado/remoção de categoria,
+    correção retroativa por descrição) contra
     um banco Room em memória; usa o parâmetro `database` do construtor de
     `InvoiceRepository` pra injetar esse banco de teste em vez do singleton
     real (`DatabaseProvider`).

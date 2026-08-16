@@ -11,9 +11,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/** [transactionCount] is how many stored transactions the override covers - i.e. the reach of a retroactive edit. */
+data class CategoryOverrideItem(
+    val override: CategoryOverrideEntity,
+    val transactionCount: Int,
+)
+
 sealed class CategoryOverridesState {
     data object Loading : CategoryOverridesState()
-    data class Loaded(val overrides: List<CategoryOverrideEntity>) : CategoryOverridesState()
+    data class Loaded(val overrides: List<CategoryOverrideItem>) : CategoryOverridesState()
     data class Error(val message: String) : CategoryOverridesState()
 }
 
@@ -32,9 +38,26 @@ class CategoryOverridesViewModel(application: Application) : AndroidViewModel(ap
         viewModelScope.launch {
             _state.value = CategoryOverridesState.Loading
             try {
-                _state.value = CategoryOverridesState.Loaded(repository.listCategoryOverrides())
+                val counts = repository.countTransactionsByDescription()
+                _state.value = CategoryOverridesState.Loaded(
+                    repository.listCategoryOverrides().map { override ->
+                        CategoryOverrideItem(override, counts[override.description] ?: 0)
+                    }
+                )
             } catch (e: Exception) {
                 _state.value = CategoryOverridesState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_category_overrides))
+            }
+        }
+    }
+
+    /** Retroactive by design: changing the rule here recategorizes every transaction already stored under it. */
+    fun updateCategory(description: String, category: String) {
+        viewModelScope.launch {
+            try {
+                repository.applyCategoryToDescription(description, category)
+                load()
+            } catch (e: Exception) {
+                _state.value = CategoryOverridesState.Error(e.message ?: getApplication<Application>().getString(R.string.error_update_category))
             }
         }
     }

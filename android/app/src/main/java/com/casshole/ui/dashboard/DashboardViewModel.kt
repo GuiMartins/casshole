@@ -7,6 +7,7 @@ import com.casshole.R
 import com.casshole.data.PreferencesRepository
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.InvoiceRepository
+import com.casshole.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +44,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         initialValue = false,
     )
 
+    private val _retroactiveCount = MutableStateFlow(1)
+    val retroactiveCount: StateFlow<Int> = _retroactiveCount.asStateFlow()
+
     init {
         loadInvoices()
     }
@@ -66,10 +70,21 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun updateCategory(transactionId: Long, newCategory: String) {
+    /**
+     * Counts how many stored transactions share this description before the
+     * edit dialog opens, so it can offer to fix all of them at once.
+     */
+    fun prepareCategoryEdit(transaction: TransactionEntity) {
+        _retroactiveCount.value = 1
+        viewModelScope.launch {
+            _retroactiveCount.value = repository.countTransactionsWithDescription(transaction.description)
+        }
+    }
+
+    fun updateCategory(transactionId: Long, newCategory: String, applyToPast: Boolean) {
         viewModelScope.launch {
             try {
-                repository.updateCategory(transactionId, newCategory)
+                repository.updateCategory(transactionId, newCategory, applyToPast)
                 // Update without going through Loading, so it doesn't close
                 // any open dialogs (the summary and category edit both live
                 // inside the Loaded branch).

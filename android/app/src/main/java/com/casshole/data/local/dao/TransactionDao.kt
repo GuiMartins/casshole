@@ -13,8 +13,14 @@ interface TransactionDao {
     @Query("UPDATE transacoes SET categoria = :category WHERE id = :id")
     suspend fun updateCategory(id: Long, category: String)
 
+    @Query("UPDATE transacoes SET categoria = :category WHERE id IN (:ids)")
+    suspend fun updateCategoryForIds(ids: List<Long>, category: String)
+
     @Query("SELECT * FROM transacoes WHERE id = :id")
     suspend fun findById(id: Long): TransactionEntity?
+
+    @Query("SELECT * FROM transacoes")
+    suspend fun listAll(): List<TransactionEntity>
 
     @Query(
         """

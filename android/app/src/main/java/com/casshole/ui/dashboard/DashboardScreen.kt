@@ -64,6 +64,7 @@ import com.casshole.data.local.entity.TransactionEntity
 import androidx.compose.material3.HorizontalDivider
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.InstallmentBadge
 import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
@@ -78,6 +79,7 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsState()
     val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
     val amountsHidden by viewModel.amountsHidden.collectAsState()
+    val retroactiveCount by viewModel.retroactiveCount.collectAsState()
     val emailFetchState by EmailFetchCoordinator.state.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -152,6 +154,8 @@ fun DashboardScreen(
                             nicknames = currentState.nicknames,
                             summaryDisplayMode = summaryDisplayMode,
                             amountsHidden = amountsHidden,
+                            retroactiveCount = retroactiveCount,
+                            onPrepareCategoryEdit = viewModel::prepareCategoryEdit,
                             onUpdateCategory = viewModel::updateCategory,
                         )
                     }
@@ -196,7 +200,9 @@ private fun GeneralSummaryContent(
     nicknames: Map<Pair<String, String>, String>,
     summaryDisplayMode: String,
     amountsHidden: Boolean,
-    onUpdateCategory: (Long, String) -> Unit,
+    retroactiveCount: Int,
+    onPrepareCategoryEdit: (TransactionEntity) -> Unit,
+    onUpdateCategory: (Long, String, Boolean) -> Unit,
 ) {
     val now = remember { YearMonth.now() }
     val currentMonthInvoices = SummaryAggregator.filterByMonth(invoices, now.monthValue, now.year)
@@ -242,7 +248,10 @@ private fun GeneralSummaryContent(
             nicknames = nicknames,
             amountsHidden = amountsHidden,
             onDismiss = { selectedCategory = null },
-            onTransactionClick = { transactionBeingEdited = it },
+            onTransactionClick = {
+                onPrepareCategoryEdit(it)
+                transactionBeingEdited = it
+            },
         )
     }
 
@@ -250,8 +259,9 @@ private fun GeneralSummaryContent(
         EditCategoryDialog(
             transaction = transaction,
             categories = AVAILABLE_CATEGORIES,
-            onConfirm = { newCategory ->
-                onUpdateCategory(transaction.id, newCategory)
+            retroactiveCount = retroactiveCount,
+            onConfirm = { newCategory, applyToPast ->
+                onUpdateCategory(transaction.id, newCategory, applyToPast)
                 transactionBeingEdited = null
             },
             onCancel = { transactionBeingEdited = null },
@@ -338,11 +348,21 @@ private fun TransactionSummaryRow(
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
-        Text(
-            text = "${transaction.date} • $bankLabel",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            InstallmentBadge(
+                currentInstallment = transaction.currentInstallment,
+                totalInstallments = transaction.totalInstallments,
+                modifier = Modifier.padding(end = 6.dp),
+            )
+            Text(
+                text = "${transaction.date} • $bankLabel",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
     HorizontalDivider()
 }

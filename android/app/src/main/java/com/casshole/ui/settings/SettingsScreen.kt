@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.casshole.BuildConfig
 import com.casshole.R
 import com.casshole.ui.components.AdaptiveScreen
 import com.casshole.ui.components.AppearanceSettings
@@ -168,6 +170,40 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_category_overrides_subtitle),
                 onClick = onOpenCategoryOverrides,
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = stringResource(R.string.settings_about),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+                Column {
+                    Text(stringResource(R.string.settings_version_title), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = stringResource(
+                            R.string.settings_version_value,
+                            BuildConfig.VERSION_NAME,
+                            BuildConfig.VERSION_CODE,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(80.dp))
         }
     }

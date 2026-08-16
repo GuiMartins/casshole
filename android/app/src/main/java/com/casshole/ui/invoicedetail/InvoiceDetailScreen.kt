@@ -38,12 +38,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.R
 import com.casshole.data.local.entity.TransactionEntity
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.InstallmentBadge
 import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
@@ -53,6 +55,7 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val categories by viewModel.availableCategories.collectAsState()
     val amountsHidden by viewModel.amountsHidden.collectAsState()
+    val retroactiveCount by viewModel.retroactiveCount.collectAsState()
 
     var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }
 
@@ -68,7 +71,10 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
         is InvoiceDetailState.Loaded -> InvoiceDetailContent(
             state = currentState,
             amountsHidden = amountsHidden,
-            onTransactionClick = { transactionBeingEdited = it },
+            onTransactionClick = {
+                viewModel.prepareCategoryEdit(it)
+                transactionBeingEdited = it
+            },
         )
     }
 
@@ -76,8 +82,9 @@ fun InvoiceDetailScreen(viewModel: InvoiceDetailViewModel = viewModel()) {
         EditCategoryDialog(
             transaction = transaction,
             categories = categories,
-            onConfirm = { newCategory ->
-                viewModel.updateCategory(transaction.id, newCategory)
+            retroactiveCount = retroactiveCount,
+            onConfirm = { newCategory, applyToPast ->
+                viewModel.updateCategory(transaction.id, newCategory, applyToPast)
                 transactionBeingEdited = null
             },
             onCancel = { transactionBeingEdited = null },
@@ -373,15 +380,27 @@ private fun TransactionRow(transaction: TransactionEntity, amountsHidden: Boolea
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
-                val installmentText = if (transaction.currentInstallment != null && transaction.totalInstallments != null) {
-                    stringResource(R.string.invoice_detail_installment, transaction.currentInstallment, transaction.totalInstallments)
-                } else ""
                 val cityText = if (transaction.city.isNotBlank()) " • ${transaction.city}" else ""
-                Text(
-                    text = "${transaction.date} • ${transaction.category}$installmentText$cityText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    InstallmentBadge(
+                        currentInstallment = transaction.currentInstallment,
+                        totalInstallments = transaction.totalInstallments,
+                        modifier = Modifier.padding(end = 6.dp),
+                    )
+                    Text(
+                        text = "${transaction.date} • ${transaction.category}$cityText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }
