@@ -137,6 +137,26 @@ class SummaryAggregatorTest {
     }
 
     @Test
+    fun `category comparison carries the share of the range and the peak period`() {
+        val comparison = SummaryAggregator.compareMonths(
+            listOf(
+                Triple(5, 2026, listOf(transaction("Compras", 100.0))),
+                Triple(6, 2026, listOf(transaction("Compras", 300.0))),
+                Triple(7, 2026, listOf(transaction("Compras", 100.0), transaction("Pets", 100.0))),
+            )
+        )
+
+        val compras = comparison.byCategory.first { it.category == "Compras" }
+        // 500 de 600 gastos no intervalo inteiro.
+        assertEquals(83.33, compras.share, 0.0)
+        assertEquals(1, compras.peakPeriodIndex)
+
+        val pets = comparison.byCategory.first { it.category == "Pets" }
+        assertEquals(16.67, pets.share, 0.0)
+        assertEquals(2, pets.peakPeriodIndex)
+    }
+
+    @Test
     fun `category comparison is sorted by weight in the whole range`() {
         val comparison = SummaryAggregator.compareMonths(
             listOf(

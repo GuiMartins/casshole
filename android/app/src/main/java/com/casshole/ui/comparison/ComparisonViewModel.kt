@@ -37,6 +37,9 @@ sealed class ComparisonUiState {
     data class Error(val message: String) : ComparisonUiState()
 }
 
+/** Months pre-selected on open - a semester reads as a trend, three months barely as one. */
+private const val DEFAULT_SELECTED_PERIODS = 6
+
 class ComparisonViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = InvoiceRepository(application)
@@ -76,7 +79,7 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
                     .sorted()
                 _periodsState.value = PeriodsState.Available(periods)
                 _projection.value = InstallmentProjector.project(invoices)
-                _selected.value = periods.takeLast(3).toSet()
+                _selected.value = periods.takeLast(DEFAULT_SELECTED_PERIODS).toSet()
                 compare()
             } catch (e: Exception) {
                 _periodsState.value = PeriodsState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_periods))
