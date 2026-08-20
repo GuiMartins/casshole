@@ -1,5 +1,7 @@
 package com.casshole.ui.dashboard
 
+import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +24,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +36,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
@@ -45,6 +52,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +66,9 @@ import com.casshole.categorizer.AVAILABLE_CATEGORIES
 import com.casshole.data.PreferencesRepository
 import com.casshole.data.email.EmailFetchCoordinator
 import com.casshole.data.email.EmailFetchState
+import com.casshole.data.export.ExportRow
+import com.casshole.data.export.SummaryPdfExporter
+import com.casshole.data.local.InvoicePeriod
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.SummaryAggregator
 import com.casshole.data.local.entity.TransactionEntity
@@ -68,7 +79,6 @@ import com.casshole.ui.components.InstallmentBadge
 import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
-import java.time.YearMonth
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +90,27 @@ fun DashboardScreen(
     val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
     val amountsHidden by viewModel.amountsHidden.collectAsState()
     val retroactiveCount by viewModel.retroactiveCount.collectAsState()
+    val availablePeriods by viewModel.availablePeriods.collectAsState()
+    val periodFilter by viewModel.periodFilter.collectAsState()
     val emailFetchState by EmailFetchCoordinator.state.collectAsState()
+    val context = LocalContext.current
+
+    val allInvoices = (state as? DashboardState.Loaded)?.invoices.orEmpty()
+    val periodInvoices = when (val filter = periodFilter) {
+        is PeriodFilter.AllMonths -> allInvoices
+        is PeriodFilter.Month -> SummaryAggregator.filterByMonth(allInvoices, filter.period.month, filter.period.year)
+    }
+    val periodLabel = when (val filter = periodFilter) {
+        is PeriodFilter.AllMonths -> stringResource(R.string.dashboard_period_all)
+        is PeriodFilter.Month -> filter.period.toString()
+    }
+    val exportFailedMessage = stringResource(R.string.export_error)
+    val exportTitle = stringResource(R.string.dashboard_summary_title)
+    val exportTotalLabel = stringResource(R.string.export_total_label)
+    val exportFooter = stringResource(R.string.export_footer, java.time.LocalDate.now().toString())
+    val exportFileName = stringResource(R.string.export_file_name, periodLabel.replace("/", "-"))
+    val exportChooserTitle = stringResource(R.string.export_share_chooser)
+    var exportError by remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val onResumeAction by rememberUpdatedState(viewModel::loadInvoices)
@@ -108,6 +138,51 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
+                    if (periodInvoices.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                exportError = try {
+                                    // Valores reais, nunca mascarados: um PDF com
+                                    // "R$ ••••" não serviria para nada, e a exportação
+                                    // é sempre uma ação explícita do usuário.
+                                    val uri = SummaryPdfExporter.export(
+                                        context = context,
+                                        fileName = exportFileName,
+                                        title = exportTitle,
+                                        subtitle = periodLabel,
+                                        rows = SummaryAggregator.categoryTotals(periodInvoices).map {
+                                            ExportRow(it.category, formatCurrency(it.total, hidden = false))
+                                        },
+                                        totalLabel = exportTotalLabel,
+                                        totalValue = formatCurrency(
+                                            periodInvoices.flatMap { it.transactions }.sumOf { it.amount },
+                                            hidden = false,
+                                        ),
+                                        footer = exportFooter,
+                                    )
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            Intent(Intent.ACTION_SEND).apply {
+                                                type = "application/pdf"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            },
+                                            exportChooserTitle,
+                                        )
+                                    )
+                                    null
+                                } catch (e: Exception) {
+                                    Log.w("DashboardScreen", "Could not export the summary", e)
+                                    exportFailedMessage
+                                }
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.IosShare,
+                                contentDescription = stringResource(R.string.action_export_summary),
+                            )
+                        }
+                    }
                     IconButton(onClick = viewModel::toggleAmountsHidden) {
                         Icon(
                             imageVector = if (amountsHidden) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
@@ -150,8 +225,13 @@ fun DashboardScreen(
                         )
                     } else {
                         GeneralSummaryContent(
-                            invoices = currentState.invoices,
+                            invoices = periodInvoices,
                             nicknames = currentState.nicknames,
+                            periodLabel = periodLabel,
+                            availablePeriods = availablePeriods,
+                            periodFilter = periodFilter,
+                            onSelectPeriod = viewModel::selectPeriod,
+                            exportError = exportError,
                             summaryDisplayMode = summaryDisplayMode,
                             amountsHidden = amountsHidden,
                             retroactiveCount = retroactiveCount,
@@ -188,24 +268,22 @@ private fun EmailFetchBanner(state: EmailFetchState.Fetching) {
     }
 }
 
-/** Month/year label for the current-month filter, e.g. "07/2026". */
-private fun currentMonthLabel(): String {
-    val now = YearMonth.now()
-    return "%02d/%d".format(now.monthValue, now.year)
-}
-
 @Composable
 private fun GeneralSummaryContent(
     invoices: List<InvoiceWithTransactions>,
     nicknames: Map<Pair<String, String>, String>,
+    periodLabel: String,
+    availablePeriods: List<InvoicePeriod>,
+    periodFilter: PeriodFilter,
+    onSelectPeriod: (PeriodFilter) -> Unit,
+    exportError: String?,
     summaryDisplayMode: String,
     amountsHidden: Boolean,
     retroactiveCount: Int,
     onPrepareCategoryEdit: (TransactionEntity) -> Unit,
     onUpdateCategory: (Long, String, Boolean) -> Unit,
 ) {
-    val now = remember { YearMonth.now() }
-    val currentMonthInvoices = SummaryAggregator.filterByMonth(invoices, now.monthValue, now.year)
+    val currentMonthInvoices = invoices
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var transactionBeingEdited by remember { mutableStateOf<TransactionEntity?>(null) }
@@ -217,9 +295,17 @@ private fun GeneralSummaryContent(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
+            if (exportError != null) {
+                Text(
+                    text = exportError,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
             if (currentMonthInvoices.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.dashboard_no_invoices_for_month, currentMonthLabel()),
+                    text = stringResource(R.string.dashboard_no_invoices_for_month, periodLabel),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp),
@@ -227,6 +313,10 @@ private fun GeneralSummaryContent(
             } else {
                 GeneralSummaryCard(
                     currentMonthInvoices = currentMonthInvoices,
+                    periodLabel = periodLabel,
+                    availablePeriods = availablePeriods,
+                    periodFilter = periodFilter,
+                    onSelectPeriod = onSelectPeriod,
                     summaryDisplayMode = summaryDisplayMode,
                     amountsHidden = amountsHidden,
                     onCategoryClick = { selectedCategory = it },
@@ -370,6 +460,10 @@ private fun TransactionSummaryRow(
 @Composable
 private fun GeneralSummaryCard(
     currentMonthInvoices: List<InvoiceWithTransactions>,
+    periodLabel: String,
+    availablePeriods: List<InvoicePeriod>,
+    periodFilter: PeriodFilter,
+    onSelectPeriod: (PeriodFilter) -> Unit,
     summaryDisplayMode: String,
     amountsHidden: Boolean,
     onCategoryClick: (String) -> Unit,
@@ -392,11 +486,11 @@ private fun GeneralSummaryCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
             )
-            Text(
-                text = stringResource(R.string.dashboard_current_month_label, currentMonthLabel()),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp),
+            PeriodSelector(
+                periodLabel = periodLabel,
+                availablePeriods = availablePeriods,
+                periodFilter = periodFilter,
+                onSelectPeriod = onSelectPeriod,
             )
             Text(
                 text = formatCurrency(totalAmount, amountsHidden),
@@ -425,6 +519,77 @@ private fun GeneralSummaryCard(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Month navigation for the summary: arrows step through the periods that have
+ * invoices, and the label opens the full list (plus an "all months" option).
+ * Only periods with data are offered - stepping into empty months would just
+ * be a way to reach a blank screen.
+ */
+@Composable
+private fun PeriodSelector(
+    periodLabel: String,
+    availablePeriods: List<InvoicePeriod>,
+    periodFilter: PeriodFilter,
+    onSelectPeriod: (PeriodFilter) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val currentIndex = (periodFilter as? PeriodFilter.Month)?.let { availablePeriods.indexOf(it.period) } ?: -1
+    val hasPrevious = currentIndex > 0
+    val hasNext = currentIndex >= 0 && currentIndex < availablePeriods.lastIndex
+
+    Row(
+        modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = { onSelectPeriod(PeriodFilter.Month(availablePeriods[currentIndex - 1])) },
+            enabled = hasPrevious,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ChevronLeft,
+                contentDescription = stringResource(R.string.dashboard_period_previous_cd),
+            )
+        }
+
+        Box {
+            TextButton(onClick = { menuOpen = true }) {
+                Text(text = periodLabel, style = MaterialTheme.typography.bodyMedium)
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.dashboard_period_all)) },
+                    onClick = {
+                        onSelectPeriod(PeriodFilter.AllMonths)
+                        menuOpen = false
+                    },
+                )
+                // Newest first: the recent months are the ones usually looked up.
+                availablePeriods.reversed().forEach { period ->
+                    DropdownMenuItem(
+                        text = { Text(period.toString()) },
+                        onClick = {
+                            onSelectPeriod(PeriodFilter.Month(period))
+                            menuOpen = false
+                        },
+                    )
+                }
+            }
+        }
+
+        IconButton(
+            onClick = { onSelectPeriod(PeriodFilter.Month(availablePeriods[currentIndex + 1])) },
+            enabled = hasNext,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = stringResource(R.string.dashboard_period_next_cd),
+            )
         }
     }
 }

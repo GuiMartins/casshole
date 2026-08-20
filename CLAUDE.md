@@ -125,6 +125,8 @@ android/app/src/main/java/com/casshole/
       SummaryAggregator.kt       agregação pra Dashboard/Comparação (inclui por categoria)
       InstallmentProjector.kt    projeção das parcelas em aberto (não é fatura lida)
       CategoryRefresher.kt       reaplica as regras de categoria quando elas mudam
+    export/
+      SummaryPdfExporter.kt      resumo em PDF (PdfDocument + FileProvider)
       entity/                    InvoiceEntity, TransactionEntity, DefaultPasswordEntity,
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
@@ -258,6 +260,31 @@ android/app/src/main/java/com/casshole/
   (acordeão: abrir um fecha o outro). A lista plana anterior (cabeçalho +
   todas as faturas de todos os cartões) enterrava os cartões depois de
   alguns meses importados.
+- **Dashboard tem seletor de mês, com padrão no último mês COM fatura**
+  (2026-08-20, pedido explícito do usuário) — antes a tela filtrava pelo mês
+  do *calendário* (`YearMonth.now()`), então (a) não dava pra ver as
+  categorias de meses anteriores e (b) a tela aparecia vazia sempre que a
+  fatura do mês corrente ainda não tinha chegado (fatura é arquivada por mês
+  de *referência* e chega atrasada). O `DashboardViewModel` guarda um
+  `PeriodFilter` (`Month`/`AllMonths`), só oferece períodos que têm fatura, e
+  mantém a escolha do usuário entre recargas — enquanto ele não escolher
+  nada, cada recarga re-deriva o padrão (último período com dado). Setas
+  andam período a período; o rótulo abre a lista completa + "Todos os meses".
+- **Exportar resumo em PDF** (`data/export/SummaryPdfExporter`) — usa o
+  `android.graphics.pdf.PdfDocument` da plataforma, sem dependência nova
+  (PdfBox está no projeto pra *ler* fatura, não escrever). Compartilhado via
+  `FileProvider` (`${applicationId}.fileprovider`), que expõe **só**
+  `cacheDir/export/`. Existe porque captura de tela nem sempre é possível
+  (perfil de trabalho/Pasta Segura bloqueiam no nível do sistema, acima do
+  app) e porque arquivo se compartilha melhor que print de lista rolável.
+  **Exporta valores reais mesmo com "ocultar valores" ligado** — um PDF com
+  `R$ ••••` não serviria pra nada, e exportar é sempre ação explícita.
+- **O app permite captura de tela de propósito** — `MainActivity.onCreate()`
+  chama `window.clearFlags(FLAG_SECURE)`. O app nunca setou essa flag; a
+  chamada documenta a intenção e neutraliza qualquer dependência que resolva
+  ligá-la. **Não resolve** bloqueio vindo do próprio dispositivo (perfil de
+  trabalho, Samsung Secure Folder, espaço privado): ali o sistema impõe por
+  cima do app, e a saída é a exportação em PDF acima.
 - **Sem backend próprio.** Tudo Room + PdfBox no próprio app. Rede existe
   só pra conexão IMAP direta do usuário com o provedor dele — não recriar
   Retrofit/API própria.

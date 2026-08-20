@@ -4,6 +4,14 @@ import com.casshole.data.local.entity.TransactionEntity
 
 data class CategorySummary(val category: String, val total: Double)
 
+/** A reference month that actually has invoices - what the Dashboard's month picker offers. */
+data class InvoicePeriod(val month: Int, val year: Int) : Comparable<InvoicePeriod> {
+    override fun compareTo(other: InvoicePeriod): Int =
+        compareValuesBy(this, other, { it.year }, { it.month })
+
+    override fun toString(): String = "%02d/%d".format(month, year)
+}
+
 data class MonthlySummary(
     val referenceMonth: Int,
     val referenceYear: Int,
@@ -41,6 +49,18 @@ data class MonthlyComparison(
 )
 
 object SummaryAggregator {
+
+    /** Reference periods with at least one invoice, oldest first. */
+    fun availablePeriods(invoices: List<InvoiceWithTransactions>): List<InvoicePeriod> =
+        invoices.map { InvoicePeriod(it.referenceMonth, it.referenceYear) }.distinct().sorted()
+
+    /**
+     * Newest period that actually has an invoice - the Dashboard opens here
+     * instead of on the calendar month, which is frequently still empty
+     * (invoices are filed by reference month and arrive late).
+     */
+    fun latestPeriod(invoices: List<InvoiceWithTransactions>): InvoicePeriod? =
+        availablePeriods(invoices).lastOrNull()
 
     /** Invoices whose reference month/year match exactly - used to keep the Dashboard's summary scoped to one period. */
     fun filterByMonth(
@@ -122,6 +142,13 @@ object SummaryAggregator {
             )
         }.sortedByDescending { it.total }
     }
+
+    /** Category totals for a set of invoices, heaviest first - shared by the Dashboard card and the PDF export. */
+    fun categoryTotals(invoices: List<InvoiceWithTransactions>): List<CategorySummary> =
+        invoices.flatMap { it.transactions }
+            .groupBy { it.category }
+            .map { (category, items) -> CategorySummary(category, round(items.sumOf { it.amount })) }
+            .sortedByDescending { it.total }
 
     private fun round(value: Double): Double = Math.round(value * 100) / 100.0
 }
