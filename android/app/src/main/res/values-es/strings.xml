@@ -51,7 +51,12 @@
     <string name="comparison_stat_highest">Mes más alto</string>
     <string name="comparison_stat_lowest">Mes más bajo</string>
     <string name="comparison_by_category_title">Comparación por categoría</string>
-    <string name="comparison_by_category_description">Cada categoría de %1$s a %2$s</string>
+    <string name="comparison_by_category_description">Cada categoría en los %1$d meses seleccionados — toca una para verla mes a mes</string>
+    <string name="comparison_category_share">%1$.0f%% del total</string>
+    <string name="comparison_category_range_total_prefix">"Total del intervalo: "</string>
+    <string name="comparison_category_range_average_infix">" • Promedio/mes: "</string>
+    <string name="comparison_highlight_biggest_rise">Mayor alza</string>
+    <string name="comparison_highlight_biggest_drop">Mayor baja</string>
     <string name="comparison_category_percentage">%1$s%2$.1f%%</string>
     <string name="comparison_category_new">nuevo</string>
     <string name="comparison_category_stopped">sin gasto</string>
@@ -111,8 +116,10 @@
     <string name="settings_categorization">Categorización</string>
     <string name="settings_category_overrides_subtitle">Correcciones que la app ya aplica automáticamente</string>
     <string name="settings_about">Acerca de</string>
-    <string name="settings_version_title">Versión de la app</string>
-    <string name="settings_version_value">%1$s (build %2$d)</string>
+    <string name="settings_version_value">Versión %1$s (build %2$d)</string>
+    <string name="settings_about_description">App personal para analizar facturas de tarjeta de crédito. Todo funciona en tu dispositivo: ninguna factura, contraseña o valor sale de ahí.</string>
+    <string name="settings_about_developer">Desarrollada por %1$s</string>
+    <string name="settings_about_github_title">Código en GitHub</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Automático (idioma del sistema)</string>
     <string name="language_pt" translatable="false">Português</string>

@@ -24,6 +24,10 @@ data class CategoryComparison(
     val average: Double,
     val change: Double,
     val percentageChange: Double?,
+    /** How much of everything spent in the range went to this category. */
+    val share: Double,
+    /** Index into [totalsByPeriod] of the heaviest period for this category. */
+    val peakPeriodIndex: Int,
 )
 
 data class MonthlyComparison(
@@ -95,6 +99,7 @@ object SummaryAggregator {
         if (summaries.isEmpty()) return emptyList()
 
         val categories = summaries.flatMap { it.byCategory.map { category -> category.category } }.distinct()
+        val rangeTotal = summaries.sumOf { it.totalSpent }
 
         return categories.map { category ->
             val totalsByPeriod = summaries.map { summary ->
@@ -102,15 +107,18 @@ object SummaryAggregator {
             }
             val first = totalsByPeriod.first()
             val last = totalsByPeriod.last()
+            val categoryTotal = totalsByPeriod.sum()
             CategoryComparison(
                 category = category,
                 totalsByPeriod = totalsByPeriod,
-                total = round(totalsByPeriod.sum()),
-                average = round(totalsByPeriod.sum() / totalsByPeriod.size),
+                total = round(categoryTotal),
+                average = round(categoryTotal / totalsByPeriod.size),
                 change = round(last - first),
                 // Undefined when the category simply didn't exist in the first
                 // period: "+infinity%" says less than the absolute change does.
                 percentageChange = if (summaries.size >= 2 && first > 0) round((last - first) / first * 100) else null,
+                share = if (rangeTotal > 0) round(categoryTotal / rangeTotal * 100) else 0.0,
+                peakPeriodIndex = totalsByPeriod.indexOf(totalsByPeriod.max()),
             )
         }.sortedByDescending { it.total }
     }

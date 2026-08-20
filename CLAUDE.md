@@ -124,6 +124,7 @@ android/app/src/main/java/com/casshole/
       InvoiceWithTransactions.kt @Relation Invoice + List<Transaction>
       SummaryAggregator.kt       agregação pra Dashboard/Comparação (inclui por categoria)
       InstallmentProjector.kt    projeção das parcelas em aberto (não é fatura lida)
+      CategoryRefresher.kt       reaplica as regras de categoria quando elas mudam
       entity/                    InvoiceEntity, TransactionEntity, DefaultPasswordEntity,
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
@@ -385,6 +386,27 @@ android/app/src/main/java/com/casshole/
   específicas (`amazon prime`, `mercado livre`) vêm antes das genéricas
   (`amazon`, `mercado`) — colisão de substring é o motivo. Ao adicionar
   regra nova, checar a ordem.
+- **"Delivery" é categoria separada de "Alimentação" (2026-08-17, pedido
+  explícito do usuário)** — pedir comida pronta (iFood, Rappi, Uber Eats) e
+  fazer compra de mercado são hábitos de gasto diferentes e não dividem mais
+  o mesmo bucket. A regra fica **antes** de `Alimentação` (senão
+  "Ifood *Restaurante X" cairia em `restaurante`) e antes de `Transporte`
+  (senão "Uber Eats" cairia em `uber`). Só marcas de delivery entram na
+  regex: um `delivery` solto pegaria também entrega de supermercado, que é
+  compra de mercado.
+- **Mudança de regra de categorização é aplicada às faturas já importadas**
+  (`CATEGORIZER_REVISION` + `CategoryRefresher`) — sem isso, separar
+  Delivery de Alimentação só valeria pras faturas futuras e o histórico
+  ficaria dividido ao meio. O `CategoryRefresher` (scope próprio, chamado de
+  `CassholeApp.onCreate()` como o `EmailFetchCoordinator`) compara a revisão
+  gravada no DataStore com a constante do código e, se estiver atrasada,
+  roda `InvoiceRepository.recategorizeStoredTransactions()` uma vez.
+  **Correção manual do usuário sempre ganha**: transações cuja descrição
+  normalizada está em `categoria_overrides` são puladas. A revisão só é
+  gravada depois de uma passada bem-sucedida — se falhar, o próximo cold
+  start tenta de novo. Ao mexer nas regras de `Categorizer.kt` de um jeito
+  que mudaria categoria de transação já importada, subir
+  `CATEGORIZER_REVISION`.
 - **Aprendizado de categoria**: ao editar a categoria de uma transação
   (`InvoiceRepository.updateCategory`), o app salva um override
   (descrição normalizada -> categoria) em `categoria_overrides` e consulta

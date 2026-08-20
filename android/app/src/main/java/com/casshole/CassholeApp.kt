@@ -2,6 +2,7 @@ package com.casshole
 
 import android.app.Application
 import com.casshole.data.email.EmailFetchCoordinator
+import com.casshole.data.local.CategoryRefresher
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 
 class CassholeApp : Application() {
@@ -9,5 +10,6 @@ class CassholeApp : Application() {
         super.onCreate()
         PDFBoxResourceLoader.init(applicationContext)
         EmailFetchCoordinator.fetchOnAppStart(this)
+        CategoryRefresher.refreshOnAppStart(this)
     }
 }

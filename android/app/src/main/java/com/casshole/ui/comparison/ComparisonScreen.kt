@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -333,8 +335,10 @@ private fun StatTile(
 
 @Composable
 private fun CategoryComparisonCard(comparison: MonthlyComparison, amountsHidden: Boolean) {
-    val firstLabel = comparison.months.first().let { "%02d/%d".format(it.referenceMonth, it.referenceYear) }
-    val lastLabel = comparison.months.last().let { "%02d/%d".format(it.referenceMonth, it.referenceYear) }
+    val periodLabels = comparison.months.map { "%02d/%d".format(it.referenceMonth, it.referenceYear) }
+    val expanded = remember { mutableStateMapOf<String, Boolean>() }
+    val biggestRise = comparison.byCategory.maxByOrNull { it.change }?.takeIf { it.change > 0 }
+    val biggestDrop = comparison.byCategory.minByOrNull { it.change }?.takeIf { it.change < 0 }
 
     Card(
         modifier = Modifier
@@ -349,50 +353,233 @@ private fun CategoryComparisonCard(comparison: MonthlyComparison, amountsHidden:
                 fontWeight = FontWeight.Medium,
             )
             Text(
-                text = stringResource(R.string.comparison_by_category_description, firstLabel, lastLabel),
+                text = stringResource(R.string.comparison_by_category_description, periodLabels.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
+
+            if (biggestRise != null || biggestDrop != null) {
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                    biggestRise?.let {
+                        HighlightTile(
+                            label = stringResource(R.string.comparison_highlight_biggest_rise),
+                            category = it,
+                            amountsHidden = amountsHidden,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    biggestDrop?.let {
+                        HighlightTile(
+                            label = stringResource(R.string.comparison_highlight_biggest_drop),
+                            category = it,
+                            amountsHidden = amountsHidden,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
             comparison.byCategory.forEach { category ->
-                CategoryComparisonRow(category = category, amountsHidden = amountsHidden)
+                CategoryComparisonRow(
+                    category = category,
+                    periodLabels = periodLabels,
+                    amountsHidden = amountsHidden,
+                    expanded = expanded[category.category] ?: false,
+                    onToggle = { expanded[category.category] = !(expanded[category.category] ?: false) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CategoryComparisonRow(category: CategoryComparison, amountsHidden: Boolean) {
-    val first = category.totalsByPeriod.first()
-    val last = category.totalsByPeriod.last()
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun HighlightTile(
+    label: String,
+    category: CategoryComparison,
+    amountsHidden: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .padding(end = 8.dp)
+            .background(color.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
-        CategoryIcon(category = category.category, size = 30.dp)
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 10.dp, end = 8.dp),
-        ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CategoryIcon(category = category.category, size = 20.dp)
             Text(
                 text = category.category,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = formatCurrency(first, amountsHidden) + " → " + formatCurrency(last, amountsHidden),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 6.dp),
             )
         }
-        ChangeBadge(category = category)
+        val sign = if (category.change > 0) "+" else "-"
+        Text(
+            text = sign + formatCurrency(kotlin.math.abs(category.change), amountsHidden),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * Collapsed the row already shows every selected month as a mini bar - the
+ * first → last pair alone hid whatever happened in between. Tapping opens the
+ * month-by-month breakdown.
+ */
+@Composable
+private fun CategoryComparisonRow(
+    category: CategoryComparison,
+    periodLabels: List<String>,
+    amountsHidden: Boolean,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val first = category.totalsByPeriod.first()
+    val last = category.totalsByPeriod.last()
+    val peak = category.totalsByPeriod.maxOrNull() ?: 0.0
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(top = 10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CategoryIcon(category = category.category, size = 30.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp, end = 8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = category.category,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Text(
+                        text = stringResource(R.string.comparison_category_share, category.share),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+                if (periodLabels.size > 2) {
+                    MiniBars(
+                        values = category.totalsByPeriod,
+                        peak = peak,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    )
+                }
+                Text(
+                    text = formatCurrency(first, amountsHidden) + " → " + formatCurrency(last, amountsHidden),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            ChangeBadge(category = category)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.padding(start = 40.dp, top = 6.dp, bottom = 4.dp)) {
+                category.totalsByPeriod.forEachIndexed { index, value ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = periodLabels[index],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(58.dp),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .padding(end = 8.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(if (peak > 0) (value / peak).toFloat() else 0f)
+                                    .height(6.dp)
+                                    .background(
+                                        if (index == category.peakPeriodIndex) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                        },
+                                        RoundedCornerShape(3.dp),
+                                    ),
+                            )
+                        }
+                        Text(
+                            text = formatCurrency(value, amountsHidden),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = if (index == category.peakPeriodIndex) FontWeight.Medium else FontWeight.Normal,
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.comparison_category_range_total_prefix) +
+                        formatCurrency(category.total, amountsHidden) +
+                        stringResource(R.string.comparison_category_range_average_infix) +
+                        formatCurrency(category.average, amountsHidden),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+/** One slim bar per selected month, so the whole range reads at a glance without opening the row. */
+@Composable
+private fun MiniBars(values: List<Double>, peak: Double, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.height(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        values.forEach { value ->
+            val fraction = if (peak > 0) (value / peak).toFloat() else 0f
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(16.dp)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f), RoundedCornerShape(2.dp)),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(fraction.coerceAtLeast(0.05f))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.75f), RoundedCornerShape(2.dp)),
+                )
+            }
+        }
     }
 }
 

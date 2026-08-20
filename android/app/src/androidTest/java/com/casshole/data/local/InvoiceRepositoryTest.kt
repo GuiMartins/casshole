@@ -187,6 +187,30 @@ class InvoiceRepositoryTest {
     }
 
     @Test
+    fun recategorizeStoredTransactions_reappliesTheRulesButKeepsManualCorrections() = runBlocking {
+        val invoiceId = insertInvoice(bank = "nubank", month = 7, hash = "hash-recat")
+        db.transactionDao().insertAll(
+            listOf(
+                // Categoria antiga, de quando delivery e mercado dividiam bucket.
+                transaction(invoiceId, "IFD*IFOOD", 45.0).copy(category = "Alimentação"),
+                transaction(invoiceId, "Supermercado Guanabara", 210.0).copy(category = "Alimentação"),
+                transaction(invoiceId, "Rappi Brasil", 30.0).copy(category = "Alimentação"),
+            )
+        )
+        // Correção manual do usuário: regra nenhuma pode passar por cima dela.
+        repository.applyCategoryToDescription("Rappi Brasil", "Outros")
+
+        val updated = repository.recategorizeStoredTransactions()
+
+        assertEquals(1, updated)
+        val byDescription = db.invoiceDao().getWithTransactions(invoiceId)!!
+            .transactions.associate { it.description to it.category }
+        assertEquals("Delivery", byDescription["IFD*IFOOD"])
+        assertEquals("Alimentação", byDescription["Supermercado Guanabara"])
+        assertEquals("Outros", byDescription["Rappi Brasil"])
+    }
+
+    @Test
     fun removingACategoryOverride_deletesIt() = runBlocking {
         val invoiceId = db.invoiceDao().insert(
             InvoiceEntity(

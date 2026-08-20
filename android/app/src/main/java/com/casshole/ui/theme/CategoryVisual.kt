@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Pets
@@ -30,6 +31,7 @@ private val visualsByCategory = mapOf(
     "Streaming/Assinaturas" to CategoryVisual(CategoryStreaming, Icons.Filled.Subscriptions),
     "Compras" to CategoryVisual(CategoryShopping, Icons.Filled.ShoppingBag),
     "Alimentação" to CategoryVisual(CategoryFood, Icons.Filled.Restaurant),
+    "Delivery" to CategoryVisual(CategoryDelivery, Icons.Filled.DeliveryDining),
     "Transporte" to CategoryVisual(CategoryTransport, Icons.Filled.DirectionsCar),
     "Saúde" to CategoryVisual(CategoryHealth, Icons.Filled.LocalHospital),
     "Educação" to CategoryVisual(CategoryEducation, Icons.Filled.School),

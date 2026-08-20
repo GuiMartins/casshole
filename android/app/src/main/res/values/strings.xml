@@ -59,7 +59,12 @@
     <string name="comparison_stat_highest">Maior mês</string>
     <string name="comparison_stat_lowest">Menor mês</string>
     <string name="comparison_by_category_title">Comparação por categoria</string>
-    <string name="comparison_by_category_description">Cada categoria de %1$s até %2$s</string>
+    <string name="comparison_by_category_description">Cada categoria nos %1$d meses selecionados — toque numa pra ver mês a mês</string>
+    <string name="comparison_category_share">%1$.0f%% do total</string>
+    <string name="comparison_category_range_total_prefix">"Total no intervalo: "</string>
+    <string name="comparison_category_range_average_infix">" • Média/mês: "</string>
+    <string name="comparison_highlight_biggest_rise">Maior alta</string>
+    <string name="comparison_highlight_biggest_drop">Maior queda</string>
     <string name="comparison_category_percentage">%1$s%2$.1f%%</string>
     <string name="comparison_category_new">novo</string>
     <string name="comparison_category_stopped">zerou</string>
@@ -128,8 +133,13 @@
     <string name="settings_categorization">Categorização</string>
     <string name="settings_category_overrides_subtitle">Correções que o app já aplica automaticamente</string>
     <string name="settings_about">Sobre</string>
-    <string name="settings_version_title">Versão do app</string>
-    <string name="settings_version_value">%1$s (build %2$d)</string>
+    <string name="settings_version_value">Versão %1$s (build %2$d)</string>
+    <string name="settings_about_description">App pessoal pra analisar faturas de cartão de crédito. Tudo roda no seu aparelho: nenhuma fatura, senha ou valor sai daqui.</string>
+    <string name="settings_about_developer">Desenvolvido por %1$s</string>
+    <string name="settings_about_github_title">Código no GitHub</string>
+    <string name="settings_about_github_label" translatable="false">github.com/GuiMartins/casshole</string>
+    <string name="settings_about_developer_handle" translatable="false">@GuiMartins</string>
+    <string name="settings_about_github_url" translatable="false">https://github.com/GuiMartins/casshole</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Automático (idioma do sistema)</string>
     <!-- Nomes de idioma não são traduzidos - aparecem iguais em qualquer idioma da UI. -->

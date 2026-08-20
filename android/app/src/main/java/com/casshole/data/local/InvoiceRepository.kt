@@ -110,6 +110,32 @@ class InvoiceRepository(
         return ids.size
     }
 
+    /**
+     * Re-runs the categorization rules over every stored transaction, used
+     * when the rules themselves change (e.g. food delivery split out of
+     * "Alimentação") so past invoices don't keep the old bucket forever.
+     *
+     * Descriptions the user has corrected by hand are left alone - a manual
+     * override always outranks a regex. Returns how many rows changed.
+     */
+    suspend fun recategorizeStoredTransactions(): Int {
+        val overriddenDescriptions = categoryOverrideDao.list().map { it.description }.toSet()
+        val newCategoryById = transactionDao.listAll()
+            .filter { normalizeDescription(it.description) !in overriddenDescriptions }
+            .mapNotNull { transaction ->
+                val category = categorize(transaction.description)
+                if (category == transaction.category) null else transaction.id to category
+            }
+        if (newCategoryById.isEmpty()) return 0
+
+        db.withTransaction {
+            newCategoryById.groupBy({ it.second }, { it.first }).forEach { (category, ids) ->
+                ids.chunked(500).forEach { chunk -> transactionDao.updateCategoryForIds(chunk, category) }
+            }
+        }
+        return newCategoryById.size
+    }
+
     private suspend fun transactionIdsWithDescription(normalizedDescription: String): List<Long> =
         transactionDao.listAll()
             .filter { normalizeDescription(it.description) == normalizedDescription }
