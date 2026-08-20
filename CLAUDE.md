@@ -523,6 +523,15 @@ android/app/src/main/java/com/casshole/
 - **Sem abstração prematura.** Duplicação pequena (2-3 linhas) é aceitável;
   extrair componente compartilhado só quando o mesmo bloco não-trivial
   aparece em 2+ lugares de verdade.
+- **`painterResource` não aceita `<adaptive-icon>`** — bug real, em produção
+  (v1.6.0): o card "Sobre" usava `painterResource(R.mipmap.ic_launcher)` e a
+  tela de Configurações fechava o app na hora de compor. `R.mipmap.ic_launcher`
+  resolve pro `mipmap-anydpi-v26/ic_launcher.xml`, que é um `<adaptive-icon>`,
+  e o `painterResource` só entende vector drawable e imagem rasterizada — como
+  o `minSdk` é 26, cai nesse XML em **qualquer** aparelho. Compila e passa no
+  lint; só quebra em runtime. Pra mostrar o ícone do app dentro da UI, usar o
+  `@mipmap/ic_launcher_foreground` (PNG) sobre um círculo com `LauncherIconGreen`
+  (a cor da camada de fundo do ícone), que é o que o `AboutCard` faz.
 - **Modifier order importa em Compose**: `.widthIn(max=X).fillMaxWidth()`
   funciona (limita, depois preenche até o limite); `.fillMaxWidth().widthIn(max=X)`
   **não funciona** (fillMaxWidth força min=max=largura do pai antes do

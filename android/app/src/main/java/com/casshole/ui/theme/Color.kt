@@ -25,6 +25,9 @@ val DarkOnBackground = Color(0xFFE5E1E9)
 val ErrorRed = Color(0xFFD32F2F)
 val ErrorRedDark = Color(0xFFFF6B6B)
 
+/** The launcher icon's own background green - used behind the icon in Settings > Sobre. */
+val LauncherIconGreen = Color(0xFF88FA3E)
+
 // Category colors, used in icons/badges on the summary and detail screens.
 val CategoryStreaming = Color(0xFF9C27B0)
 val CategoryShopping = Color(0xFFF39C12)
