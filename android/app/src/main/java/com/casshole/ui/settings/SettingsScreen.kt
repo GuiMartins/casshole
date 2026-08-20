@@ -49,6 +49,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.BuildConfig
 import com.casshole.R
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.theme.LauncherIconGreen
 import com.casshole.ui.components.AppearanceSettings
 import com.casshole.ui.components.RadioOption
 
@@ -204,13 +205,24 @@ private fun AboutCard() {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(R.mipmap.ic_launcher),
-                    contentDescription = null,
+                // The launcher foreground PNG, not R.mipmap.ic_launcher: that one
+                // resolves to the <adaptive-icon> XML on API 26+ (every device we
+                // support), and painterResource only handles vector drawables and
+                // rasterized assets - it throws on an adaptive icon. The green
+                // circle below stands in for the icon's own background layer.
+                Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .clip(CircleShape),
-                )
+                        .clip(CircleShape)
+                        .background(LauncherIconGreen),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter = painterResource(R.mipmap.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                    )
+                }
                 Column(modifier = Modifier.padding(start = 12.dp)) {
                     Text(
                         text = stringResource(R.string.app_name),
