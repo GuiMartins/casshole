@@ -2,6 +2,7 @@ package com.casshole
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,12 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // This app deliberately allows screenshots - it never sets FLAG_SECURE.
+        // Clearing it explicitly documents that intent and neutralizes any
+        // dependency that might turn it on. A block coming from the device
+        // itself (work profile, Samsung Secure Folder, private space) is not
+        // affected by this: there the system enforces it above the app.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         handleIncomingIntent(intent)
         setContent {
             val preferencesRepository = remember { PreferencesRepository(applicationContext) }

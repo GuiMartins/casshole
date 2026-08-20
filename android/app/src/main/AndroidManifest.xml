@@ -34,6 +34,21 @@
         </activity>
 
         <!--
+          Hands the exported summary PDF to another app (share sheet) without
+          exposing the cache directory - only res/xml/file_paths.xml's export
+          folder is reachable.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
           Required for AppCompatDelegate.setApplicationLocales() to sync with
           the platform LocaleManager on API 33+ (and to persist the choice
           via AppCompat's own storage below that) - not added automatically

@@ -22,7 +22,14 @@
 
     <string name="dashboard_no_invoices_for_month">Todavía no hay factura de %1$s</string>
     <string name="dashboard_summary_title">Resumen general</string>
-    <string name="dashboard_current_month_label">Mes actual (%1$s)</string>
+    <string name="dashboard_period_all">Todos los meses</string>
+    <string name="dashboard_period_previous_cd">Mes anterior</string>
+    <string name="dashboard_period_next_cd">Mes siguiente</string>
+    <string name="action_export_summary">Exportar resumen en PDF</string>
+    <string name="export_share_chooser">Compartir resumen</string>
+    <string name="export_total_label">Total</string>
+    <string name="export_footer">Generado por Casshole el %1$s</string>
+    <string name="export_error">No se pudo exportar el resumen</string>
     <string name="dashboard_transactions_and_total_prefix">"%1$d transacciones • "</string>
 
     <string name="edit_category_title">Categoría de \"%1$s\"</string>

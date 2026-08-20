@@ -24,6 +24,18 @@ class SummaryAggregatorTest {
         transactions = emptyList(),
     )
 
+    private fun invoiceWith(id: Long, transactions: List<TransactionEntity>) = InvoiceWithTransactions(
+        invoice = InvoiceEntity(
+            id = id,
+            bank = "itau",
+            referenceMonth = 7,
+            referenceYear = 2026,
+            fileHash = "hash-$id",
+            processedAt = "2026-07-25T00:00:00",
+        ),
+        transactions = transactions,
+    )
+
     @Test
     fun `filterByMonth keeps only invoices matching both month and year`() {
         val invoices = listOf(
@@ -42,6 +54,49 @@ class SummaryAggregatorTest {
         val invoices = listOf(invoice(1, month = 5, year = 2026))
 
         assertTrue(SummaryAggregator.filterByMonth(invoices, month = 7, year = 2026).isEmpty())
+    }
+
+    @Test
+    fun `available periods are distinct and sorted oldest first`() {
+        val invoices = listOf(
+            invoice(1, month = 7, year = 2026),
+            invoice(2, month = 12, year = 2025),
+            invoice(3, month = 7, year = 2026),
+            invoice(4, month = 1, year = 2026),
+        )
+
+        assertEquals(
+            listOf("12/2025", "01/2026", "07/2026"),
+            SummaryAggregator.availablePeriods(invoices).map { it.toString() },
+        )
+    }
+
+    @Test
+    fun `latest period is the newest one with an invoice, across the year boundary`() {
+        val invoices = listOf(
+            invoice(1, month = 12, year = 2025),
+            invoice(2, month = 1, year = 2026),
+        )
+
+        assertEquals("01/2026", SummaryAggregator.latestPeriod(invoices).toString())
+    }
+
+    @Test
+    fun `no invoices means no period to open on`() {
+        assertNull(SummaryAggregator.latestPeriod(emptyList()))
+    }
+
+    @Test
+    fun `category totals add up across every invoice given, heaviest first`() {
+        val invoices = listOf(
+            invoiceWith(1, listOf(transaction("Compras", 100.0), transaction("Delivery", 40.0))),
+            invoiceWith(2, listOf(transaction("Delivery", 30.0))),
+        )
+
+        assertEquals(
+            listOf("Compras" to 100.0, "Delivery" to 70.0),
+            SummaryAggregator.categoryTotals(invoices).map { it.category to it.total },
+        )
     }
 
     @Test

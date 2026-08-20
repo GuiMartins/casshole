@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the export folder is shared: generated summary PDFs, nothing else. -->
+<paths>
+    <cache-path name="exported_summaries" path="export/" />
+</paths>
