@@ -13,6 +13,14 @@ private val CATEGORY_RULES: List<Pair<String, Regex>> = listOf(
         "pet\\s?shop|petsupermark|petz|cobasi",
         RegexOption.IGNORE_CASE,
     ),
+    // Pedido de comida pronta e mercado são hábitos de gasto diferentes, então
+    // não dividem categoria. Só marcas de delivery entram aqui - um "delivery"
+    // solto pegaria também entrega de supermercado, que é compra de mercado.
+    "Delivery" to Regex(
+        "ifd\\*|ifood|rappi|uber\\s?eats|99\\s?food|aiqfome|aiq\\s?fome|" +
+            "james\\s?delivery|ze\\s?delivery|zé\\s?delivery|goomer|delivery\\s?center",
+        RegexOption.IGNORE_CASE,
+    ),
     "Compras" to Regex(
         "amazon|magalu|mercado\\s?livre|shopee|shein|americanas|aliexpress|kabum!?|" +
             "papelaria|livraria|leitura|calcados|confeccoes|vestuario|outlet|biju|tintas|" +
@@ -20,7 +28,7 @@ private val CATEGORY_RULES: List<Pair<String, Regex>> = listOf(
         RegexOption.IGNORE_CASE,
     ),
     "Alimentação" to Regex(
-        "ifd\\*|ifood|rappi|restaurante|pizzaria|padaria|lanchonete|mercado|supermercado|" +
+        "restaurante|pizzaria|padaria|lanchonete|mercado|supermercado|" +
             "mercearia|redeconomia|abastecedora|hortifruti|acougue|empada|sushi|burger|" +
             "fast food|gelados?|sorvete|acai|torta|doceria|confeitaria|salgad|boteco|" +
             "churrascaria",
@@ -42,6 +50,14 @@ private val CATEGORY_RULES: List<Pair<String, Regex>> = listOf(
 )
 
 const val DEFAULT_CATEGORY = "Outros"
+
+/**
+ * Bumped whenever the rules above change in a way that would recategorize
+ * already-imported transactions (e.g. splitting food delivery out of
+ * "Alimentação"). Invoices already in the database are re-run through
+ * [categorize] once per revision - see CategoryRefresher.
+ */
+const val CATEGORIZER_REVISION = 2
 
 val AVAILABLE_CATEGORIES: List<String> = CATEGORY_RULES.map { it.first } + DEFAULT_CATEGORY
 

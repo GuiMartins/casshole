@@ -30,6 +30,26 @@ class CategorizerTest {
     }
 
     @Test
+    fun `food delivery apps get their own category, not Alimentacao`() {
+        assertEquals("Delivery", categorize("IFD*IFOOD"))
+        assertEquals("Delivery", categorize("Ifood *Restaurante Sao Paulo"))
+        assertEquals("Delivery", categorize("Rappi Brasil"))
+        assertEquals("Delivery", categorize("Uber Eats"))
+    }
+
+    @Test
+    fun `grocery shopping stays in Alimentacao, apart from delivery`() {
+        assertEquals("Alimentação", categorize("Supermercado Guanabara"))
+        assertEquals("Alimentação", categorize("Mercado Sao Jorge"))
+        assertEquals("Alimentação", categorize("Hortifruti Natural"))
+    }
+
+    @Test
+    fun `plain Uber is still a ride, not a food order`() {
+        assertEquals("Transporte", categorize("Uber *Trip"))
+    }
+
+    @Test
     fun `mercearia goes to Alimentacao`() {
         assertEquals("Alimentação", categorize("Mercearia Esperanca"))
     }

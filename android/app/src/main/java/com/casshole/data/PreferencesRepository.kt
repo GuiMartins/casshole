@@ -3,6 +3,7 @@ package com.casshole.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,7 @@ class PreferencesRepository(private val context: Context) {
 
         private val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
         private val AMOUNTS_HIDDEN_KEY = booleanPreferencesKey("amounts_hidden")
+        private val CATEGORIZER_REVISION_KEY = intPreferencesKey("categorizer_revision")
     }
 
     val preferredTheme: Flow<String> =
@@ -54,5 +56,13 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setAmountsHidden(value: Boolean) {
         context.dataStore.edit { it[AMOUNTS_HIDDEN_KEY] = value }
+    }
+
+    /** Which revision of the categorization rules the stored invoices were run through. */
+    val categorizerRevision: Flow<Int> =
+        context.dataStore.data.map { it[CATEGORIZER_REVISION_KEY] ?: 0 }
+
+    suspend fun setCategorizerRevision(value: Int) {
+        context.dataStore.edit { it[CATEGORIZER_REVISION_KEY] = value }
     }
 }
