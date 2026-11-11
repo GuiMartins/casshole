@@ -15,6 +15,18 @@ private val TRANSACTION_LINE_REGEX = Regex(
 
 private val CARDHOLDER_REGEX = Regex("^[A-ZÀ-Ú][A-ZÀ-Ú ]+$")
 
+// Itaú opens one block per card inside "Lançamentos: compras e saques", the
+// holder first and the additional cards after it, ex:
+// "GUILHERME M MARTINS (final 2222)" ... "MARIA S MARTINS (final 3333)".
+// Depending on the column extraction the "(final NNNN)" part can also land
+// on its own line right after the name - both shapes are handled.
+private val CARDHOLDER_WITH_CARD_REGEX = Regex(
+    "^(?<name>[A-ZÀ-Ú][A-ZÀ-Ú ]+?)\\s*\\(?\\s*[Ff]inal\\s+(?<card>\\d{4})\\s*\\)?$",
+)
+private val CARD_ONLY_REGEX = Regex("^\\(?\\s*[Ff]inal\\s+(?<card>\\d{4})\\s*\\)?$")
+// "Lançamentos no cartão (final 2222) 1.234,56" closes a card block - never a holder line.
+private val CARD_BLOCK_TOTAL_REGEX = Regex("^lan[çc]amentos no cart[aã]o", RegexOption.IGNORE_CASE)
+
 class ItauParser : BankParser {
     override val bank = "itau"
 
@@ -49,6 +61,9 @@ class ItauParser : BankParser {
         val header = Regex("Lançamentos:\\s*compras e saques", RegexOption.IGNORE_CASE).find(text) ?: return ""
         for (line in text.substring(header.range.last + 1).lines()) {
             val cleanLine = line.trim()
+            CARDHOLDER_WITH_CARD_REGEX.matchEntire(cleanLine)?.let {
+                return simpleTitleCase(it.groups["name"]!!.value.trim())
+            }
             if (cleanLine.isNotEmpty() && CARDHOLDER_REGEX.matches(cleanLine)) {
                 return simpleTitleCase(cleanLine)
             }
@@ -65,7 +80,10 @@ class ItauParser : BankParser {
 
     private fun extractCity(nextLine: String): String {
         val cleanLine = nextLine.trim()
-        if (cleanLine.isEmpty() || TRANSACTION_LINE_REGEX.matchEntire(cleanLine) != null) {
+        if (cleanLine.isEmpty() || TRANSACTION_LINE_REGEX.matchEntire(cleanLine) != null ||
+            CARD_BLOCK_TOTAL_REGEX.containsMatchIn(cleanLine) ||
+            CARDHOLDER_WITH_CARD_REGEX.matches(cleanLine) || CARD_ONLY_REGEX.matches(cleanLine)
+        ) {
             return ""
         }
         val words = cleanLine.split(" ", limit = 2)
@@ -84,9 +102,34 @@ class ItauParser : BankParser {
         val section = extractCurrentEntriesSection(text)
         val lines = section.lines()
         val transactions = mutableListOf<ParsedTransaction>()
+        var currentCardholder = cardholder
+        var currentCard = ""
+        // Last all-caps line seen - becomes the holder if a lone "(final NNNN)" follows it.
+        var pendingName: String? = null
 
         for (index in lines.indices) {
-            val match = TRANSACTION_LINE_REGEX.matchEntire(lines[index].trim()) ?: continue
+            val cleanLine = lines[index].trim()
+            val match = TRANSACTION_LINE_REGEX.matchEntire(cleanLine)
+            if (match == null) {
+                if (cleanLine.isEmpty() || CARD_BLOCK_TOTAL_REGEX.containsMatchIn(cleanLine)) continue
+                val withCard = CARDHOLDER_WITH_CARD_REGEX.matchEntire(cleanLine)
+                val cardOnly = CARD_ONLY_REGEX.matchEntire(cleanLine)
+                when {
+                    withCard != null -> {
+                        currentCardholder = simpleTitleCase(withCard.groups["name"]!!.value.trim())
+                        currentCard = withCard.groups["card"]!!.value
+                        pendingName = null
+                    }
+                    cardOnly != null -> {
+                        pendingName?.let { currentCardholder = simpleTitleCase(it) }
+                        currentCard = cardOnly.groups["card"]!!.value
+                        pendingName = null
+                    }
+                    CARDHOLDER_REGEX.matches(cleanLine) -> pendingName = cleanLine
+                }
+                continue
+            }
+            pendingName = null
             if (match.groups["sign"] != null) continue
 
             val transactionMonth = match.groups["month"]!!.value.toInt()
@@ -105,8 +148,9 @@ class ItauParser : BankParser {
                     amount = parseBrazilianAmount(match.groups["amount"]!!.value),
                     currentInstallment = match.groups["currentInstallment"]?.value?.toInt(),
                     totalInstallments = match.groups["totalInstallments"]?.value?.toInt(),
-                    cardholder = cardholder,
+                    cardholder = currentCardholder,
                     city = city,
+                    card = currentCard,
                 )
             )
         }

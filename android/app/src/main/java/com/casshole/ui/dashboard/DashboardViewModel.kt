@@ -58,6 +58,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _periodFilter = MutableStateFlow<PeriodFilter>(PeriodFilter.AllMonths)
     val periodFilter: StateFlow<PeriodFilter> = _periodFilter.asStateFlow()
 
+    /**
+     * Normalized key ([com.casshole.data.local.CardholderBreakdown.keyOf]) of the
+     * cardholder the summary is narrowed to, null = everyone. The screen ignores
+     * a key that doesn't exist in the selected period instead of showing an
+     * empty summary.
+     */
+    private val _cardholderFilter = MutableStateFlow<String?>(null)
+    val cardholderFilter: StateFlow<String?> = _cardholderFilter.asStateFlow()
+
     /** Until the user picks a period, every reload re-derives the default from the data. */
     private var periodPickedByUser = false
 
@@ -97,6 +106,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _retroactiveCount.value = repository.countTransactionsWithDescription(transaction.description)
         }
+    }
+
+    fun selectCardholder(key: String?) {
+        _cardholderFilter.value = key
     }
 
     fun selectPeriod(filter: PeriodFilter) {

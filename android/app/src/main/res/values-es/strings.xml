@@ -198,4 +198,12 @@
     <string name="update_error_invalid_apk">El archivo descargado no es una actualización válida de Casshole</string>
     <string name="update_error_install">Error al instalar la actualización: %1$s</string>
     <string name="update_error_signature">la versión instalada fue firmada con otra clave (¿build de prueba?). Desinstálala e instala la release de GitHub.</string>
+
+    <!-- Cardholder breakdown -->
+    <string name="cardholder_unidentified">Titular no identificado</string>
+    <string name="cardholder_all">Todos</string>
+    <string name="cardholder_section_title">Por titular</string>
+    <string name="cardholder_filter_label">Titular</string>
+    <string name="cardholder_share">%1$.0f%% del total</string>
+    <string name="cardholder_showing_only">Mostrando solo los gastos de %1$s. Toca de nuevo para ver todos.</string>
 </resources>

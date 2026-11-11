@@ -318,6 +318,26 @@ android/app/src/main/java/com/casshole/
   mantém a escolha do usuário entre recargas — enquanto ele não escolher
   nada, cada recarga re-deriva o padrão (último período com dado). Setas
   andam período a período; o rótulo abre a lista completa + "Todos os meses".
+- **Gastos por portador: titular x adicionais (2026-11-10, pedido explícito
+  do usuário)** — o portador já era gravado por transação desde sempre
+  (colunas `titular` e `cartao` de `transacoes`), então **não houve mudança
+  de schema nem `Migration`**: o que faltava era o parser e a UI.
+  - Nubank já separava por seção ("Fulano R$ ..." / "Compras de Beltrana
+    R$ ..."). O Itaú antes atribuía **um único** portador à fatura inteira;
+    agora troca de portador a cada bloco "NOME (final NNNN)" (ou nome numa
+    linha e "(final NNNN)" na seguinte) e grava o final do cartão por
+    transação. Validado só com texto/PDF sintético — não havia fatura real
+    do Itaú com adicional à mão.
+  - `CardholderBreakdown` (`data/local/`) agrupa por chave normalizada
+    (maiúsculas, espaços colapsados): o Itaú escreve "GUILHERME M MARTINS" e
+    o Nubank "Guilherme M Martins" — é a mesma pessoa somada entre bancos.
+    Transação sem portador vira o grupo "Portador não identificado" (antes
+    sumia do agrupamento do Detalhe da fatura).
+  - Dashboard: card "Por portador" com total e % de cada um; tocar filtra o
+    resumo inteiro (categorias, pizza, export PDF). Comparação: chips de
+    portador filtram gráfico, estatísticas, categorias e projeção. Detalhe
+    da fatura: chips/agrupamento existentes passaram a usar o mesmo helper.
+    Tudo só aparece quando há mais de um portador no recorte.
 - **Exportar resumo em PDF** (`data/export/SummaryPdfExporter`) — usa o
   `android.graphics.pdf.PdfDocument` da plataforma, sem dependência nova
   (PdfBox está no projeto pra *ler* fatura, não escrever). Compartilhado via
@@ -941,6 +961,9 @@ e todo build (local e CI) usava `assembleDebug`.
     já que na JVM só existem os stubs do `android.jar`).
   - `SummaryAggregatorTest` — agregação/comparação mensal (arredondamento,
     variação %, casos vazios) e comparação por categoria.
+  - `CardholderBreakdownTest` — agrupamento/filtro por portador.
+  - `CardholderParsingTest` — portador por bloco no Itaú/Nubank (texto
+    sintético, parser com `pdfBytes` vazio).
   - `InstallmentProjectorTest` — projeção de parcelas (virada de ano,
     uma fatura por cartão, janela máxima).
 - Testes instrumentados (`src/androidTest/`), precisam de emulador/device
