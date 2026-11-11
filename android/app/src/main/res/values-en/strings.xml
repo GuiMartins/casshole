@@ -181,4 +181,21 @@
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_get_started">Get started</string>
+
+    <!-- Share-to-import and self-update -->
+    <string name="upload_success_toast">Invoice %1$s imported</string>
+    <string name="update_downloading">Downloading version %1$s… %2$d%%</string>
+    <string name="update_installing">Installing update…</string>
+    <string name="update_ready">Version %1$s ready to install</string>
+    <string name="update_action_install">Update</string>
+    <string name="settings_update_check">Check for updates</string>
+    <string name="settings_update_auto_hint">The app looks for new versions on GitHub every time it opens</string>
+    <string name="settings_update_checking">Checking…</string>
+    <string name="settings_update_up_to_date">You are on the latest version</string>
+    <string name="settings_update_dev_build">Development build: no automatic updates</string>
+    <string name="update_error_check">Could not check for updates (offline?)</string>
+    <string name="update_error_download">Failed to download the update</string>
+    <string name="update_error_invalid_apk">The downloaded file is not a valid Casshole update</string>
+    <string name="update_error_install">Failed to install the update: %1$s</string>
+    <string name="update_error_signature">the installed version was signed with a different key (test build?). Uninstall it and install the GitHub release.</string>
 </resources>

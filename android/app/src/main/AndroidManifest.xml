@@ -4,10 +4,21 @@
     <!--
       Reintroduced on purpose for the IMAP email auto-fetch feature - a
       deliberate, user-approved reversal of the earlier "no network"
-      decision (see CLAUDE.md). Only used for the user's own IMAP
-      connection; no analytics/ads/telemetry.
+      decision (see CLAUDE.md). Used only for the user's own IMAP
+      connection and for checking/downloading app updates from the
+      project's GitHub Releases; no analytics/ads/telemetry.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Self-update from GitHub Releases (data/update/AppUpdateCoordinator). The app is
+      side-loaded, so it installs its own new versions through PackageInstaller; the user
+      still has to allow "install unknown apps" for Casshole once (system setting).
+      UPDATE_PACKAGES_WITHOUT_USER_ACTION lets Android 12+ skip the confirmation dialog
+      for a self-update after that.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <application
         android:name=".CassholeApp"
@@ -47,6 +58,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".data.update.UpdateInstallReceiver"
+            android:exported="false" />
 
         <!--
           Required for AppCompatDelegate.setApplicationLocales() to sync with

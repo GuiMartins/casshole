@@ -97,9 +97,10 @@ aqui não tinha como evitar a perda.
   `Application`, não a `Activity` — cold start via share-intent pode chegar no
   parsing antes de qualquer `Activity.onCreate()`).
 - **Anotações**: KSP (não kapt) pro compilador do Room.
-- **Rede**: só pra IMAP (busca de fatura por e-mail, `com.sun.mail:android-mail`).
-  Continua sem Retrofit/OkHttp/backend próprio — permissão INTERNET existe
-  exclusivamente pra essa conexão IMAP com o provedor de e-mail do usuário.
+- **Rede**: IMAP (busca de fatura por e-mail, `com.sun.mail:android-mail`) e,
+  desde 2026-11-10, a checagem/download de atualização no GitHub Releases do
+  próprio repo (`HttpURLConnection` puro). Continua sem Retrofit/OkHttp/backend
+  próprio — a permissão INTERNET existe só pra essas duas coisas.
 - **SDK**: `compileSdk`/`targetSdk` 34, `minSdk` 26, JVM target 17, Kotlin
   compiler extension 1.5.14 (compose-bom `2024.06.00`).
 
@@ -117,7 +118,6 @@ android/app/src/main/java/com/casshole/
   categorizer/Categorizer.kt     regras regex de categorização (ordem importa)
   data/
     PreferencesRepository.kt     DataStore (tema, modo de resumo)
-    SharedFileHolder.kt          ponte Intent (ACTION_SEND) -> UploadScreen
     local/
       AppDatabase.kt, DatabaseProvider.kt   Room + singleton + Migrations
       InvoiceRepository.kt       fachada única sobre os DAOs; regra de negócio
@@ -130,6 +130,10 @@ android/app/src/main/java/com/casshole/
       entity/                    InvoiceEntity, TransactionEntity, DefaultPasswordEntity,
                                   CategoryOverrideEntity (camelCase idiomático)
       dao/                       um DAO por entidade
+    update/
+      ReleaseInfo.kt             SemVer + parse da release do GitHub (puro, testável na JVM)
+      AppUpdateCoordinator.kt    singleton: checa, baixa e instala (PackageInstaller)
+      UpdateInstallReceiver.kt   status da sessão de instalação
     email/
       EmailCredentialsRepository.kt  EncryptedSharedPreferences (senha de app real + lastProcessedUid)
       EmailFetcher.kt            IMAP puro (javax.mail), sem Context - testável
@@ -160,6 +164,50 @@ android/app/src/main/java/com/casshole/
 ```
 
 ## Decisões de arquitetura (não reverter sem motivo)
+
+- **Compartilhar PDF com o app importa direto (2026-11-10, pedido explícito
+  do usuário)** — o intent-filter `ACTION_SEND` + `application/pdf` já
+  existia, mas o URI só ficava num holder global esperando o usuário abrir a
+  tela de envio sozinho (na prática, não funcionava). Agora o URI vira
+  argumento de navegação (`upload?sharedUri=...`) e a `UploadScreen`
+  processa na hora (`UploadViewModel.importSharedFile`, tenta as senhas
+  padrão como sempre); só se falhar (senha que ninguém cadastrou, PDF que
+  não é fatura) o usuário fica no formulário com o arquivo já escolhido.
+  **O URI é por instância da Activity, nunca global** (bug real, visto no
+  emulador): compartilhar de outro app cria uma *nova* `MainActivity` na
+  task do app de origem, enquanto uma instância antiga pode seguir viva na
+  nossa task — com um holder global (`SharedFileHolder`, removido), a
+  instância antiga consumia o PDF e a nova abria na Dashboard sem fazer
+  nada. Além disso só a instância que recebeu o Intent tem a permissão de
+  leitura do URI. `onCreate` só lê o Intent quando `savedInstanceState ==
+  null` (senão rotacionar reimportaria), e o ViewModel ignora o mesmo URI
+  duas vezes.
+- **Auto-update pelo GitHub Releases (2026-11-10, pedido explícito do
+  usuário)** — o app é side-load, nenhuma loja atualiza ele.
+  `AppUpdateCoordinator` (mesmo padrão do `EmailFetchCoordinator`: chamado
+  de `CassholeApp.onCreate()`, uma vez por cold start) consulta
+  `api.github.com/repos/GuiMartins/casshole/releases/latest`, compara a tag
+  com o `BuildConfig.VERSION_NAME` e, se for mais nova, **baixa o APK
+  sozinho** em background (`cacheDir/updates/`, conferindo tamanho, pacote e
+  `versionCode` antes de oferecer). **Instalar é um toque** (banner na
+  Dashboard ou Configurações > Sobre), de propósito: instalar update do
+  próprio app mata o processo, e fazer isso sem aviso fecharia o app no meio
+  do uso (instalar quando o app vai pra background foi descartado — abrir o
+  seletor de arquivo ou o share sheet também põe o app em background).
+  - Instalação via `PackageInstaller` (API de sessão oficial), não
+    `ACTION_VIEW` num APK. Com `UPDATE_PACKAGES_WITHOUT_USER_ACTION` +
+    `setRequireUserAction(USER_ACTION_NOT_REQUIRED)`, no Android 12+ o
+    update do próprio app sai sem diálogo de confirmação depois que o
+    usuário permitiu "instalar apps desconhecidos" pro Casshole (uma vez,
+    pelo diálogo do próprio sistema). Senão o sistema mostra a confirmação
+    dele (`STATUS_PENDING_USER_ACTION`, aberto pelo `UpdateInstallReceiver`).
+  - **Build local (`0.0.0-dev`) não checa nada** — não é release, não tem
+    com o que comparar. E o Android recusa APK assinado com outra chave:
+    build debug nunca "atualiza" pra release (a UI explica e manda
+    desinstalar). O caminho completo de sucesso só dá pra provar com uma
+    release assinada de verdade instalada (a keystore só existe no CI).
+  - Checagem automática que falha (sem internet) fica quieta; só a manual
+    (botão em Configurações) mostra erro.
 
 - **Transição de navegação: slide + fade, não o cross-fade padrão do
   Navigation Compose** (2026-07-29, feedback direto do usuário: "a
@@ -888,6 +936,9 @@ e todo build (local e CI) usava `assembleDebug`.
 - Testes JVM puros (`src/test/`), sem Android runtime — rodados pelo job
   `unit-tests` do CI via `./gradlew testDebugUnitTest`:
   - `CategorizerTest` — regras de categorização por regex.
+  - `ReleaseParserTest` — parse da release do GitHub e comparação de
+    versão do auto-update (usa `org.json:json` como `testImplementation`,
+    já que na JVM só existem os stubs do `android.jar`).
   - `SummaryAggregatorTest` — agregação/comparação mensal (arredondamento,
     variação %, casos vazios) e comparação por categoria.
   - `InstallmentProjectorTest` — projeção de parcelas (virada de ano,
@@ -927,11 +978,9 @@ e todo build (local e CI) usava `assembleDebug`.
 
 ## Limitações conhecidas (aceitas, não são bugs)
 
-- `SharedFileHolder` (objeto com `var` mutável) é a ponte entre o Intent
-  de compartilhamento e a tela de Upload. Não sobrevive a morte de
-  processo (caso raro). Aceito dado o caso de uso atual (usuário único, sem
-  sincronização entre dispositivos); não vale a complexidade de persistir
-  isso.
+- Um PDF compartilhado que ainda não foi importado não sobrevive a morte de
+  processo (a permissão de leitura do URI também morre junto). Caso raro,
+  aceito.
 - Sem layout multi-coluna em `Expanded` (tablets/dobráveis em paisagem) —
   `AdaptiveScreen` só limita e centraliza uma coluna. Um redesenho
   lista-detalhe de duas colunas seria o próximo nível, não implementado.

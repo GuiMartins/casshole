@@ -208,4 +208,21 @@
     <string name="onboarding_skip">Pular</string>
     <string name="onboarding_next">Próximo</string>
     <string name="onboarding_get_started">Começar</string>
+
+    <!-- Share-to-import and self-update -->
+    <string name="upload_success_toast">Fatura %1$s importada</string>
+    <string name="update_downloading">Baixando a versão %1$s… %2$d%%</string>
+    <string name="update_installing">Instalando atualização…</string>
+    <string name="update_ready">Versão %1$s pronta pra instalar</string>
+    <string name="update_action_install">Atualizar</string>
+    <string name="settings_update_check">Verificar atualizações</string>
+    <string name="settings_update_auto_hint">O app procura versões novas no GitHub sempre que abre</string>
+    <string name="settings_update_checking">Verificando…</string>
+    <string name="settings_update_up_to_date">Você já está na versão mais recente</string>
+    <string name="settings_update_dev_build">Build de desenvolvimento: sem atualização automática</string>
+    <string name="update_error_check">Não deu pra verificar atualizações (sem internet?)</string>
+    <string name="update_error_download">Falha ao baixar a atualização</string>
+    <string name="update_error_invalid_apk">O arquivo baixado não é uma atualização válida do Casshole</string>
+    <string name="update_error_install">Falha ao instalar a atualização: %1$s</string>
+    <string name="update_error_signature">a versão instalada foi assinada com outra chave (build de teste?). Desinstale e instale a release do GitHub.</string>
 </resources>
