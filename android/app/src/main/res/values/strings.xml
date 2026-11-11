@@ -233,4 +233,5 @@
     <string name="cardholder_filter_label">Portador</string>
     <string name="cardholder_share">%1$.0f%% do total</string>
     <string name="cardholder_showing_only">Mostrando só os gastos de %1$s. Toque de novo para ver todos.</string>
+    <string name="error_not_a_pdf">Esse arquivo não é um PDF.</string>
 </resources>

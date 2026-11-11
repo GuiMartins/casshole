@@ -99,7 +99,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
-        if (intent.type != "application/pdf") return
 
         val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) ?: return
         sharedPdf.value = uri

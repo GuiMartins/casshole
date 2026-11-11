@@ -206,4 +206,5 @@
     <string name="cardholder_filter_label">Cardholder</string>
     <string name="cardholder_share">%1$.0f%% of total</string>
     <string name="cardholder_showing_only">Showing only %1$s\'s spending. Tap again to see everyone.</string>
+    <string name="error_not_a_pdf">This file is not a PDF.</string>
 </resources>

@@ -37,10 +37,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+              Share-to-import. application/pdf alone isn't enough: invoices that arrive by
+              e-mail are often attached as application/octet-stream (or the legacy
+              application/x-pdf), and the sharing app passes that type along unchanged -
+              Casshole then never showed up in the share sheet. The content is checked for
+              the PDF header before importing (UploadViewModel).
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/x-pdf" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
