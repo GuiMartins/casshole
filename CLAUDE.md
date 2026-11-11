@@ -182,14 +182,20 @@ android/app/src/main/java/com/casshole/
   leitura do URI. `onCreate` só lê o Intent quando `savedInstanceState ==
   null` (senão rotacionar reimportaria), e o ViewModel ignora o mesmo URI
   duas vezes.
-  - **O filtro aceita `application/pdf`, `application/x-pdf` e
-    `application/octet-stream`** (bug real, no celular do usuário: o app
-    não aparecia no share sheet). Fatura que chega por e-mail costuma vir
-    anexada como `octet-stream`, e o app que compartilha repassa esse tipo
-    sem mudar. Como `octet-stream` é "qualquer binário", o
-    `UploadViewModel` confere o cabeçalho `%PDF-` antes de mandar pro parser
-    ("Esse arquivo não é um PDF."). Não aceitar `*/*` nem `image/*`: o app
-    apareceria pra qualquer compartilhamento.
+  - **O filtro de `SEND` aceita qualquer `application/*` e `binary/*`**
+    (bug real, no celular do usuário, em duas rodadas): ele abre a fatura
+    do e-mail num visualizador e compartilha de lá, e o visualizador
+    repassa o tipo que o anexo declarou. E-mail de banco usa de tudo
+    (`application/octet-stream`, `binary/octet-stream`,
+    `application/force-download`, `application/x-pdf`…). Liberar só
+    `application/pdf` + `octet-stream` (v1.8.1) não bastou. Como esses tipos
+    são "qualquer binário", o `UploadViewModel` confere o cabeçalho `%PDF-`
+    antes do parser ("Esse arquivo não é um PDF."). Não aceitar `*/*`,
+    `image/*` nem `text/*`: o app apareceria em qualquer compartilhamento.
+  - **"Abrir com" (`ACTION_VIEW` + `application/pdf`, só `content://`)** faz a
+    mesma importação: dá pra abrir o anexo do e-mail direto no Casshole, sem
+    passar pelo visualizador. `MainActivity` lê o URI de `EXTRA_STREAM` (SEND)
+    ou de `intent.data` (VIEW).
 - **Auto-update pelo GitHub Releases (2026-11-10, pedido explícito do
   usuário)** — o app é side-load, nenhuma loja atualiza ele.
   `AppUpdateCoordinator` (mesmo padrão do `EmailFetchCoordinator`: chamado
