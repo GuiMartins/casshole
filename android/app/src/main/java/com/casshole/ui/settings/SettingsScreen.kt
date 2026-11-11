@@ -26,7 +26,9 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.BuildConfig
 import com.casshole.R
+import com.casshole.data.update.AppUpdateCoordinator
+import com.casshole.data.update.AppUpdateState
 import com.casshole.ui.components.AdaptiveScreen
 import com.casshole.ui.theme.LauncherIconGreen
 import com.casshole.ui.components.AppearanceSettings
@@ -258,6 +262,10 @@ private fun AboutCard() {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+            UpdateRow()
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -295,6 +303,67 @@ private fun AboutCard() {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun UpdateRow() {
+    val context = LocalContext.current
+    val state by AppUpdateCoordinator.state.collectAsState()
+    val busy = state is AppUpdateState.Checking || state is AppUpdateState.Downloading ||
+        state is AppUpdateState.Installing
+    val canCheck = !busy && state !is AppUpdateState.DevBuild && state !is AppUpdateState.Ready
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = canCheck || state is AppUpdateState.Ready) {
+                if (state is AppUpdateState.Ready) {
+                    AppUpdateCoordinator.install(context)
+                } else {
+                    AppUpdateCoordinator.checkNow(context)
+                }
+            }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.SystemUpdate,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(end = 12.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(
+                    if (state is AppUpdateState.Ready) R.string.update_action_install else R.string.settings_update_check,
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            val subtitle = when (val current = state) {
+                is AppUpdateState.Idle -> stringResource(R.string.settings_update_auto_hint)
+                is AppUpdateState.Checking -> stringResource(R.string.settings_update_checking)
+                is AppUpdateState.UpToDate -> stringResource(R.string.settings_update_up_to_date)
+                is AppUpdateState.DevBuild -> stringResource(R.string.settings_update_dev_build)
+                is AppUpdateState.Downloading ->
+                    stringResource(R.string.update_downloading, current.version, (current.progress * 100).toInt())
+                is AppUpdateState.Ready -> stringResource(R.string.update_ready, current.version)
+                is AppUpdateState.Installing -> stringResource(R.string.update_installing)
+                is AppUpdateState.Failed -> current.message
+            }
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state is AppUpdateState.Failed) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+        if (busy) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         }
     }
 }

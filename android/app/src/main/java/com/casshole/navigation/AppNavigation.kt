@@ -1,5 +1,6 @@
 package com.casshole.navigation
 
+import android.net.Uri
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -36,6 +38,8 @@ import com.casshole.ui.upload.UploadScreen
 private object Routes {
     const val DASHBOARD = "dashboard"
     const val UPLOAD = "upload"
+    // Same screen, carrying a PDF shared from another app to import right away.
+    const val UPLOAD_SHARED = "upload?sharedUri={sharedUri}"
     const val COMPARISON = "comparison"
     const val SETTINGS = "settings"
     const val PASSWORDS = "passwords"
@@ -63,9 +67,23 @@ private fun NavHostController.navigateToTab(route: String) {
 }
 
 @Composable
-fun AppNavigation(navController: NavHostController = rememberNavController()) {
+fun AppNavigation(
+    sharedPdf: Uri? = null,
+    onSharedPdfHandled: () -> Unit = {},
+    navController: NavHostController = rememberNavController(),
+) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = mainScreenForRoute(backStackEntry?.destination?.route)
+
+    // A PDF shared from another app: open Upload with it, which imports it right away.
+    // A second share while Upload is open replaces that screen instead of stacking another.
+    LaunchedEffect(sharedPdf) {
+        if (sharedPdf == null) return@LaunchedEffect
+        navController.navigate("upload?sharedUri=${Uri.encode(sharedPdf.toString())}") {
+            popUpTo(Routes.UPLOAD_SHARED) { inclusive = true }
+        }
+        onSharedPdfHandled()
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -118,9 +136,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                         onOpenInvoice = { invoiceId -> navController.navigate("invoice/$invoiceId") },
                     )
                 }
-                composable(Routes.UPLOAD) {
+                composable(
+                    Routes.UPLOAD_SHARED,
+                    arguments = listOf(
+                        navArgument("sharedUri") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
+                ) { entry ->
                     UploadScreen(
-                        onInvoiceSent = { navController.popBackStack() }
+                        sharedUri = entry.arguments?.getString("sharedUri")?.let(Uri::parse),
+                        onInvoiceSent = { navController.popBackStack() },
                     )
                 }
                 composable(Routes.COMPARISON) {

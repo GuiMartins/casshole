@@ -66,6 +66,8 @@ import com.casshole.categorizer.AVAILABLE_CATEGORIES
 import com.casshole.data.PreferencesRepository
 import com.casshole.data.email.EmailFetchCoordinator
 import com.casshole.data.email.EmailFetchState
+import com.casshole.data.update.AppUpdateCoordinator
+import com.casshole.data.update.AppUpdateState
 import com.casshole.data.export.ExportRow
 import com.casshole.data.export.SummaryPdfExporter
 import com.casshole.data.local.InvoicePeriod
@@ -93,6 +95,7 @@ fun DashboardScreen(
     val availablePeriods by viewModel.availablePeriods.collectAsState()
     val periodFilter by viewModel.periodFilter.collectAsState()
     val emailFetchState by EmailFetchCoordinator.state.collectAsState()
+    val appUpdateState by AppUpdateCoordinator.state.collectAsState()
     val context = LocalContext.current
 
     val allInvoices = (state as? DashboardState.Loaded)?.invoices.orEmpty()
@@ -206,6 +209,7 @@ fun DashboardScreen(
             if (emailFetchState is EmailFetchState.Fetching) {
                 EmailFetchBanner(state = emailFetchState as EmailFetchState.Fetching)
             }
+            AppUpdateBanner(state = appUpdateState, onInstall = { AppUpdateCoordinator.install(context) })
             Box(modifier = Modifier.fillMaxSize()) {
             when (val currentState = state) {
                 is DashboardState.Loading -> CircularProgressIndicator(
@@ -243,6 +247,53 @@ fun DashboardScreen(
             }
             }
         }
+    }
+}
+
+/** Only the states worth interrupting the Dashboard for; the rest lives in Settings > Sobre. */
+@Composable
+private fun AppUpdateBanner(state: AppUpdateState, onInstall: () -> Unit) {
+    when (state) {
+        is AppUpdateState.Downloading, is AppUpdateState.Installing -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            Text(
+                text = when (state) {
+                    is AppUpdateState.Downloading ->
+                        stringResource(R.string.update_downloading, state.version, (state.progress * 100).toInt())
+                    else -> stringResource(R.string.update_installing)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+        is AppUpdateState.Ready -> Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.update_ready, state.version),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onInstall) {
+                    Text(stringResource(R.string.update_action_install))
+                }
+            }
+        }
+        else -> {}
     }
 }
 

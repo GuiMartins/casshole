@@ -56,6 +56,19 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
         _uploadState.value = UploadState.Idle
     }
 
+    private var importedSharedUri: Uri? = null
+
+    /**
+     * A PDF shared from another app: select it and import right away, like tapping Send.
+     * Once per URI - the ViewModel outlives the screen's recompositions and rotations.
+     */
+    fun importSharedFile(uri: Uri) {
+        if (uri == importedSharedUri) return
+        importedSharedUri = uri
+        selectFile(uri)
+        sendInvoice()
+    }
+
     private fun resolveFileName(uri: Uri): String? {
         val resolver = getApplication<Application>().contentResolver
         resolver.query(uri, null, null, null, null)?.use { cursor ->
