@@ -73,6 +73,29 @@ class InvoiceRepositoryTest {
     }
 
     @Test
+    fun duplicateFileFromEmail_backfillsTheEmailDateOnlyWhenMissing(): Unit = runBlocking {
+        val sharedByHand = "fatura-compartilhada".toByteArray()
+        val alreadyFromEmail = "fatura-do-email".toByteArray()
+        val handId = db.invoiceDao().insert(
+            InvoiceEntity(bank = "nubank", referenceMonth = 7, referenceYear = 2026, fileHash = sha256(sharedByHand), processedAt = "2026-07-24T00:00:00Z")
+        )
+        val emailId = db.invoiceDao().insert(
+            InvoiceEntity(bank = "itau", referenceMonth = 7, referenceYear = 2026, fileHash = sha256(alreadyFromEmail), processedAt = "2026-07-24T00:00:00Z", emailReceivedAt = 1_000L)
+        )
+
+        assertThrows(DuplicateFileException::class.java) {
+            runBlocking { repository.processAndStore(sharedByHand, enteredPassword = null, emailReceivedAt = 5_000L) }
+        }
+        assertThrows(DuplicateFileException::class.java) {
+            runBlocking { repository.processAndStore(alreadyFromEmail, enteredPassword = null, emailReceivedAt = 9_000L) }
+        }
+
+        val byId = db.invoiceDao().listAll().associateBy { it.id }
+        assertEquals(5_000L, byId.getValue(handId).emailReceivedAt)
+        assertEquals(1_000L, byId.getValue(emailId).emailReceivedAt)
+    }
+
+    @Test
     fun updateCategory_persistsOnTheTransactionAndRemembersAsOverride() = runBlocking {
         val invoiceId = db.invoiceDao().insert(
             InvoiceEntity(

@@ -101,6 +101,8 @@ aqui não tinha como evitar a perda.
   desde 2026-11-10, a checagem/download de atualização no GitHub Releases do
   próprio repo (`HttpURLConnection` puro). Continua sem Retrofit/OkHttp/backend
   próprio — a permissão INTERNET existe só pra essas duas coisas.
+- **Agendamento**: WorkManager (`androidx.work`, 2.9.x por causa do
+  `compileSdk` 34), só pro lembrete mensal de fatura.
 - **SDK**: `compileSdk`/`targetSdk` 34, `minSdk` 26, JVM target 17, Kotlin
   compiler extension 1.5.14 (compose-bom `2024.06.00`).
 
@@ -134,6 +136,11 @@ android/app/src/main/java/com/casshole/
       ReleaseInfo.kt             SemVer + parse da release do GitHub (puro, testável na JVM)
       AppUpdateCoordinator.kt    singleton: checa, baixa e instala (PackageInstaller)
       UpdateInstallReceiver.kt   status da sessão de instalação
+    reminder/
+      InvoiceReminderPlanner.kt  quando lembrar cada cartão (puro, testável na JVM)
+      InvoiceReminderScheduler.kt  mantém 1 job do WorkManager com o próximo lembrete
+      InvoiceReminderWorker.kt   dispara as notificações devidas e agenda a próxima
+      InvoiceReminderNotifier.kt canal, permissão e a notificação em si
     email/
       EmailCredentialsRepository.kt  EncryptedSharedPreferences (senha de app real + lastProcessedUid)
       EmailFetcher.kt            IMAP puro (javax.mail), sem Context - testável
@@ -196,6 +203,54 @@ android/app/src/main/java/com/casshole/
     mesma importação: dá pra abrir o anexo do e-mail direto no Casshole, sem
     passar pelo visualizador. `MainActivity` lê o URI de `EXTRA_STREAM` (SEND)
     ou de `intent.data` (VIEW).
+- **Lembrete mensal de fatura (2026-11-11, pedido explícito do usuário)** —
+  notificação "hora de conferir os gastos" uma vez por mês por cartão, no dia
+  em que a fatura daquele cartão costuma chegar. O objetivo é lembrar de abrir
+  o app, não informar o fechamento.
+  - **A data é a chegada do e-mail, não o fechamento.** O fechamento não é o
+    dia em que o e-mail chega (o e-mail vem no dia ou alguns dias depois) e
+    cada banco imprime de um jeito no PDF. A chegada é o que interessa: quando
+    o lembrete toca, a fatura nova provavelmente já está na caixa. O
+    `EmailFetcher` já tinha o `receivedDate` de cada mensagem; agora ele é
+    gravado em `faturas.recebidaPorEmailEm` (epoch millis, nullable,
+    `MIGRATION_3_4`). Se o mesmo PDF já tinha sido importado à mão, o e-mail
+    preenche a data na fatura existente (`processAndStore` com duplicata).
+  - **Fatura importada à mão** (seletor/compartilhar) não tem data de e-mail:
+    vale o dia da importação, **só se era fatura fresca** (mês de referência =
+    mês da importação ou o seguinte, já que a fatura é arquivada pelo mês do
+    vencimento). Importar fatura antiga não diz nada sobre quando o cartão
+    fatura. É isso que faz funcionar com as faturas que já estavam no banco
+    antes da migração.
+  - **Regra** (`InvoiceReminderPlanner`): última chegada de cada banco+cartão
+    + 1 mês, às 19:00 (offset sempre a partir da chegada: 31/jan lembra em
+    28/fev e 31/mar). Para depois de 2 lembretes sem fatura nova (cartão
+    cancelado ou usuário que parou de importar). Atrasado até 12h (celular
+    desligado, Doze) ainda sai; mais que isso, pula. `invoice_reminder_last_run`
+    (DataStore) impede repetir; na primeira execução ele começa em "agora",
+    então instalar o update não dispara lembrete de dia que já passou.
+  - **WorkManager, não AlarmManager** — alguns minutos de atraso não importam,
+    sobrevive a reboot e não precisa de permissão de alarme exato. Um único
+    job único (`invoice-reminder`) com o próximo lembrete de todos os
+    cartões. `InvoiceReminderScheduler` observa a tabela `faturas` (Flow do
+    Room) + o switch, então importar, apagar ou desligar reagenda sem
+    nenhuma tela precisar chamar nada. **Pegadinha:** o primeiro valor do
+    Flow só significa "processo iniciou", e o processo pode ter sido iniciado
+    pelo próprio WorkManager pra rodar o job: por isso a 1ª emissão usa
+    `KEEP` (um `REPLACE` cancelaria o job no meio), as seguintes `REPLACE`, e
+    o worker se reagenda com `APPEND_OR_REPLACE`.
+  - Tocar na notificação abre o app com `ACTION_OPEN_FROM_REMINDER` e dispara
+    a busca de e-mail mesmo com o processo já vivo (sem cold start o
+    `fetchOnAppStart` não roda). O `EmailFetchCoordinator` passou a marcar
+    `Fetching` antes do `launch`, pra essa chamada e a do cold start não
+    rodarem duas buscas em paralelo.
+  - Permissão `POST_NOTIFICATIONS` (Android 13+): o app pede sozinho **uma
+    vez**, ao abrir com pelo menos uma fatura no banco. Depois disso, só pelo
+    switch em Configurações > Notificações, que também avisa quando o Android
+    está bloqueando (permissão negada, notificações ou canal desligados) e
+    leva pra tela do sistema.
+  - O texto da notificação sai no idioma do sistema abaixo do Android 13 (no
+    processo iniciado pelo WorkManager o AppCompat ainda não aplicou o idioma
+    escolhido no app). Aceito.
 - **Auto-update pelo GitHub Releases (2026-11-10, pedido explícito do
   usuário)** — o app é side-load, nenhuma loja atualiza ele.
   `AppUpdateCoordinator` (mesmo padrão do `EmailFetchCoordinator`: chamado
@@ -980,13 +1035,16 @@ e todo build (local e CI) usava `assembleDebug`.
     sintético, parser com `pdfBytes` vazio).
   - `InstallmentProjectorTest` — projeção de parcelas (virada de ano,
     uma fatura por cartão, janela máxima).
+  - `InvoiceReminderPlannerTest` — data do lembrete (e-mail x importação
+    manual, fatura fresca, fim de mês, atraso tolerado, cartão que parou).
 - Testes instrumentados (`src/androidTest/`), precisam de emulador/device
   — rodados pelo job `instrumented-tests` do CI via `./gradlew
   connectedDebugAndroidTest`:
   - `RoomFoundationTest` — schema Room (cascade delete, unique constraints).
   - `InvoiceRepositoryTest` — regras de negócio do `InvoiceRepository`
     (rejeição de reenvio duplicado, aprendizado/remoção de categoria,
-    correção retroativa por descrição) contra
+    correção retroativa por descrição, data do e-mail preenchida em
+    duplicata) contra
     um banco Room em memória; usa o parâmetro `database` do construtor de
     `InvoiceRepository` pra injetar esse banco de teste em vez do singleton
     real (`DatabaseProvider`).

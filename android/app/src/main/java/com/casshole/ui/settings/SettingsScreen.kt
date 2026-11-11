@@ -1,7 +1,11 @@
 package com.casshole.ui.settings
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +29,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Card
@@ -33,23 +38,32 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.BuildConfig
 import com.casshole.R
+import com.casshole.data.reminder.InvoiceReminderNotifier
 import com.casshole.data.update.AppUpdateCoordinator
 import com.casshole.data.update.AppUpdateState
 import com.casshole.ui.components.AdaptiveScreen
@@ -67,6 +81,7 @@ fun SettingsScreen(
     val preferredTheme by viewModel.preferredTheme.collectAsState()
     val summaryDisplayMode by viewModel.summaryDisplayMode.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
+    val invoiceReminderEnabled by viewModel.invoiceReminderEnabled.collectAsState()
     val onSelectLanguage: (String?) -> Unit = { language ->
         viewModel.selectLanguage(language)
     }
@@ -168,6 +183,19 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_email_row_title),
                 subtitle = stringResource(R.string.settings_email_subtitle),
                 onClick = onOpenEmailSettings,
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            Text(
+                text = stringResource(R.string.settings_notifications),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            InvoiceReminderRow(
+                enabled = invoiceReminderEnabled,
+                onEnabledChange = viewModel::setInvoiceReminderEnabled,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
@@ -365,6 +393,77 @@ private fun UpdateRow() {
         if (busy) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         }
+    }
+}
+
+/**
+ * The switch is the app's own setting; whether Android lets the notification through is a
+ * separate thing (permission on 13+, app or channel notifications turned off), re-checked on
+ * every resume since it changes outside the app. When the setting is on but Android blocks it,
+ * the row says so and leads to the system screen that fixes it.
+ */
+@Composable
+private fun InvoiceReminderRow(enabled: Boolean, onEnabledChange: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    var notificationsAllowed by remember { mutableStateOf(InvoiceReminderNotifier.canNotify(context)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsAllowed = InvoiceReminderNotifier.canNotify(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        notificationsAllowed = InvoiceReminderNotifier.canNotify(context)
+    }
+    val blocked = enabled && !notificationsAllowed
+    val setEnabled: (Boolean) -> Unit = { checked ->
+        onEnabledChange(checked)
+        if (checked && InvoiceReminderNotifier.needsPermissionRequest(context)) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (blocked) {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    )
+                } else {
+                    setEnabled(!enabled)
+                }
+            }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.NotificationsActive,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(end = 12.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(stringResource(R.string.settings_invoice_reminder_title), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = stringResource(
+                    if (blocked) R.string.settings_invoice_reminder_blocked else R.string.settings_invoice_reminder_subtitle,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (blocked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = setEnabled,
+            modifier = Modifier.padding(start = 12.dp),
+        )
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.entity.InvoiceEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface InvoiceDao {
@@ -36,4 +37,17 @@ interface InvoiceDao {
         """
     )
     suspend fun findByPeriod(bank: String, card: String, month: Int, year: Int): InvoiceEntity?
+
+    @Query("SELECT * FROM faturas")
+    suspend fun listAll(): List<InvoiceEntity>
+
+    /** Emits again whenever the invoices table changes (import, delete) - drives the reminder schedule. */
+    @Query("SELECT * FROM faturas")
+    fun observeAll(): Flow<List<InvoiceEntity>>
+
+    @Query("SELECT COUNT(*) FROM faturas")
+    suspend fun count(): Int
+
+    @Query("UPDATE faturas SET recebidaPorEmailEm = :receivedAt WHERE id = :id")
+    suspend fun setEmailReceivedAt(id: Long, receivedAt: Long)
 }

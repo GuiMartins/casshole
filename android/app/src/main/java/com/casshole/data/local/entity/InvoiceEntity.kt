@@ -20,4 +20,8 @@ data class InvoiceEntity(
     @ColumnInfo(name = "anoReferencia") val referenceYear: Int,
     @ColumnInfo(name = "arquivoHash") val fileHash: String,
     @ColumnInfo(name = "processadaEm") val processedAt: String,
+    /** When the e-mail carrying this invoice's PDF reached the inbox (epoch millis). Null for
+     * invoices imported by hand (picker/share) - the monthly reminder falls back to
+     * [processedAt] for those, see InvoiceReminderPlanner. */
+    @ColumnInfo(name = "recebidaPorEmailEm") val emailReceivedAt: Long? = null,
 )
