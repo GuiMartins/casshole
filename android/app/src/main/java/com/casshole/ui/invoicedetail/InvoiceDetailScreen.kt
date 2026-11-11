@@ -42,7 +42,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.R
+import com.casshole.data.local.CardholderBreakdown
 import com.casshole.data.local.entity.TransactionEntity
+import com.casshole.ui.components.CardholderFilterChips
+import com.casshole.ui.components.cardholderLabel
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
 import com.casshole.ui.components.InstallmentBadge
@@ -102,7 +105,7 @@ private fun InvoiceDetailContent(
     val invoice = state.invoice
     val totalSpent = invoice.transactions.sumOf { it.amount }
     val cardSuffix = if (invoice.card.isNotBlank()) " (••••${invoice.card})" else ""
-    val cardholders = invoice.transactions.map { it.cardholder }.filter { it.isNotBlank() }.distinct()
+    val cardholders = CardholderBreakdown.summarize(invoice.transactions)
     val categories = invoice.transactions.map { it.category }.distinct().sorted()
     val cardsInLine = invoice.transactions.map { it.card }.filter { it.isNotBlank() }.distinct().sorted()
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
@@ -120,7 +123,7 @@ private fun InvoiceDetailContent(
             transaction.description.contains(searchText, ignoreCase = true) ||
             transaction.city.contains(searchText, ignoreCase = true)) &&
             (categoryFilter == null || transaction.category == categoryFilter) &&
-            (cardholderFilter == null || transaction.cardholder == cardholderFilter) &&
+            (cardholderFilter == null || CardholderBreakdown.keyOf(transaction.cardholder) == cardholderFilter) &&
             (cardFilter == null || transaction.card == cardFilter)
     }
 
@@ -212,23 +215,12 @@ private fun InvoiceDetailContent(
                 }
 
                 if (cardholders.size > 1) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(bottom = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        cardholders.forEach { cardholder ->
-                            FilterChip(
-                                selected = cardholderFilter == cardholder,
-                                onClick = {
-                                    cardholderFilter = if (cardholderFilter == cardholder) null else cardholder
-                                },
-                                label = { Text(cardholder) },
-                            )
-                        }
-                    }
+                    CardholderFilterChips(
+                        cardholders = cardholders,
+                        selectedKey = cardholderFilter,
+                        onSelect = { cardholderFilter = it },
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
                 }
 
                 if (cardsInLine.size > 1) {
@@ -278,14 +270,17 @@ private fun InvoiceDetailContent(
             }
 
             if (cardholders.size > 1) {
-                cardholders.forEach { cardholder ->
-                    val cardholderTransactions = filteredTransactions.filter { it.cardholder == cardholder }
+                cardholders.forEach { summary ->
+                    val cardholder = summary.key
+                    val cardholderTransactions = filteredTransactions.filter {
+                        CardholderBreakdown.keyOf(it.cardholder) == cardholder
+                    }
                     if (cardholderTransactions.isEmpty()) return@forEach
                     val isExpanded = filtersActive || (expanded[cardholder] ?: false)
 
                     item {
                         CardholderHeader(
-                            cardholder = cardholder,
+                            cardholder = cardholderLabel(summary),
                             count = cardholderTransactions.size,
                             total = cardholderTransactions.sumOf { it.amount },
                             amountsHidden = amountsHidden,

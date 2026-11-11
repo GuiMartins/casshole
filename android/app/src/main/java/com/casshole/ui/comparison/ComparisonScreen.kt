@@ -53,6 +53,7 @@ import com.casshole.data.local.MonthlyComparison
 import com.casshole.data.local.MonthlySummary
 import com.casshole.data.local.ProjectedMonth
 import com.casshole.ui.components.AdaptiveScreen
+import com.casshole.ui.components.CardholderFilterChips
 import com.casshole.ui.components.InstallmentBadge
 import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
@@ -68,6 +69,8 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
     val comparisonState by viewModel.comparisonState.collectAsState()
     val amountsHidden by viewModel.amountsHidden.collectAsState()
     val projection by viewModel.projection.collectAsState()
+    val cardholders by viewModel.cardholders.collectAsState()
+    val cardholderFilter by viewModel.cardholderFilter.collectAsState()
 
     AdaptiveScreen {
         LazyColumn(
@@ -124,6 +127,19 @@ fun ComparisonScreen(viewModel: ComparisonViewModel = viewModel()) {
                                         label = { Text(period.toString()) },
                                     )
                                 }
+                            }
+                            if (cardholders.size > 1) {
+                                Text(
+                                    text = stringResource(R.string.cardholder_filter_label),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                                )
+                                CardholderFilterChips(
+                                    cardholders = cardholders,
+                                    selectedKey = cardholderFilter,
+                                    onSelect = viewModel::selectCardholder,
+                                )
                             }
                         }
                     }
