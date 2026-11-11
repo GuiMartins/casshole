@@ -182,6 +182,14 @@ android/app/src/main/java/com/casshole/
   leitura do URI. `onCreate` só lê o Intent quando `savedInstanceState ==
   null` (senão rotacionar reimportaria), e o ViewModel ignora o mesmo URI
   duas vezes.
+  - **O filtro aceita `application/pdf`, `application/x-pdf` e
+    `application/octet-stream`** (bug real, no celular do usuário: o app
+    não aparecia no share sheet). Fatura que chega por e-mail costuma vir
+    anexada como `octet-stream`, e o app que compartilha repassa esse tipo
+    sem mudar. Como `octet-stream` é "qualquer binário", o
+    `UploadViewModel` confere o cabeçalho `%PDF-` antes de mandar pro parser
+    ("Esse arquivo não é um PDF."). Não aceitar `*/*` nem `image/*`: o app
+    apareceria pra qualquer compartilhamento.
 - **Auto-update pelo GitHub Releases (2026-11-10, pedido explícito do
   usuário)** — o app é side-load, nenhuma loja atualiza ele.
   `AppUpdateCoordinator` (mesmo padrão do `EmailFetchCoordinator`: chamado

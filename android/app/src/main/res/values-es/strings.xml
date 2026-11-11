@@ -206,4 +206,5 @@
     <string name="cardholder_filter_label">Titular</string>
     <string name="cardholder_share">%1$.0f%% del total</string>
     <string name="cardholder_showing_only">Mostrando solo los gastos de %1$s. Toca de nuevo para ver todos.</string>
+    <string name="error_not_a_pdf">Este archivo no es un PDF.</string>
 </resources>
