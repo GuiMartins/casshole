@@ -66,6 +66,16 @@ object EmailFetchCoordinator {
         fetch(appContext, credentials)
     }
 
+    /** Opening the app from the monthly reminder: the invoice it's about is probably sitting in
+     * the inbox by now, so fetch even if this process was already alive (no cold start, so
+     * [fetchOnAppStart] won't run). A cold start's own fetch is still in flight at this point
+     * and absorbs this call. */
+    fun fetchFromReminder(context: Context) {
+        val appContext = context.applicationContext
+        val credentials = EmailCredentialsRepository(appContext).get() ?: return
+        fetch(appContext, credentials)
+    }
+
     /** Manual trigger from the Email Settings screen - always runs, even right after auto-fetch. */
     fun fetchNow(context: Context, credentials: EmailCredentials) {
         fetch(context.applicationContext, credentials)
@@ -77,8 +87,10 @@ object EmailFetchCoordinator {
         val credentialsRepository = EmailCredentialsRepository(context)
         val invoiceRepository = InvoiceRepository(context)
 
+        // Set before launching, not inside the coroutine: two calls in a row on the main thread
+        // (cold start opened from the reminder notification) must see each other.
+        _state.value = EmailFetchState.Fetching()
         scope.launch {
-            _state.value = EmailFetchState.Fetching()
             try {
                 val lastProcessedUid = credentialsRepository.getLastProcessedUid()
                 val previouslyFailedUids = credentialsRepository.getFailedUids()
@@ -104,7 +116,11 @@ object EmailFetchCoordinator {
                 val stillFailedUids = mutableSetOf<Long>()
                 for (attachment in result.attachments) {
                     try {
-                        invoiceRepository.processAndStore(attachment.bytes, enteredPassword = null)
+                        invoiceRepository.processAndStore(
+                            attachment.bytes,
+                            enteredPassword = null,
+                            emailReceivedAt = attachment.receivedAt.time,
+                        )
                         imported++
                     } catch (e: DuplicateFileException) {
                         duplicates++

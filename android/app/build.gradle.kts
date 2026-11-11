@@ -127,6 +127,10 @@ dependencies {
     // PDF-open passwords which are fine in plain Room.
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Monthly invoice reminder (data/reminder/). 2.9.x is the last line that builds against
+    // compileSdk 34; 2.10+ needs 35.
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
