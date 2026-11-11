@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
@@ -70,6 +71,8 @@ import com.casshole.data.update.AppUpdateCoordinator
 import com.casshole.data.update.AppUpdateState
 import com.casshole.data.export.ExportRow
 import com.casshole.data.export.SummaryPdfExporter
+import com.casshole.data.local.CardholderBreakdown
+import com.casshole.data.local.CardholderSummary
 import com.casshole.data.local.InvoicePeriod
 import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.SummaryAggregator
@@ -78,6 +81,7 @@ import androidx.compose.material3.HorizontalDivider
 import com.casshole.ui.components.EditCategoryDialog
 import com.casshole.ui.components.AdaptiveScreen
 import com.casshole.ui.components.InstallmentBadge
+import com.casshole.ui.components.cardholderLabel
 import com.casshole.ui.components.formatCurrency
 import com.casshole.ui.theme.CategoryIcon
 import com.casshole.ui.theme.categoryVisual
@@ -94,6 +98,7 @@ fun DashboardScreen(
     val retroactiveCount by viewModel.retroactiveCount.collectAsState()
     val availablePeriods by viewModel.availablePeriods.collectAsState()
     val periodFilter by viewModel.periodFilter.collectAsState()
+    val cardholderFilter by viewModel.cardholderFilter.collectAsState()
     val emailFetchState by EmailFetchCoordinator.state.collectAsState()
     val appUpdateState by AppUpdateCoordinator.state.collectAsState()
     val context = LocalContext.current
@@ -103,10 +108,16 @@ fun DashboardScreen(
         is PeriodFilter.AllMonths -> allInvoices
         is PeriodFilter.Month -> SummaryAggregator.filterByMonth(allInvoices, filter.period.month, filter.period.year)
     }
-    val periodLabel = when (val filter = periodFilter) {
+    val cardholders = CardholderBreakdown.summarize(periodInvoices.flatMap { it.transactions })
+    val activeCardholder = cardholders
+        .takeIf { it.size > 1 }
+        ?.find { it.key == cardholderFilter }
+    val summaryInvoices = CardholderBreakdown.filterInvoices(periodInvoices, activeCardholder?.key)
+    val periodOnlyLabel = when (val filter = periodFilter) {
         is PeriodFilter.AllMonths -> stringResource(R.string.dashboard_period_all)
         is PeriodFilter.Month -> filter.period.toString()
     }
+    val periodLabel = activeCardholder?.let { "$periodOnlyLabel • ${cardholderLabel(it)}" } ?: periodOnlyLabel
     val exportFailedMessage = stringResource(R.string.export_error)
     val exportTitle = stringResource(R.string.dashboard_summary_title)
     val exportTotalLabel = stringResource(R.string.export_total_label)
@@ -153,12 +164,12 @@ fun DashboardScreen(
                                         fileName = exportFileName,
                                         title = exportTitle,
                                         subtitle = periodLabel,
-                                        rows = SummaryAggregator.categoryTotals(periodInvoices).map {
+                                        rows = SummaryAggregator.categoryTotals(summaryInvoices).map {
                                             ExportRow(it.category, formatCurrency(it.total, hidden = false))
                                         },
                                         totalLabel = exportTotalLabel,
                                         totalValue = formatCurrency(
-                                            periodInvoices.flatMap { it.transactions }.sumOf { it.amount },
+                                            summaryInvoices.flatMap { it.transactions }.sumOf { it.amount },
                                             hidden = false,
                                         ),
                                         footer = exportFooter,
@@ -229,9 +240,12 @@ fun DashboardScreen(
                         )
                     } else {
                         GeneralSummaryContent(
-                            invoices = periodInvoices,
+                            invoices = summaryInvoices,
                             nicknames = currentState.nicknames,
-                            periodLabel = periodLabel,
+                            periodLabel = periodOnlyLabel,
+                            cardholders = cardholders,
+                            activeCardholder = activeCardholder,
+                            onSelectCardholder = viewModel::selectCardholder,
                             availablePeriods = availablePeriods,
                             periodFilter = periodFilter,
                             onSelectPeriod = viewModel::selectPeriod,
@@ -324,6 +338,9 @@ private fun GeneralSummaryContent(
     invoices: List<InvoiceWithTransactions>,
     nicknames: Map<Pair<String, String>, String>,
     periodLabel: String,
+    cardholders: List<CardholderSummary>,
+    activeCardholder: CardholderSummary?,
+    onSelectCardholder: (String?) -> Unit,
     availablePeriods: List<InvoicePeriod>,
     periodFilter: PeriodFilter,
     onSelectPeriod: (PeriodFilter) -> Unit,
@@ -371,7 +388,16 @@ private fun GeneralSummaryContent(
                     summaryDisplayMode = summaryDisplayMode,
                     amountsHidden = amountsHidden,
                     onCategoryClick = { selectedCategory = it },
+                    activeCardholder = activeCardholder,
                 )
+                if (cardholders.size > 1) {
+                    CardholderBreakdownCard(
+                        cardholders = cardholders,
+                        activeCardholder = activeCardholder,
+                        amountsHidden = amountsHidden,
+                        onSelect = onSelectCardholder,
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(80.dp))
         }
@@ -518,6 +544,7 @@ private fun GeneralSummaryCard(
     summaryDisplayMode: String,
     amountsHidden: Boolean,
     onCategoryClick: (String) -> Unit,
+    activeCardholder: CardholderSummary? = null,
 ) {
     val transactions = currentMonthInvoices.flatMap { it.transactions }
     val totalAmount = transactions.sumOf { it.amount }
@@ -549,6 +576,25 @@ private fun GeneralSummaryCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
+            if (activeCardholder != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = cardholderLabel(activeCardholder),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+            }
 
             if (byCategory.isNotEmpty()) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -568,6 +614,93 @@ private fun GeneralSummaryCard(
                         amountsHidden = amountsHidden,
                         onClick = { onCategoryClick(category) },
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Spending per cardholder (account holder vs. additional cards) in the
+ * selected period. Tapping a row narrows the whole summary above - categories,
+ * pie chart and PDF export - to that person; tapping it again goes back to
+ * everyone. The rows always show the full period, so the other people stay
+ * one tap away.
+ */
+@Composable
+private fun CardholderBreakdownCard(
+    cardholders: List<CardholderSummary>,
+    activeCardholder: CardholderSummary?,
+    amountsHidden: Boolean,
+    onSelect: (String?) -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.cardholder_section_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            if (activeCardholder != null) {
+                Text(
+                    text = stringResource(R.string.cardholder_showing_only, cardholderLabel(activeCardholder)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            cardholders.forEach { cardholder ->
+                val selected = cardholder.key == activeCardholder?.key
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clickable { onSelect(if (selected) null else cardholder.key) },
+                    border = BorderStroke(
+                        width = if (selected) 2.dp else 1.dp,
+                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 10.dp),
+                        ) {
+                            Text(
+                                text = cardholderLabel(cardholder),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = stringResource(R.string.cardholder_share, cardholder.share),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            text = formatCurrency(cardholder.total, amountsHidden),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                 }
             }
         }

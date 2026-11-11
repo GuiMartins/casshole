@@ -5,7 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.casshole.R
 import com.casshole.data.PreferencesRepository
+import com.casshole.data.local.CardholderBreakdown
+import com.casshole.data.local.CardholderSummary
 import com.casshole.data.local.InstallmentProjector
+import com.casshole.data.local.InvoiceWithTransactions
 import com.casshole.data.local.MonthlyComparison
 import com.casshole.data.local.InvoiceRepository
 import com.casshole.data.local.ProjectedMonth
@@ -64,6 +67,16 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
     private val _projection = MutableStateFlow<List<ProjectedMonth>>(emptyList())
     val projection: StateFlow<List<ProjectedMonth>> = _projection.asStateFlow()
 
+    /** Everyone who appears in the imported invoices - the filter chips only show up when there's more than one. */
+    private val _cardholders = MutableStateFlow<List<CardholderSummary>>(emptyList())
+    val cardholders: StateFlow<List<CardholderSummary>> = _cardholders.asStateFlow()
+
+    /** Normalized cardholder key the whole screen is narrowed to (chart, stats, categories, projection); null = everyone. */
+    private val _cardholderFilter = MutableStateFlow<String?>(null)
+    val cardholderFilter: StateFlow<String?> = _cardholderFilter.asStateFlow()
+
+    private var invoices: List<InvoiceWithTransactions> = emptyList()
+
     init {
         loadAvailablePeriods()
     }
@@ -72,19 +85,31 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             _periodsState.value = PeriodsState.Loading
             try {
-                val invoices = repository.listInvoices()
+                invoices = repository.listInvoices()
+                _cardholders.value = CardholderBreakdown.summarize(invoices.flatMap { it.transactions })
+                if (_cardholderFilter.value !in _cardholders.value.map { it.key }) _cardholderFilter.value = null
                 val periods = invoices
                     .map { MonthYear(it.referenceMonth, it.referenceYear) }
                     .distinct()
                     .sorted()
                 _periodsState.value = PeriodsState.Available(periods)
-                _projection.value = InstallmentProjector.project(invoices)
+                updateProjection()
                 _selected.value = periods.takeLast(DEFAULT_SELECTED_PERIODS).toSet()
                 compare()
             } catch (e: Exception) {
                 _periodsState.value = PeriodsState.Error(e.message ?: getApplication<Application>().getString(R.string.error_load_periods))
             }
         }
+    }
+
+    fun selectCardholder(key: String?) {
+        _cardholderFilter.value = key
+        updateProjection()
+        compare()
+    }
+
+    private fun updateProjection() {
+        _projection.value = InstallmentProjector.project(CardholderBreakdown.filterInvoices(invoices, _cardholderFilter.value))
     }
 
     fun toggleSelection(period: MonthYear) {
@@ -122,7 +147,8 @@ class ComparisonViewModel(application: Application) : AndroidViewModel(applicati
             _comparisonState.value = ComparisonUiState.Comparing
             try {
                 val transactionsByPeriod = periods.map { period ->
-                    Triple(period.month, period.year, repository.transactionsByPeriod(period.month, period.year))
+                    val transactions = repository.transactionsByPeriod(period.month, period.year)
+                    Triple(period.month, period.year, CardholderBreakdown.filterTransactions(transactions, _cardholderFilter.value))
                 }
                 val result = SummaryAggregator.compareMonths(transactionsByPeriod)
                 _comparisonState.value = ComparisonUiState.Result(result)
