@@ -94,6 +94,12 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                         .openInputStream(file.uri)?.use { it.readBytes() }
                 } ?: throw IllegalStateException(getApplication<Application>().getString(R.string.error_read_file))
 
+                // A shared file may come typed as application/octet-stream - make sure it's
+                // actually a PDF before handing it to the parser.
+                if (!bytes.isPdf()) {
+                    throw IllegalArgumentException(getApplication<Application>().getString(R.string.error_not_a_pdf))
+                }
+
                 val enteredPassword = _password.value.trim().ifBlank { null }
                 val invoice = repository.processAndStore(bytes, enteredPassword)
                 saveDefaultPasswordIfNeeded(enteredPassword)
@@ -124,4 +130,10 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
         _selectedFile.value = null
         _uploadState.value = UploadState.Idle
     }
+}
+
+/** PDF files start with "%PDF-"; a little leading junk is tolerated by readers, so look ahead a bit. */
+private fun ByteArray.isPdf(): Boolean {
+    val head = String(this, 0, minOf(size, 1024), Charsets.ISO_8859_1)
+    return head.contains("%PDF-")
 }
