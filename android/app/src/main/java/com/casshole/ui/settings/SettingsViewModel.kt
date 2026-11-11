@@ -51,4 +51,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun selectSummaryDisplayMode(value: String) {
         viewModelScope.launch { preferencesRepository.setSummaryDisplayMode(value) }
     }
+
+    val invoiceReminderEnabled: StateFlow<Boolean> = preferencesRepository.invoiceReminderEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = true,
+    )
+
+    fun setInvoiceReminderEnabled(value: Boolean) {
+        viewModelScope.launch { preferencesRepository.setInvoiceReminderEnabled(value) }
+    }
 }

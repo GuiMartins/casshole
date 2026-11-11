@@ -234,4 +234,15 @@
     <string name="cardholder_share">%1$.0f%% do total</string>
     <string name="cardholder_showing_only">Mostrando só os gastos de %1$s. Toque de novo para ver todos.</string>
     <string name="error_not_a_pdf">Esse arquivo não é um PDF.</string>
+
+    <!-- Monthly invoice reminder -->
+    <string name="settings_notifications">Notificações</string>
+    <string name="settings_invoice_reminder_title">Lembrete de fatura</string>
+    <string name="settings_invoice_reminder_subtitle">Todo mês, no dia em que a fatura de cada cartão costuma chegar, avisa pra conferir os gastos</string>
+    <string name="settings_invoice_reminder_blocked">As notificações estão bloqueadas no Android. Toque pra liberar.</string>
+    <string name="reminder_channel_name">Lembretes de fatura</string>
+    <string name="reminder_channel_description">Aviso mensal pra conferir os gastos quando a fatura chega</string>
+    <string name="reminder_title">Hora de conferir os gastos</string>
+    <string name="reminder_text">%1$s: a fatura costuma chegar hoje. Toque pra ver os gastos.</string>
+    <string name="reminder_card_suffix">final %1$s</string>
 </resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,9 @@ class PreferencesRepository(private val context: Context) {
         private val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
         private val AMOUNTS_HIDDEN_KEY = booleanPreferencesKey("amounts_hidden")
         private val CATEGORIZER_REVISION_KEY = intPreferencesKey("categorizer_revision")
+        private val INVOICE_REMINDER_ENABLED_KEY = booleanPreferencesKey("invoice_reminder_enabled")
+        private val INVOICE_REMINDER_LAST_RUN_KEY = longPreferencesKey("invoice_reminder_last_run")
+        private val NOTIFICATION_PERMISSION_ASKED_KEY = booleanPreferencesKey("notification_permission_asked")
     }
 
     val preferredTheme: Flow<String> =
@@ -64,5 +68,29 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setCategorizerRevision(value: Int) {
         context.dataStore.edit { it[CATEGORIZER_REVISION_KEY] = value }
+    }
+
+    /** Monthly "your invoice usually arrives today" notification - on by default. */
+    val invoiceReminderEnabled: Flow<Boolean> =
+        context.dataStore.data.map { it[INVOICE_REMINDER_ENABLED_KEY] ?: true }
+
+    suspend fun setInvoiceReminderEnabled(value: Boolean) {
+        context.dataStore.edit { it[INVOICE_REMINDER_ENABLED_KEY] = value }
+    }
+
+    /** Epoch millis of the last reminder check: reminders at or before it are never sent again. */
+    val invoiceReminderLastRun: Flow<Long?> =
+        context.dataStore.data.map { it[INVOICE_REMINDER_LAST_RUN_KEY] }
+
+    suspend fun setInvoiceReminderLastRun(value: Long) {
+        context.dataStore.edit { it[INVOICE_REMINDER_LAST_RUN_KEY] = value }
+    }
+
+    /** The app asks for the notification permission on its own only once (Android 13+). */
+    val notificationPermissionAsked: Flow<Boolean> =
+        context.dataStore.data.map { it[NOTIFICATION_PERMISSION_ASKED_KEY] ?: false }
+
+    suspend fun setNotificationPermissionAsked(value: Boolean) {
+        context.dataStore.edit { it[NOTIFICATION_PERMISSION_ASKED_KEY] = value }
     }
 }

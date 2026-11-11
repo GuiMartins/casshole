@@ -1,29 +1,39 @@
 package com.casshole
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.IntentCompat
 import androidx.core.os.BundleCompat
 import com.casshole.data.PreferencesRepository
+import com.casshole.data.email.EmailFetchCoordinator
+import com.casshole.data.local.DatabaseProvider
+import com.casshole.data.reminder.InvoiceReminderNotifier
 import com.casshole.navigation.AppNavigation
 import com.casshole.ui.components.LocalWindowWidthSizeClass
 import com.casshole.ui.onboarding.OnboardingScreen
 import com.casshole.ui.theme.CassholeTheme
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -80,10 +90,13 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 },
                             )
-                            true -> AppNavigation(
-                                sharedPdf = sharedPdfUri,
-                                onSharedPdfHandled = { sharedPdf.value = null },
-                            )
+                            true -> {
+                                AppNavigation(
+                                    sharedPdf = sharedPdfUri,
+                                    onSharedPdfHandled = { sharedPdf.value = null },
+                                )
+                                NotificationPermissionRequest(preferencesRepository)
+                            }
                         }
                     }
                 }
@@ -101,6 +114,10 @@ class MainActivity : AppCompatActivity() {
         val uri = when (intent?.action) {
             Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
             Intent.ACTION_VIEW -> intent.data
+            InvoiceReminderNotifier.ACTION_OPEN_FROM_REMINDER -> {
+                EmailFetchCoordinator.fetchFromReminder(this)
+                null
+            }
             else -> null
         } ?: return
         sharedPdf.value = uri
@@ -113,5 +130,25 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val KEY_SHARED_PDF = "shared_pdf"
+    }
+}
+
+/**
+ * Asks for the notification permission (Android 13+) once, on its own, so the monthly invoice
+ * reminder works without the user having to dig through Settings. Only once there's at least one
+ * invoice - before that a reminder means nothing yet. Declining is final here; the switch in
+ * Settings > Notificações asks again.
+ */
+@Composable
+private fun NotificationPermissionRequest(preferencesRepository: PreferencesRepository) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (!InvoiceReminderNotifier.needsPermissionRequest(context)) return@LaunchedEffect
+        if (preferencesRepository.notificationPermissionAsked.first()) return@LaunchedEffect
+        if (!preferencesRepository.invoiceReminderEnabled.first()) return@LaunchedEffect
+        if (DatabaseProvider.getDatabase(context).invoiceDao().count() == 0) return@LaunchedEffect
+        preferencesRepository.setNotificationPermissionAsked(true)
+        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }

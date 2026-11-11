@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
+    <!-- Monthly invoice reminder (data/reminder/). Runtime permission on Android 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".CassholeApp"
         android:allowBackup="true"

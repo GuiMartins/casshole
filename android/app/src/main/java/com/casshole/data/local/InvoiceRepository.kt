@@ -155,9 +155,21 @@ class InvoiceRepository(
     suspend fun transactionsByPeriod(month: Int, year: Int): List<TransactionEntity> =
         transactionDao.listByPeriod(month, year)
 
-    suspend fun processAndStore(bytes: ByteArray, enteredPassword: String?): InvoiceWithTransactions {
+    /**
+     * [emailReceivedAt] (epoch millis) is set when the PDF came from the e-mail fetch. Even when
+     * the invoice turns out to be a duplicate - e.g. the same PDF was shared into the app by hand
+     * first - the e-mail date is backfilled onto the stored invoice, since it's what the monthly
+     * reminder is timed from.
+     */
+    suspend fun processAndStore(
+        bytes: ByteArray,
+        enteredPassword: String?,
+        emailReceivedAt: Long? = null,
+    ): InvoiceWithTransactions {
         val hash = calculateHash(bytes)
-        if (invoiceDao.findByHash(hash) != null) {
+        val sameFile = invoiceDao.findByHash(hash)
+        if (sameFile != null) {
+            backfillEmailReceivedAt(sameFile, emailReceivedAt)
             throw DuplicateFileException(context.getString(R.string.error_invoice_already_processed))
         }
 
@@ -173,6 +185,7 @@ class InvoiceRepository(
             parsedInvoice.referenceYear,
         )
         if (existingInvoice != null) {
+            backfillEmailReceivedAt(existingInvoice, emailReceivedAt)
             val cardDetail = if (parsedInvoice.card.isNotBlank()) {
                 context.getString(R.string.error_invoice_duplicate_period_card_detail, parsedInvoice.card)
             } else {
@@ -197,6 +210,7 @@ class InvoiceRepository(
                     referenceYear = parsedInvoice.referenceYear,
                     fileHash = hash,
                     processedAt = Instant.now().toString(),
+                    emailReceivedAt = emailReceivedAt,
                 )
             )
             transactionDao.insertAll(
@@ -221,6 +235,12 @@ class InvoiceRepository(
         }
 
         return invoiceDao.getWithTransactions(invoiceId)!!
+    }
+
+    private suspend fun backfillEmailReceivedAt(invoice: InvoiceEntity, emailReceivedAt: Long?) {
+        if (emailReceivedAt != null && invoice.emailReceivedAt == null) {
+            invoiceDao.setEmailReceivedAt(invoice.id, emailReceivedAt)
+        }
     }
 
     private fun calculateHash(bytes: ByteArray): String {
