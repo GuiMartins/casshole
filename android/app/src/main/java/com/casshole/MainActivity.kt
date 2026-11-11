@@ -1,6 +1,7 @@
 package com.casshole
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
@@ -15,15 +16,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.core.content.IntentCompat
+import androidx.core.os.BundleCompat
 import com.casshole.data.PreferencesRepository
-import com.casshole.data.SharedFileHolder
 import com.casshole.navigation.AppNavigation
 import com.casshole.ui.components.LocalWindowWidthSizeClass
 import com.casshole.ui.onboarding.OnboardingScreen
 import com.casshole.ui.theme.CassholeTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    // A PDF shared into THIS activity instance. Deliberately not a process-wide holder:
+    // sharing from another app usually creates a new instance in the sender's task while
+    // an older one may still be alive in ours, and only the instance that received the
+    // Intent holds the read grant for the shared URI.
+    private val sharedPdf = MutableStateFlow<Uri?>(null)
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,7 +42,13 @@ class MainActivity : AppCompatActivity() {
         // itself (work profile, Samsung Secure Folder, private space) is not
         // affected by this: there the system enforces it above the app.
         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        handleIncomingIntent(intent)
+        if (savedInstanceState == null) {
+            handleIncomingIntent(intent)
+        } else {
+            // Not consumed yet (e.g. rotated during onboarding). getIntent() would still be
+            // the share Intent after recreation, so re-reading it would import twice.
+            sharedPdf.value = BundleCompat.getParcelable(savedInstanceState, KEY_SHARED_PDF, Uri::class.java)
+        }
         setContent {
             val preferencesRepository = remember { PreferencesRepository(applicationContext) }
             val preferredTheme by preferencesRepository.preferredTheme.collectAsState(
@@ -49,6 +64,7 @@ class MainActivity : AppCompatActivity() {
                 initial = null,
             )
             val coroutineScope = rememberCoroutineScope()
+            val sharedPdfUri by sharedPdf.collectAsState()
 
             CassholeTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(
@@ -64,7 +80,10 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 },
                             )
-                            true -> AppNavigation()
+                            true -> AppNavigation(
+                                sharedPdf = sharedPdfUri,
+                                onSharedPdfHandled = { sharedPdf.value = null },
+                            )
                         }
                     }
                 }
@@ -82,8 +101,16 @@ class MainActivity : AppCompatActivity() {
         if (intent?.action != Intent.ACTION_SEND) return
         if (intent.type != "application/pdf") return
 
-        @Suppress("DEPRECATION")
-        val uri = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
-        SharedFileHolder.pendingUri = uri
+        val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) ?: return
+        sharedPdf.value = uri
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable(KEY_SHARED_PDF, sharedPdf.value)
+    }
+
+    private companion object {
+        const val KEY_SHARED_PDF = "shared_pdf"
     }
 }

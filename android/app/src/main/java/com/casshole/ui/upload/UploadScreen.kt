@@ -1,5 +1,7 @@
 package com.casshole.ui.upload
 
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -26,16 +28,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.casshole.R
-import com.casshole.data.SharedFileHolder
 import com.casshole.ui.components.AdaptiveScreen
 
 @Composable
 fun UploadScreen(
     onInvoiceSent: () -> Unit,
+    sharedUri: Uri? = null,
     viewModel: UploadViewModel = viewModel(),
 ) {
     val selectedFile by viewModel.selectedFile.collectAsState()
@@ -47,12 +50,25 @@ fun UploadScreen(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let(viewModel::selectFile) }
 
-    LaunchedEffect(Unit) {
-        SharedFileHolder.consume()?.let(viewModel::selectFile)
+    // Sharing a PDF with the app is an explicit "import this" - process it immediately
+    // (saved default passwords are tried as usual). Only if that fails, e.g. a password
+    // nobody saved yet, does the user land on the form with the file already picked.
+    LaunchedEffect(sharedUri) {
+        sharedUri?.let(viewModel::importSharedFile)
     }
 
+    val context = LocalContext.current
     LaunchedEffect(uploadState) {
-        if (uploadState is UploadState.Success) onInvoiceSent()
+        val state = uploadState
+        if (state is UploadState.Success) {
+            val invoice = state.invoice.invoice
+            Toast.makeText(
+                context,
+                context.getString(R.string.upload_success_toast, "%02d/%d".format(invoice.referenceMonth, invoice.referenceYear)),
+                Toast.LENGTH_SHORT,
+            ).show()
+            onInvoiceSent()
+        }
     }
 
     AdaptiveScreen(alignment = Alignment.Center) {
