@@ -38,18 +38,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!--
-              Share-to-import. application/pdf alone isn't enough: invoices that arrive by
-              e-mail are often attached as application/octet-stream (or the legacy
-              application/x-pdf), and the sharing app passes that type along unchanged -
-              Casshole then never showed up in the share sheet. The content is checked for
-              the PDF header before importing (UploadViewModel).
+              Share-to-import. Bank invoices attached to e-mails come with all sorts of MIME
+              types (application/octet-stream, binary/octet-stream, application/force-download,
+              application/x-pdf...) and a viewer re-sharing the attachment passes that type
+              along unchanged - with only application/pdf here, Casshole never showed up in
+              the share sheet on the real phone. So any application/* or binary/* file is
+              accepted, and UploadViewModel checks the %PDF- header before importing.
+              Images, text and the like stay out.
             -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/*" />
+                <data android:mimeType="binary/*" />
+            </intent-filter>
+            <!-- "Open with" for a PDF (e.g. straight from the e-mail attachment): same import. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
                 <data android:mimeType="application/pdf" />
-                <data android:mimeType="application/x-pdf" />
-                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
